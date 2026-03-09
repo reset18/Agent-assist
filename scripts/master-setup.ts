@@ -82,8 +82,10 @@ async function startTempAuthServer(provider: string): Promise<string> {
             }
         });
 
-        server.listen(port, () => {
-            console.log(chalk.cyan(`\n🌐 Portal de Login activo en: ${chalk.underline(`http://localhost:${port}/auth-provider?p=${provider}`)}`));
+        // Usamos puerto 0 para que el SO asigne uno libre
+        server.listen(0, () => {
+            const assignedPort = (server.address() as any).port;
+            console.log(chalk.cyan(`\n🌐 Portal de Login activo en: ${chalk.underline(`http://localhost:${assignedPort}/auth-provider?p=${provider}`)}`));
             console.log(chalk.yellow('Espereando a que completes el login en tu navegador...\n'));
         });
     });
