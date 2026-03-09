@@ -101,8 +101,8 @@ Se te han otorgado herramientas para interactuar con sistemas locales de manera 
     const personalityToUse = getSetting('agent_personality') || 'Eficiente, natural y directo.';
     const functionToUse = getSetting('agent_function') || 'Ayudar en tareas generales.';
 
-    const provider = getSetting('model_provider') || 'openrouter';
-    let model = getSetting('model_name') || 'openrouter/free';
+    const provider = getSetting('model_provider') || process.env.LLM_PROVIDER || 'openrouter';
+    let model = getSetting('model_name') || process.env.MODEL_NAME || 'openrouter/free';
 
     if (provider === 'openai' && (model.includes('openrouter') || model === '' || model === 'gpt-5.2')) {
         model = 'gpt-4o-mini';

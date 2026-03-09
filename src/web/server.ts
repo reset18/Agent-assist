@@ -18,13 +18,19 @@ app.get('/api/settings', (req, res) => {
     const provider = getSetting('model_provider') || process.env.LLM_PROVIDER || 'openrouter';
     let apiKey = getSetting('llm_api_key') || '';
 
-    // Solo si no hay nada en la memoria persistente, intentamos cargar de los .env como fallback
+    // Si no hay API Key en la DB, intentamos cargar de los .env como fallback
     if (!apiKey || apiKey === 'SUTITUYE POR EL TUYO') {
-        if (provider === 'openrouter') apiKey = process.env.OPENROUTER_API_KEY || '';
-        if (provider === 'groq') apiKey = process.env.GROQ_API_KEY || '';
-        if (provider === 'openai') apiKey = process.env.OPENAI_API_KEY || '';
-        if (provider === 'anthropic') apiKey = process.env.ANTHROPIC_API_KEY || '';
-        if (provider === 'google') apiKey = process.env.GEMINI_API_KEY || '';
+        const envKeyMap: any = {
+            openrouter: 'OPENROUTER_API_KEY',
+            groq: 'GROQ_API_KEY',
+            openai: 'OPENAI_API_KEY',
+            anthropic: 'ANTHROPIC_API_KEY',
+            google: 'GEMINI_API_KEY'
+        };
+        const envKeyName = envKeyMap[provider];
+        if (envKeyName) {
+            apiKey = process.env[envKeyName] || '';
+        }
 
         if (apiKey === 'SUTITUYE POR EL TUYO') apiKey = '';
     }
