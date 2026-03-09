@@ -373,9 +373,9 @@ app.get('/api/check-update', (req, res) => {
     const pkg = JSON.parse(fs.readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
     const currentVersion = pkg.version;
     // Simulamos un backend de actualizaciones. 
-    // Si la versión es 5.0.0, diremos que hay una 5.0.1 disponible (para probar el modal)
+    // Si la versión es 0.2.1, diremos que hay una 0.2.2 disponible (para probar el modal)
     // O simplemente devolvemos la misma si ya estamos en la última.
-    const latestVersion = "0.2.2";
+    const latestVersion = "0.2.3";
 
     res.json({
         current: currentVersion,
