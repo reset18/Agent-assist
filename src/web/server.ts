@@ -169,7 +169,10 @@ app.get('/api/status', (req, res) => {
         },
         llm: {
             provider: getSetting('model_provider') || process.env.LLM_PROVIDER || 'openrouter',
-            model: getSetting('model_name') || process.env.MODEL_NAME || 'n/a'
+            model: getSetting('model_name') || process.env.MODEL_NAME || 'n/a',
+            primary: getSetting('llm_primary_provider'),
+            secondary: getSetting('llm_secondary_provider'),
+            tertiary: getSetting('llm_tertiary_provider')
         }
     });
 });
@@ -208,8 +211,13 @@ app.post('/api/settings', (req, res) => {
         bot_telegram_enabled, bot_whatsapp_enabled,
         gog_client_secret, gog_email,
         voice_enabled, voice_engine, openai_voice_id,
-        elevenlabs_api_key, elevenlabs_voice_id
+        elevenlabs_api_key, elevenlabs_voice_id,
+        llm_primary_provider, llm_secondary_provider, llm_tertiary_provider
     } = req.body;
+
+    if (llm_primary_provider !== undefined) setSetting('llm_primary_provider', llm_primary_provider);
+    if (llm_secondary_provider !== undefined) setSetting('llm_secondary_provider', llm_secondary_provider);
+    if (llm_tertiary_provider !== undefined) setSetting('llm_tertiary_provider', llm_tertiary_provider);
 
     // Guardar dinámicamente cualquier skill enviada
     for (const key of Object.keys(req.body)) {
@@ -309,35 +317,72 @@ app.post('/api/models', async (req, res) => {
     }
 
     let url = '';
+    const headers: any = {};
+
     if (provider === 'openrouter') url = 'https://openrouter.ai/api/v1/models';
     if (provider === 'groq') url = 'https://api.groq.com/openai/v1/models';
     if (provider === 'openai') url = 'https://api.openai.com/v1/models';
     if (provider === 'qwen') url = 'https://dashscope.aliyuncs.com/compatible-mode/v1/models';
+    if (provider === 'google') url = `https://generativelanguage.googleapis.com/v1beta/models?key=${token}`;
+
+    if (token && token !== 'SUTITUYE POR EL TUYO' && provider !== 'google') {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
 
     try {
-        const headers: any = {};
-        if (token && token !== 'SUTITUYE POR EL TUYO') {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
         const response = await fetch(url, { headers });
         if (!response.ok) {
             return res.status(response.status).json({ error: `El proveedor rechazó la conexión (${response.status}). ¿API Key válida?` });
         }
 
         const data = await response.json();
-        const modelList = data.data || [];
+        let formatted = [];
 
-        // Formatear para enviar solo ID y Nombre
-        const formatted = modelList.map((m: any) => ({
-            id: m.id,
-            name: m.name || m.id
-        }));
+        if (provider === 'google') {
+            formatted = (data.models || [])
+                .filter((m: any) => m.name.includes('gemini'))
+                .map((m: any) => ({
+                    id: m.name.replace('models/', ''),
+                    name: m.displayName || m.name
+                }));
+        } else {
+            const modelList = data.data || [];
+            formatted = modelList.map((m: any) => ({
+                id: m.id,
+                name: m.name || m.id
+            }));
+        }
 
         res.json({ models: formatted });
     } catch (e: any) {
         res.status(500).json({ error: 'Error de red contactando al proveedor de IA.' });
     }
+});
+
+import { getTokenUsageToday } from '../db/index.js';
+app.get('/api/tokens/today', (req, res) => {
+    try {
+        const stats = getTokenUsageToday();
+        res.json(stats);
+    } catch (e) {
+        res.status(500).json({ error: 'Error obteniendo estadísticas' });
+    }
+});
+
+app.get('/api/check-update', (req, res) => {
+    const pkg = JSON.parse(fs.readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
+    const currentVersion = pkg.version;
+    // Simulamos un backend de actualizaciones. 
+    // Si la versión es 5.0.0, diremos que hay una 5.0.1 disponible (para probar el modal)
+    // O simplemente devolvemos la misma si ya estamos en la última.
+    const latestVersion = "5.0.1"; 
+    
+    res.json({
+        current: currentVersion,
+        latest: latestVersion,
+        updateAvailable: currentVersion !== latestVersion,
+        changelog: "Mejoras en el sistema de voz, multi-tier LLM y seguimiento de tokens (v5.0 Enterprise)."
+    });
 });
 
 app.get('/api/skills', (req, res) => {

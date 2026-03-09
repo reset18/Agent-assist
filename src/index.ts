@@ -1,5 +1,6 @@
 import 'dotenv/config';
-import { initDb, getSetting } from './db/index.js';
+import fs from 'fs';
+import { initDb, getSetting, setSetting } from './db/index.js';
 import { startWebServer } from './web/server.js';
 import { startTelegramBot } from './bots/telegram.js';
 import { startWhatsappBot } from './bots/whatsapp.js';
@@ -10,6 +11,8 @@ async function main() {
 
     // 1. Inicializar base de datos
     initDb();
+    const pkg = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    setSetting('agent_version', pkg.version);
     const agentName = getSetting('agent_name');
     console.log(`[Core] Nombre del agente: ${agentName}`);
 

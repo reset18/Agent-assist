@@ -1,6 +1,25 @@
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import { getSetting } from '../db/index.js';
 
 export async function transcribeAudio(audioBuffer: Buffer, filename: string): Promise<string> {
+    const voiceEngine = getSetting('stt_engine') || 'cloud';
+
+    if (voiceEngine === 'local') {
+        console.log('[Audio] Usando Whisper Local para transcripción...');
+        try {
+            const { transcribe } = await import('whisper-node');
+            const tmpFile = path.join(os.tmpdir(), filename);
+            fs.writeFileSync(tmpFile, audioBuffer);
+            // @ts-ignore
+            const result = await transcribe(tmpFile);
+            return result;
+        } catch (e) {
+            console.warn('[Audio] Whisper-node no detectado o falló. Reintentando con cloud fallback...');
+        }
+    }
+
     const provider = getSetting('model_provider') || 'openrouter';
     const dbApiKey = getSetting('llm_api_key') || '';
 
@@ -18,8 +37,7 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
         apiKey = dbApiKey || process.env.OPENAI_API_KEY || '';
         model = 'whisper-1';
     } else {
-        // Fallback automático si estamos en otro proveedor (Claude/Gemini/OpenRouter)
-        // Intentamos usar lo que esté disponible en variables de entorno como red de seguridad
+        // Fallback automático
         if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'SUTITUYE POR EL TUYO') {
             transcriptionUrl = 'https://api.openai.com/v1/audio/transcriptions';
             apiKey = process.env.OPENAI_API_KEY;
@@ -29,13 +47,11 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
             apiKey = process.env.GROQ_API_KEY;
             model = 'whisper-large-v3';
         } else {
-            throw new Error('No hay una configuración válida para transcribir audio. Por favor, configura OpenAI o Groq en el panel.');
+            throw new Error('No hay una configuración válida para transcribir audio (OpenAI/Groq).');
         }
     }
 
-    if (!apiKey) {
-        throw new Error('API Key para la transcripción de audio no encontrada.');
-    }
+    if (!apiKey) throw new Error('API Key para la transcripción no encontrada.');
 
     const form = new FormData();
     const blob = new Blob([new Uint8Array(audioBuffer)]);
@@ -47,9 +63,7 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
         const response = await fetch(transcriptionUrl, {
             method: 'POST',
             body: form,
-            headers: {
-                'Authorization': `Bearer ${apiKey}`
-            }
+            headers: { 'Authorization': `Bearer ${apiKey}` }
         });
 
         if (!response.ok) {

@@ -105,6 +105,21 @@ export function setToolEnabled(toolName: string, enabled: boolean) {
     stmt.run(toolName, enabled ? 1 : 0);
 }
 
+export function addTokenUsage(provider: string, tokens: number) {
+    const stmt = db.prepare('INSERT INTO tokens_usage (provider, tokens_count) VALUES (?, ?)');
+    stmt.run(provider, tokens);
+}
+
+export function getTokenUsageToday() {
+    const stmt = db.prepare("SELECT provider, SUM(tokens_count) as total FROM tokens_usage WHERE date = date('now') GROUP BY provider");
+    return stmt.all() as { provider: string, total: number }[];
+}
+
+export function getTokenUsageHistory(days = 7) {
+    const stmt = db.prepare("SELECT date, provider, SUM(tokens_count) as total FROM tokens_usage WHERE date >= date('now', ?) GROUP BY date, provider ORDER BY date DESC");
+    return stmt.all(`-${days} days`) as { date: string, provider: string, total: number }[];
+}
+
 export function getDbInstance() {
     return db;
 }

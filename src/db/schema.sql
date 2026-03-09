@@ -24,6 +24,15 @@ CREATE TABLE IF NOT EXISTS tools_config (
   enabled INTEGER NOT NULL DEFAULT 1
 );
 
+CREATE TABLE IF NOT EXISTS tokens_usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provider TEXT NOT NULL,
+  tokens_count INTEGER NOT NULL,
+  date TEXT NOT NULL DEFAULT (date('now')),
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Valores por defecto iniciales
 INSERT OR IGNORE INTO sessions (id, name) VALUES ('default', 'Chat Principal');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('agent_name', 'AgentAssist');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('agent_version', '1.0.0');

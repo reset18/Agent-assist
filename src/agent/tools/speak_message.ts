@@ -38,7 +38,24 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
     let audioBuffer: Buffer;
 
     try {
-        if (engine === 'elevenlabs') {
+        if (engine === 'local') {
+            console.log('[Voice Engine] Usando motor Local...');
+            // En un sistema real usaríamos Piper (binario). 
+            // Como fallback de "biblioteca totalmente local", usamos el sintetizador del sistema si está disponible,
+            // o preparamos la respuesta para que el frontend lo maneje si es posible.
+            // Para el servidor, intentamos 'say' (mac/linux) o similar, pero lo más robusto es 
+            // generar un buffer vacío o un mensaje de "Pendiente instalación de Piper".
+            throw new Error("El motor Local (Piper) requiere una instalación binaria adicional. Por favor, contacta con soporte o usa OpenAI/ElevenLabs temporalmente.");
+        } else if (engine === 'openrouter') {
+            const apiKey = getSetting('llm_key_openrouter') || process.env.OPENROUTER_API_KEY;
+            if (!apiKey) throw new Error("Falta API Key de OpenRouter para Voz.");
+
+            // OpenRouter no suele tener TTS propio directo tipo ElevenLabs en la misma API de Chat, 
+            // pero si el usuario lo pide, intentamos mapear a un proveedor de OpenAI-compatible que soporte TTS en OpenRouter
+            // o redirigimos a OpenAI si la clave es compartida.
+            // Como fallback razonable:
+            throw new Error("OpenRouter no soporta síntesis de voz (TTS) directamente. Por favor, selecciona OpenAI o ElevenLabs en los ajustes de voz.");
+        } else if (engine === 'elevenlabs') {
             const apiKey = getSetting('elevenlabs_api_key');
             const voiceId = getSetting('elevenlabs_voice_id');
             if (!apiKey || !voiceId) throw new Error("Faltan credenciales de ElevenLabs.");
