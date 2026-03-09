@@ -13,7 +13,7 @@ YELLOW='\033[1-33m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}##################################################${NC}"
-echo -e "${BLUE}#        HORUS AGENTASSIST - SUPER INSTALLER     #${NC}"
+echo -e "${BLUE}#        AGENT-ASSIST - SUPER INSTALLER          #${NC}"
 echo -e "${BLUE}##################################################${NC}"
 
 # 1. Verificar Sudo
@@ -68,8 +68,8 @@ if [ ! -f ".env" ]; then
 fi
 
 read -p "Introduce tu OpenRouter/LLM API Key: " API_KEY
-read -p "Nombre del Agente [Horus]: " AGENT_NAME
-AGENT_NAME=${AGENT_NAME:-Horus}
+read -p "Nombre del Agente [Agent-Assist]: " AGENT_NAME
+AGENT_NAME=${AGENT_NAME:-Agent-Assist}
 read -p "Puerto del servidor [3000]: " PORT
 PORT=${PORT:-3000}
 
@@ -85,9 +85,9 @@ fi
 
 echo -e "${GREEN}Configuración básica guardada en .env${NC}"
 
-# 7. Preparar Horus CLI + Doctor
-echo -e "${GREEN}[5/7] Creando Horus CLI & Doctor...${NC}"
-cat << 'EOF' > /usr/local/bin/horus
+# 7. Preparar Agent-Assist CLI + Doctor
+echo -e "${GREEN}[5/7] Creando Agent-Assist CLI & Doctor...${NC}"
+cat << 'EOF' > /usr/local/bin/agent-assist
 #!/bin/bash
 GREEN='\033[0-32m'
 BLUE='\033[0-34m'
@@ -97,19 +97,19 @@ NC='\033[0m'
 
 case "$1" in
   logs)
-    pm2 logs horus
+    pm2 logs agent-assist
     ;;
   restart)
-    pm2 restart horus
+    pm2 restart agent-assist
     ;;
   status)
-    pm2 status horus
+    pm2 status agent-assist
     ;;
   stop)
-    pm2 stop horus
+    pm2 stop agent-assist
     ;;
   doctor)
-    echo -e "${BLUE}=== Horus System Doctor ===${NC}"
+    echo -e "${BLUE}=== Agent-Assist System Doctor ===${NC}"
     
     # Check Node
     NODE_V=$(node -v 2>/dev/null || echo "No instalado")
@@ -138,12 +138,12 @@ case "$1" in
 
     # Check PM2
     echo -n "Proceso PM2: "
-    if pm2 status horus | grep -q "online"; then
+    if pm2 status agent-assist | grep -q "online"; then
         echo -e "${GREEN}Online (OK)${NC}"
     else
         echo -e "${RED}Offline${NC}"
         echo -e "${BLUE}Intentando reiniciar...${NC}"
-        pm2 restart horus || pm2 start dist/index.js --name horus
+        pm2 restart agent-assist || pm2 start dist/index.js --name agent-assist
     fi
 
     # Check Env
@@ -155,16 +155,16 @@ case "$1" in
     fi
     ;;
   *)
-    echo -e "${BLUE}Comandos de Horus:${NC}"
-    echo "  horus status  - Ver estado del proceso"
-    echo "  horus logs    - Ver logs en tiempo real"
-    echo "  horus restart - Reiniciar el agente"
-    echo "  horus stop    - Detener el agente"
-    echo "  horus doctor  - Diagnosticar y reparar el sistema"
+    echo -e "${BLUE}Comandos de Agent-Assist:${NC}"
+    echo "  agent-assist status  - Ver estado del proceso"
+    echo "  agent-assist logs    - Ver logs en tiempo real"
+    echo "  agent-assist restart - Reiniciar el agente"
+    echo "  agent-assist stop    - Detener el agente"
+    echo "  agent-assist doctor  - Diagnosticar y reparar el sistema"
     ;;
 esac
 EOF
-chmod +x /usr/local/bin/horus
+chmod +x /usr/local/bin/agent-assist
 
 # 8. Iniciar con PM2
 echo -e "${GREEN}[6/7] Compilando e Iniciando Agente...${NC}"
