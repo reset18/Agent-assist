@@ -87,8 +87,18 @@ chmod +x /usr/local/bin/agent-assist
 # 8. Compilación y Arranque final
 npm install -g pm2
 npm run build
-pm2 start dist/index.js --name agent-assist
-pm2 save
-env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u root --hp /root || true
+
+# Detener cualquier instancia como root previa
+pm2 kill || true
+
+# Arrancar agente como el usuario original usando 'su' o ejecutándolo sin sudo en el entorno
+REAL_USER=${SUDO_USER:-$USER}
+echo -e "\033[0-32mIniciando PM2 como usuario: $REAL_USER\033[0m"
+
+# Dar permisos al usuario original sobre la carpeta
+chown -R $REAL_USER:$REAL_USER .
+
+sudo -u $REAL_USER bash -c "export NVM_DIR=\"$HOME/.nvm\"; [ -s \"\$NVM_DIR/nvm.sh\" ] && \\. \"\$NVM_DIR/nvm.sh\"; pm2 start dist/index.js --name agent-assist && pm2 save"
+env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $REAL_USER --hp $(eval echo ~$REAL_USER) || true
 
 # Mensaje final
