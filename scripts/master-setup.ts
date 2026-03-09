@@ -97,9 +97,10 @@ async function startSetup() {
             type: 'list',
             name: 'confirm',
             message: chalk.red('⚠️  ADVERTENCIA: Esta instalación tomará el CONTROL TOTAL de este sistema y modificará archivos críticos. ¿Estás seguro de continuar?'),
+            pageSize: 5,
             choices: [
-                { name: 'Sí, acepto el control total y deseo continuar', value: true },
-                { name: 'No, cancelar instalación', value: false }
+                { name: '✅ Sí, acepto el CONTROL TOTAL y deseo continuar', value: true },
+                { name: '❌ No, cancelar instalación', value: false }
             ]
         }
     ]);
@@ -115,6 +116,7 @@ async function startSetup() {
             type: 'list',
             name: 'provider',
             message: 'Selecciona tu cerebro (IA):',
+            pageSize: 10,
             choices: [
                 { name: 'OpenRouter (Recomendado)', value: 'openrouter' },
                 { name: 'OpenAI (ChatGPT)', value: 'openai' },
@@ -142,6 +144,7 @@ async function startSetup() {
             type: 'list',
             name: 'model',
             message: 'Selecciona el modelo que deseas usar:',
+            pageSize: 15,
             choices: models
         }
     ]);
