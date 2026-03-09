@@ -102,29 +102,68 @@
     <div class="auth-card">
         <div class="logo">AgentAssist</div>
         <div class="provider-name" id="provider_display">Proveedor</div>
-        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 30px;">Introduce tu API Key para vincular
-            este cerebro.</p>
 
-        <input type="password" id="api_key" placeholder="Pega tu API Key aquí..." />
-        <button class="btn" id="login_btn" onclick="performLogin()">Vincular Cerebro</button>
+        <div id="setup_steps">
+            <div class="step" style="text-align: left; margin-bottom: 25px;">
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--fg);">Paso 1: Obtén tu
+                    API Key</div>
+                <p style="color: var(--text-muted); font-size: 13px; line-height: 1.5; margin-bottom: 12px;">Haz clic en
+                    el siguiente botón para ir al panel oficial de tu proveedor y copiar tu clave secreta.</p>
+                <a href="#" id="provider_link" target="_blank" class="btn"
+                    style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(59, 130, 246, 0.1); border: 1px solid var(--primary); color: var(--primary);">
+                    Ir al Dashboard de <span id="btn_provider_name">IA</span>
+                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                </a>
+            </div>
 
-        <div id="status"></div>
+            <div class="step" style="text-align: left;">
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--fg);">Paso 2: Vincula tu
+                    Cerebro</div>
+                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">Pega la clave que has copiado
+                    aquí abajo para que el Agente pueda activarse.</p>
+                <input type="password" id="api_key" placeholder="sk-..." />
+                <button class="btn" id="login_btn" onclick="performLogin()"
+                    style="box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">Vincular con el Agente</button>
+            </div>
+        </div>
+
+        <div id="status" style="margin-top: 25px; transition: all 0.3s;"></div>
     </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const provider = urlParams.get('p') || 'openai';
-        document.getElementById('provider_display').textContent = provider.toUpperCase();
+
+        const providerData = {
+            openai: { name: 'OpenAI', url: 'https://platform.openai.com/api-keys' },
+            anthropic: { name: 'Anthropic', url: 'https://console.anthropic.com/settings/keys' },
+            google: { name: 'Gemini', url: 'https://aistudio.google.com/app/apikey' },
+            gemini: { name: 'Gemini', url: 'https://aistudio.google.com/app/apikey' },
+            groq: { name: 'Groq', url: 'https://console.groq.com/keys' },
+            openrouter: { name: 'OpenRouter', url: 'https://openrouter.ai/settings/keys' }
+        };
+
+        const current = providerData[provider.toLowerCase()] || providerData.openai;
+        document.getElementById('provider_display').textContent = current.name;
+        document.getElementById('btn_provider_name').textContent = current.name;
+        document.getElementById('provider_link').href = current.url;
 
         async function performLogin() {
-            const apiKey = document.getElementById('api_key').value;
+            const apiKey = document.getElementById('api_key').value.trim();
             const status = document.getElementById('status');
             const btn = document.getElementById('login_btn');
 
-            if (!apiKey) return;
+            if (!apiKey) {
+                status.textContent = '⚠️ Por favor, pega tu clave primero.';
+                status.style.color = 'var(--danger)';
+                return;
+            }
 
             btn.disabled = true;
-            status.textContent = '⌛ Verificando...';
+            status.textContent = '⌛ Verificando conexión...';
             status.style.color = 'var(--primary)';
 
             try {
@@ -135,25 +174,37 @@
                 });
 
                 if (res.ok) {
-                    status.textContent = '✅ ¡Éxito! Puedes cerrar esta ventana.';
+                    status.innerHTML = '<div style="background: rgba(16, 185, 129, 0.1); padding: 15px; border-radius: 12px; border: 1px solid var(--success);">' +
+                        '<div style="font-weight: 700; margin-bottom: 5px;">✅ ¡Conexión Exitosa!</div>' +
+                        '<div style="font-size: 13px; opacity: 0.8;">El instalador ya ha recibido la clave. Puedes cerrar esta ventana.</div>' +
+                        '</div>';
                     status.style.color = 'var(--success)';
-                    // Enviar mensaje al opener si existe
+
                     if (window.opener) {
                         window.opener.postMessage({ type: 'llm-auth-success', provider }, '*');
                     }
-                    setTimeout(() => window.close(), 2000);
+
+                    // Pequeño retardo para que el usuario lea el éxito
+                    setTimeout(() => {
+                        window.close();
+                        // Fallback si window.close() falla (bloqueo navegador)
+                        status.innerHTML += '<p style="margin-top: 10px; font-size: 12px;">Puedes cerrar la pestaña manualmente si no se cierra sola.</p>';
+                    }, 3000);
                 } else {
                     const d = await res.json();
-                    status.textContent = '❌ Error: ' + (d.error || 'Clave inválida');
+                    status.textContent = '❌ Error de Verificación: ' + (d.error || 'Clave no válida.');
                     status.style.color = 'var(--danger)';
                     btn.disabled = false;
                 }
             } catch (e) {
-                status.textContent = '❌ Error de red';
+                status.textContent = '❌ Error de Servidor. ¿Está el agente corriendo?';
                 status.style.color = 'var(--danger)';
                 btn.disabled = false;
             }
         }
+
+        // Auto-foco al input
+        document.getElementById('api_key').focus();
     </script>
 </body>
 

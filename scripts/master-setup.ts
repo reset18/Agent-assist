@@ -85,8 +85,27 @@ async function startTempAuthServer(provider: string): Promise<string> {
         // Usamos puerto 0 para que el SO asigne uno libre
         server.listen(0, () => {
             const assignedPort = (server.address() as any).port;
-            console.log(chalk.cyan(`\n🌐 Portal de Login activo en: ${chalk.underline(`http://localhost:${assignedPort}/auth-provider?p=${provider}`)}`));
-            console.log(chalk.yellow('Espereando a que completes el login en tu navegador...\n'));
+            const networkInterfaces = os.networkInterfaces();
+            let localIp = 'localhost';
+
+            // Intentar encontrar una IP de red local (IPv4, no interna)
+            for (const iface of Object.values(networkInterfaces)) {
+                if (!iface) continue;
+                for (const details of iface) {
+                    if (details.family === 'IPv4' && !details.internal) {
+                        localIp = details.address;
+                        break;
+                    }
+                }
+                if (localIp !== 'localhost') break;
+            }
+
+            console.log(chalk.cyan(`\n🌐 Portal de Login activo en:`));
+            console.log(chalk.white(`   - Local:    ${chalk.underline(`http://localhost:${assignedPort}/auth-provider?p=${provider}`)}`));
+            if (localIp !== 'localhost') {
+                console.log(chalk.white(`   - Red (VM): ${chalk.underline(`http://${localIp}:${assignedPort}/auth-provider?p=${provider}`)}`));
+            }
+            console.log(chalk.yellow('\nEsperando a que completes el login en tu navegador...\n'));
         });
     });
 }
