@@ -185,6 +185,7 @@ async function startSetup() {
     updateEnv(keyMap[aiConfig.provider], aiConfig.apiKey);
     updateEnv('MODEL_NAME', modelSelect.model);
 
+    const finalPort = getEnv('PORT') || '3005';
     updateEnv('PORT', finalPort.toString());
 
     // Plataforma Setup
