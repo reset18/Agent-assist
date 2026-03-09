@@ -375,7 +375,7 @@ app.get('/api/check-update', (req, res) => {
     // Simulamos un backend de actualizaciones. 
     // Si la versión es 0.2.3, diremos que hay una 0.2.4 disponible (para probar el modal)
     // O simplemente devolvemos la misma si ya estamos en la última.
-    const latestVersion = "0.2.8";
+    const latestVersion = "0.2.9";
 
     res.json({
         current: currentVersion,

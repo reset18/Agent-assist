@@ -1097,7 +1097,17 @@
                 style="width: 100%; justify-content: center; margin-bottom: 12px; font-size: 14px; margin-top: 10px;">
                 <span id="theme-icon">🌗 Auto</span>
             </button>
-            <div style="font-size: 13px; color: var(--text-muted); text-align: center;">v1.0.0 Local</div>
+            <div id="ui_version_label"
+                style="font-size: 12px; color: var(--text-muted); text-align: center; opacity: 0.8;">v1.0.0 Local</div>
+
+            <!-- DEBUG BOX (Micro-consola visual) -->
+            <div id="debug_box"
+                style="margin-top: 10px; padding: 6px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 10px; color: #fbbf24; display: none; max-height: 80px; overflow-y: auto; border: 1px solid rgba(251,191,36,0.2);">
+                <div
+                    style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(251,191,36,0.1); padding-bottom: 2px;">
+                    DEBUG LOG</div>
+                <div id="debug_content"></div>
+            </div>
         </div>
     </aside>
 
@@ -1972,11 +1982,28 @@
 
     <script>
         // Sistema de Registro de Errores Críticos (Detección para el usuario)
+        // --- SISTEMA DE DIAGNÓSTICO VISUAL ---
+        const debugBox = document.getElementById('debug_box');
+        const debugContent = document.getElementById('debug_content');
+
+        function logDebug(msg, type = 'info') {
+            if (!debugBox || !debugContent) return;
+            debugBox.style.display = 'block';
+            const log = document.createElement('div');
+            log.style.marginBottom = '2px';
+            log.style.color = type === 'error' ? '#f87171' : '#fbbf24';
+            log.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            debugContent.appendChild(log);
+            if (debugContent.children.length > 5) debugContent.removeChild(debugContent.firstChild);
+            debugBox.scrollTop = debugBox.scrollHeight;
+        }
+
         window.onerror = function (msg, url, line) {
+            logDebug(`ERR: ${msg} (L:${line})`, 'error');
             console.error("CRITICAL JS ERROR:", msg, "at", line);
             const errBox = document.createElement('div');
             errBox.style = "position:fixed; top:0; left:0; width:100%; background:red; color:white; padding:10px; z-index:9999; text-align:center; font-weight:bold; font-size:12px;";
-            errBox.textContent = "Error en la Web: " + msg + " (Línea " + line + "). Por favor, contacta con soporte.";
+            errBox.textContent = "Error en la Web: " + msg + " (Línea " + line + ").";
             document.body.appendChild(errBox);
             setTimeout(() => errBox.remove(), 8000);
         };
@@ -2026,46 +2053,54 @@
         }
 
         function navigate(pageId) {
-            // Ocultar todas las páginas
-            document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
-            // Quitar clase activa del sidebar
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            logDebug(`Navigating to: ${pageId}`);
+            try {
+                // Ocultar todas las páginas
+                document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
+                // Quitar clase activa del sidebar
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
 
-            // Activar nueva página (si está dentro del container de ajustes)
-            const targetPage = document.getElementById(pageId);
-            if (targetPage) targetPage.classList.add('active');
+                // Activar nueva página
+                const targetPage = document.getElementById(pageId);
+                if (targetPage) {
+                    targetPage.classList.add('active');
+                } else {
+                    logDebug(`Target page not found: ${pageId}`, 'error');
+                }
 
-            // Toggle visibilidad del settings_container para no afectar el flujo del scroll
-            if (pageId === 'chat') {
-                document.getElementById('settings_container').style.display = 'none';
-                document.getElementById('chat').style.display = 'flex'; // Chat es contenedor principal flexible
-            } else {
-                document.getElementById('settings_container').style.display = 'block';
-                document.getElementById('chat').style.display = 'none'; // Ocultar chat cuando estamos en otra tab
-            }
+                // Toggle visibilidad del settings_container
+                const settingsContainer = document.getElementById('settings_container');
+                const chatContainer = document.getElementById('chat');
 
-            // Buscar y activar el botón del sidebar correspondiente (basado en el onclick literal de esta UI)
-            const targetBtn = Array.from(document.querySelectorAll('.nav-item')).find(btn => btn.getAttribute('onclick').includes(pageId));
-            if (targetBtn) targetBtn.classList.add('active');
+                if (pageId === 'chat') {
+                    if (settingsContainer) settingsContainer.style.display = 'none';
+                    if (chatContainer) chatContainer.style.display = 'flex';
+                } else {
+                    if (settingsContainer) settingsContainer.style.display = 'block';
+                    if (chatContainer) chatContainer.style.display = 'none';
+                }
 
-            // En móviles, autocerrar el menú al navegar
-            if (window.innerWidth <= 768) {
-                sidebar.classList.remove('mobile-open');
-            }
+                // Activar el botón del sidebar correspondiente (ahora usando data-page)
+                document.querySelectorAll('.nav-item').forEach(btn => {
+                    const onclickStr = btn.getAttribute('onclick') || '';
+                    if (onclickStr.includes(`'${pageId}'`)) {
+                        btn.classList.add('active');
+                    }
+                });
 
-            // Guardar pestaña actual en LocalStorage para mantenerla al recargar
-            localStorage.setItem('agentLastPage', pageId);
+                if (window.innerWidth <= 768) sidebar.classList.remove('mobile-open');
+                localStorage.setItem('agentLastPage', pageId);
 
-            // Mostrar u ocultar botones del header según la página
-            const newChatBtn = document.getElementById('new_chat_btn');
-            const sessionsNav = document.getElementById('sessions_nav');
+                // Header buttons
+                const newChatBtn = document.getElementById('new_chat_btn');
+                const sessionsNav = document.getElementById('sessions_nav');
+                const isChat = pageId === 'chat';
 
-            if (pageId === 'chat') {
-                if (newChatBtn) newChatBtn.style.display = 'flex';
-                if (sessionsNav) sessionsNav.style.display = 'flex';
-            } else {
-                if (newChatBtn) newChatBtn.style.display = 'none';
-                if (sessionsNav) sessionsNav.style.display = 'none';
+                if (newChatBtn) newChatBtn.style.display = isChat ? 'flex' : 'none';
+                if (sessionsNav) sessionsNav.style.display = isChat ? 'flex' : 'none';
+
+            } catch (e) {
+                logDebug(`NAV ERROR: ${e.message}`, 'error');
             }
         }
 
@@ -2135,6 +2170,13 @@
                     if (s.id === window.currentSessionId) opt.selected = true;
                     select.appendChild(opt);
                 });
+
+                // Sincronizar versión dinámicamente
+                fetch('/api/check-update').then(r => r.json()).then(v => {
+                    const label = document.getElementById('ui_version_label');
+                    if (label) label.textContent = v.current || 'v0.2.7-beta';
+                }).catch(() => { });
+
             } catch (e) {
                 console.error("Error cargando sesiones:", e);
             }
@@ -2150,24 +2192,35 @@
         // Formateador seguro de texto a HTML usando Marked
         function formatChatText(text) {
             if (!text) return '';
+            try {
+                if (typeof marked !== 'undefined') {
+                    marked.setOptions({
+                        breaks: true,
+                        gfm: true,
+                        headerIds: false,
+                        mangle: false
+                    });
+                    let formatted = marked.parse(text);
 
-            // Configurar marked para seguridad y saltos de línea
-            marked.setOptions({
-                breaks: true,
-                gfm: true,
-                headerIds: false,
-                mangle: false
-            });
+                    // Restablecer de capa de escape únicamente la caja del Audio generada por el agente
+                    formatted = formatted.replace(
+                        /\[AUDIO:\s*(\/media\/[^\]]+)\]/gi,
+                        '<audio src="$1" controls style="max-width: 100%; margin-top: 10px; display: block; border-radius: 20px; outline: none;"></audio>'
+                    );
 
-            let formatted = marked.parse(text);
-
-            // Restablecer de capa de escape únicamente la caja del Audio generada por el agente
-            formatted = formatted.replace(
-                /\[AUDIO:\s*(\/media\/[^\]]+)\]/gi,
-                '<audio src="$1" controls style="max-width: 100%; margin-top: 10px; display: block; border-radius: 20px; outline: none;"></audio>'
-            );
-
-            return formatted;
+                    return formatted;
+                }
+            } catch (e) {
+                logDebug(`Marked Error: ${e.message}`, 'error');
+            }
+            // Fallback: Escape básico
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;")
+                .replace(/\n/g, '<br>');
         }
 
         // Cargar configuración actual
