@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  agentassist:
+    build: .
+    container_name: agentassist
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./MCP:/app/MCP
+      - ./brain:/app/brain
+      - ./.env:/app/.env
+    environment:
+      - NODE_ENV=production

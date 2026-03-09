@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Panadería Aurora | Pan artesanal</title>
+  <meta name="description" content="Pan artesanal, bollería y café. Hecho cada mañana con ingredientes de calidad." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <header class="header">
+    <nav class="nav container">
+      <a class="brand" href="#inicio" aria-label="Ir al inicio">
+        <span class="brand__logo" aria-hidden="true">🥖</span>
+        <span class="brand__name">Panadería Aurora</span>
+      </a>
+
+      <button class="nav__toggle" id="navToggle" aria-label="Abrir menú" aria-expanded="false">
+        ☰
+      </button>
+
+      <ul class="nav__links" id="navLinks">
+        <li><a href="#productos">Productos</a></li>
+        <li><a href="#sobre">Sobre nosotros</a></li>
+        <li><a href="#horario">Horario</a></li>
+        <li><a class="btn btn--small" href="#contacto">Pedir</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="inicio">
+    <section class="hero">
+      <div class="container hero__grid">
+        <div class="hero__copy">
+          <p class="badge">Horneado diario • Masa madre • Café</p>
+          <h1>Pan artesanal que huele a hogar.</h1>
+          <p class="lead">
+            Bollería, panes rústicos y dulces tradicionales. Todo hecho cada mañana con ingredientes honestos
+            y mucho cariño (y algo de harina en la nariz).
+          </p>
+          <div class="hero__cta">
+            <a class="btn" href="#productos">Ver productos</a>
+            <a class="btn btn--ghost" href="#contacto">Hacer un pedido</a>
+          </div>
+
+          <div class="hero__highlights">
+            <div class="highlight"><strong>+30</strong><span>productos</span></div>
+            <div class="highlight"><strong>07:00</strong><span>abrimos</span></div>
+            <div class="highlight"><strong>100%</strong><span>artesanal</span></div>
+          </div>
+        </div>
+
+        <div class="hero__art" aria-hidden="true">
+          <svg viewBox="0 0 640 520" class="svg-card" role="img">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stop-color="#f7d9b7"/>
+                <stop offset="1" stop-color="#f3b97a"/>
+              </linearGradient>
+              <linearGradient id="g2" x1="0" x2="1">
+                <stop offset="0" stop-color="#9b4a1f"/>
+                <stop offset="1" stop-color="#c96b2c"/>
+              </linearGradient>
+              <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity=".18"/>
+              </filter>
+            </defs>
+
+            <rect x="20" y="20" width="600" height="480" rx="28" fill="#fff" filter="url(#shadow)"/>
+            <circle cx="520" cy="120" r="70" fill="url(#g1)" opacity=".9"/>
+            <circle cx="140" cy="380" r="90" fill="#ffe9d3" opacity=".9"/>
+
+            <g transform="translate(155,160)">
+              <path d="M50 160c-20-70 15-140 115-150 130-12 220 70 220 160 0 90-75 150-195 150S70 260 50 160z"
+                    fill="url(#g1)" stroke="#e7b68a" stroke-width="6" />
+              <path d="M170 35c-30 20-55 55-70 105" fill="none" stroke="url(#g2)" stroke-width="14" stroke-linecap="round" opacity=".75"/>
+              <path d="M250 25c-30 25-50 60-60 110" fill="none" stroke="url(#g2)" stroke-width="14" stroke-linecap="round" opacity=".75"/>
+              <path d="M330 40c-25 22-40 50-45 95" fill="none" stroke="url(#g2)" stroke-width="14" stroke-linecap="round" opacity=".75"/>
+              <ellipse cx="245" cy="250" rx="190" ry="36" fill="#000" opacity=".07"/>
+            </g>
+
+            <g transform="translate(70,70)">
+              <rect x="0" y="0" width="240" height="70" rx="16" fill="#1c1917"/>
+              <text x="18" y="44" font-size="26" fill="#fff" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial">
+                Recién horneado
+              </text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section id="productos" class="section">
+      <div class="container">
+        <div class="section__head">
+          <h2>Productos</h2>
+          <p>Una selección de lo más pedido. Si no está aquí, probablemente también lo horneamos.</p>
+        </div>
+
+        <div class="grid cards">
+          <article class="card">
+            <div class="card__img" aria-hidden="true"><div class="icon">🥐</div></div>
+            <h3>Croissant de mantequilla</h3>
+            <p>Hojaldre crujiente, interior suave. Peligrosamente adictivo.</p>
+            <p class="price">Desde 1,20 €</p>
+          </article>
+
+          <article class="card">
+            <div class="card__img" aria-hidden="true"><div class="icon">🍞</div></div>
+            <h3>Pan rústico</h3>
+            <p>Corteza dorada, miga aireada. Ideal para tostadas serias.</p>
+            <p class="price">Desde 2,50 €</p>
+          </article>
+
+          <article class="card">
+            <div class="card__img" aria-hidden="true"><div class="icon">🥖</div></div>
+            <h3>Baguette tradicional</h3>
+            <p>Fermentación lenta. Perfecta para bocadillos de campeonato.</p>
+            <p class="price">Desde 1,10 €</p>
+          </article>
+
+          <article class="card">
+            <div class="card__img" aria-hidden="true"><div class="icon">🧁</div></div>
+            <h3>Magdalenas caseras</h3>
+            <p>Esponjosas, con toque de limón. Como las de la abuela (casi).</p>
+            <p class="price">Desde 2,90 € / 6 ud.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="sobre" class="section section--alt">
+      <div class="container two-col">
+        <div>
+          <h2>Sobre nosotros</h2>
+          <p>
+            En <strong>Panadería Aurora</strong> trabajamos con masa madre, fermentaciones lentas y recetas
+            de toda la vida. Somos pequeños, pero salimos al ataque cada madrugada.
+          </p>
+          <ul class="list">
+            <li><strong>Ingredientes:</strong> harina, agua, sal… y paciencia.</li>
+            <li><strong>Encargos:</strong> panes especiales y bandejas dulces.</li>
+            <li><strong>Eventos:</strong> coffee breaks, cumpleaños, reuniones.</li>
+          </ul>
+        </div>
+
+        <div class="quote">
+          <p>“Si el pan está bueno, el día empieza con ventaja.”</p>
+          <span>— El panadero, 05:58 AM</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="horario" class="section">
+      <div class="container">
+        <div class="section__head">
+          <h2>Horario</h2>
+          <p>Ven temprano si quieres la primera hornada (o tarde si quieres charla).</p>
+        </div>
+
+        <div class="hours">
+          <div class="hours__item"><span>Lunes a Viernes</span><strong>07:00 – 20:00</strong></div>
+          <div class="hours__item"><span>Sábado</span><strong>08:00 – 14:30</strong></div>
+          <div class="hours__item"><span>Domingo</span><strong>Cerrado</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contacto" class="section section--alt">
+      <div class="container two-col">
+        <div>
+          <h2>Contacto y pedidos</h2>
+          <p>Rellena el formulario y te preparamos el pedido. (En local no envía nada: es demo.)</p>
+
+          <form class="form" id="orderForm">
+            <label>
+              Nombre
+              <input name="name" type="text" placeholder="Kevin" required />
+            </label>
+            <label>
+              Teléfono / WhatsApp
+              <input name="phone" type="tel" placeholder="+34 600 000 000" required />
+            </label>
+            <label>
+              ¿Qué quieres pedir?
+              <textarea name="order" rows="4" placeholder="2 baguettes, 6 croissants..." required></textarea>
+            </label>
+            <button class="btn" type="submit">Generar pedido</button>
+            <p class="form__hint" id="formHint" aria-live="polite"></p>
+          </form>
+        </div>
+
+        <div class="contact-card">
+          <h3>Visítanos</h3>
+          <p><strong>Dirección:</strong> Calle del Trigo 12, Centro</p>
+          <p><strong>Tel:</strong> +34 600 000 000</p>
+          <p><strong>Email:</strong> hola@panaderiaaurora.com</p>
+
+          <div class="map" aria-hidden="true">
+            <svg viewBox="0 0 520 240" class="svg-map">
+              <rect x="0" y="0" width="520" height="240" rx="16" fill="#fff"/>
+              <path d="M40 70h440M40 140h440" stroke="#e7e5e4" stroke-width="10" stroke-linecap="round"/>
+              <path d="M120 30v180M260 30v180M400 30v180" stroke="#f5f5f4" stroke-width="10" stroke-linecap="round"/>
+              <circle cx="320" cy="120" r="18" fill="#f59e0b"/>
+              <path d="M320 70c-18 0-32 14-32 32 0 28 32 68 32 68s32-40 32-68c0-18-14-32-32-32z"
+                    fill="#fb7185" opacity=".9"/>
+            </svg>
+          </div>
+
+          <a class="btn btn--ghost" href="#inicio">Volver arriba</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__grid">
+      <div>
+        <strong>Panadería Aurora</strong>
+        <p class="muted">Pan artesanal y bollería • Hecho con cariño.</p>
+      </div>
+      <div class="muted">
+        <p>© <span id="year"></span> • Demo local</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
