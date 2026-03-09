@@ -51,6 +51,31 @@
             --bg-rgb: 248, 250, 252;
         }
 
+        /* Scrollbar Personalizado (Estilo Oscuro) */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Soporte para Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) var(--bg);
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg);
@@ -568,8 +593,7 @@
             display: flex;
             flex-direction: column;
             width: 100%;
-            max-width: 1000px;
-            /* Ancho máximo para legibilidad */
+            /* Eliminamos max-width para que el scroll esté a la derecha */
             background-color: var(--bg);
             position: relative;
             overflow: hidden;
@@ -819,7 +843,8 @@
 
         .send-btn-inside {
             position: absolute;
-            right: 12px;
+            right: 32px;
+            /* Ajustado para estar dentro del input considerando el padding del container */
             top: 50%;
             transform: translateY(-50%);
             background: var(--primary);
