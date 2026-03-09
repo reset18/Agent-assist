@@ -1,4 +1,3 @@
-import inquirer from 'inquirer';
 import chalk from 'chalk';
 import ora from 'ora';
 import axios from 'axios';
@@ -8,9 +7,34 @@ import { fileURLToPath } from 'url';
 import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth } = pkg;
 import qrcode from 'qrcode-terminal';
+import readline from 'readline';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Interfaz de lectura nativa para máxima compatibilidad
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+const question = (query: string): Promise<string> => new Promise((resolve) => rl.question(query, resolve));
+
+async function selectOption(message: string, options: { name: string, value: any }[]): Promise<any> {
+    console.log(`\n${chalk.cyan('?')} ${chalk.bold(message)}`);
+    options.forEach((opt, idx) => {
+        console.log(`  ${chalk.yellow(idx + 1 + ')')} ${opt.name}`);
+    });
+
+    while (true) {
+        const answer = await question(chalk.cyan('Selecciona una opción [número]: '));
+        const num = parseInt(answer);
+        if (!isNaN(num) && num > 0 && num <= options.length) {
+            return options[num - 1].value;
+        }
+        console.log(chalk.red('❌ Opción inválida. Inténtalo de nuevo.'));
+    }
+}
 
 // Logo ASCII
 const logo = `
@@ -61,7 +85,6 @@ async function validateApiKey(provider: string, apiKey: string) {
         const response = await axios.get(url, { headers, timeout: 10000 });
         spinner.succeed(chalk.green('¡API Key válida!'));
 
-        // Extraer modelos
         let models: any[] = [];
         if (provider === 'google') {
             models = response.data.models
@@ -70,14 +93,13 @@ async function validateApiKey(provider: string, apiKey: string) {
         } else if (provider === 'anthropic') {
             models = [
                 { name: 'Claude 3.5 Sonnet', value: 'claude-3-5-sonnet-20241022' },
-                { name: 'Claude 3.5 Haiku', value: 'claude-3-5-haiku-20241022' },
-                { name: 'Claude 3 Opus', value: 'claude-3-opus-20240229' }
+                { name: 'Claude 3.5 Haiku', value: 'claude-3-5-haiku-20241022' }
             ];
         } else {
             models = (response.data.data || []).map((m: any) => ({ name: m.id, value: m.id }));
         }
 
-        return models.slice(0, 20); // Limitar a los 20 primeros para no saturar
+        return models.slice(0, 15);
     } catch (error: any) {
         spinner.fail(chalk.red(`Error de validación: ${error.response?.status || error.message}`));
         return null;
@@ -85,91 +107,57 @@ async function validateApiKey(provider: string, apiKey: string) {
 }
 
 async function startSetup() {
-    console.clear();
     console.log(logo);
     console.log(chalk.blue('##################################################'));
     console.log(chalk.blue('#            AGENT-ASSIST MASTER v2.0            #'));
     console.log(chalk.blue('##################################################\n'));
-    console.log(chalk.yellow('💡 Usa las flechas [↑/↓] del teclado para seleccionar y [Enter] para confirmar.\n'));
 
-    const security = await inquirer.prompt([
-        {
-            type: 'rawlist',
-            name: 'confirm',
-            message: chalk.red('⚠️  ADVERTENCIA: Esta instalación tomará el CONTROL TOTAL de este sistema y modificará archivos críticos. ¿Estás seguro de continuar?'),
-            choices: [
-                { name: '✅ Sí, acepto el CONTROL TOTAL y deseo continuar', value: true },
-                { name: '❌ No, cancelar instalación', value: false }
-            ]
-        }
+    const confirm = await selectOption(chalk.red('⚠️  ADVERTENCIA: Esta instalación tomará el CONTROL TOTAL de este sistema. ¿Deseas continuar?'), [
+        { name: 'Sí, acepto el CONTROL TOTAL y deseo continuar', value: true },
+        { name: 'No, cancelar instalación', value: false }
     ]);
 
-    if (!security.confirm) {
+    if (!confirm) {
         console.log(chalk.yellow('Instalación cancelada.'));
         process.exit(0);
     }
 
     // IA Setup
-    const aiConfig = await inquirer.prompt([
-        {
-            type: 'rawlist',
-            name: 'provider',
-            message: 'Selecciona tu cerebro (IA) [Escribe el número y pulsa Enter]:',
-            choices: [
-                { name: 'OpenRouter (Recomendado)', value: 'openrouter' },
-                { name: 'OpenAI (ChatGPT)', value: 'openai' },
-                { name: 'Google Gemini', value: 'google' },
-                { name: 'Anthropic (Claude)', value: 'anthropic' },
-                { name: 'Groq (Velocidad)', value: 'groq' }
-            ]
-        },
-        {
-            type: 'password',
-            name: 'apiKey',
-            message: (answers) => `Introduce tu API Key para ${answers.provider}:`,
-            validate: (val) => val.length > 0 || 'La API Key es obligatoria'
-        }
+    const provider = await selectOption('Selecciona tu cerebro (IA):', [
+        { name: 'OpenRouter (Recomendado)', value: 'openrouter' },
+        { name: 'OpenAI (ChatGPT)', value: 'openai' },
+        { name: 'Google Gemini', value: 'google' },
+        { name: 'Anthropic (Claude)', value: 'anthropic' },
+        { name: 'Groq (Velocidad)', value: 'groq' }
     ]);
 
-    const models = await validateApiKey(aiConfig.provider, aiConfig.apiKey);
+    let apiKey = '';
+    while (!apiKey) {
+        apiKey = await question(`Introduce tu API Key para ${provider}: `);
+        if (!apiKey) console.log(chalk.red('La API Key es obligatoria.'));
+    }
+
+    const models = await validateApiKey(provider, apiKey);
     if (!models) {
-        console.log(chalk.red('\nNo se pudo verificar la API Key. Por favor, reinicia el instalador con una clave válida.'));
+        console.log(chalk.red('\nNo se pudo verificar la API Key. Reinicia el instalador con una clave válida.'));
         process.exit(1);
     }
 
-    const modelSelect = await inquirer.prompt([
-        {
-            type: 'rawlist',
-            name: 'model',
-            message: 'Selecciona el modelo que deseas usar [Escribe el número y pulsa Enter]:',
-            choices: models
-        }
-    ]);
+    const model = await selectOption('Selecciona el modelo que deseas usar:', models);
 
     // Puerto Setup
-    const portConfig = await inquirer.prompt([
-        {
-            type: 'rawlist',
-            name: 'useDefault',
-            message: '¿Quieres usar el puerto predeterminado (3005)? [Escribe el número y pulsa Enter]:',
-            choices: [
-                { name: 'Sí (3005)', value: true },
-                { name: 'No, quiero otro', value: false }
-            ]
-        },
-        {
-            type: 'input',
-            name: 'customPort',
-            message: 'Introduce el puerto deseado:',
-            when: (answers) => !answers.useDefault,
-            validate: (val) => !isNaN(parseInt(val)) || 'Debe ser un número válido'
-        }
+    const useDefault = await selectOption('¿Quieres usar el puerto predeterminado (3005)?', [
+        { name: 'Sí (3005)', value: true },
+        { name: 'No, quiero otro', value: false }
     ]);
 
-    const finalPort = portConfig.useDefault ? '3005' : portConfig.customPort;
+    let finalPort = '3005';
+    if (!useDefault) {
+        finalPort = await question('Introduce el puerto deseado: ');
+    }
 
     // Guardar Config Base
-    updateEnv('LLM_PROVIDER', aiConfig.provider);
+    updateEnv('LLM_PROVIDER', provider);
     updateEnv('PORT', finalPort);
     const keyMap: any = {
         openrouter: 'OPENROUTER_API_KEY',
@@ -178,30 +166,19 @@ async function startSetup() {
         anthropic: 'ANTHROPIC_API_KEY',
         groq: 'GROQ_API_KEY'
     };
-    updateEnv(keyMap[aiConfig.provider], aiConfig.apiKey);
-
-    // TODO: Guardar modelo en DB (Agent-assist lo hará al arrancar si el .env tiene el provider)
+    updateEnv(keyMap[provider], apiKey);
 
     // Plataforma Setup
-    const platformConfig = await inquirer.prompt([
-        {
-            type: 'rawlist',
-            name: 'platform',
-            message: 'Selecciona la plataforma de red social [Escribe el número y pulsa Enter]:',
-            choices: [
-                { name: 'WhatsApp (Login vía QR)', value: 'whatsapp' },
-                { name: 'Telegram (Token + ID)', value: 'telegram' }
-            ]
-        }
+    const platform = await selectOption('Selecciona la red social:', [
+        { name: 'WhatsApp (Login vía QR)', value: 'whatsapp' },
+        { name: 'Telegram (Token + ID)', value: 'telegram' }
     ]);
 
-    if (platformConfig.platform === 'telegram') {
-        const tg = await inquirer.prompt([
-            { type: 'input', name: 'token', message: 'Introduce el Token de tu Bot de Telegram:' },
-            { type: 'input', name: 'userId', message: 'Introduce tu ID de usuario de Telegram:' }
-        ]);
-        updateEnv('TELEGRAM_BOT_TOKEN', tg.token);
-        updateEnv('TELEGRAM_ALLOWED_USER_IDS', tg.userId);
+    if (platform === 'telegram') {
+        const token = await question('Introduce el Token de tu Bot de Telegram: ');
+        const userId = await question('Introduce tu ID de usuario de Telegram: ');
+        updateEnv('TELEGRAM_BOT_TOKEN', token);
+        updateEnv('TELEGRAM_ALLOWED_USER_IDS', userId);
         console.log(chalk.green('\n✔ Telegram configurado.'));
     } else {
         console.log(chalk.cyan('\nIniciando cliente de WhatsApp. Espera al código QR...'));
@@ -210,9 +187,7 @@ async function startSetup() {
             puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
         });
 
-        const qrSpinner = ora('Generando QR...').start();
         client.on('qr', (qr) => {
-            qrSpinner.stop();
             console.log(chalk.yellow('\nESCANEA ESTE CÓDIGO QR CON TU WHATSAPP:\n'));
             qrcode.generate(qr, { small: true });
         });
@@ -229,12 +204,11 @@ async function startSetup() {
     console.log('\n' + chalk.blue('##################################################'));
     console.log(chalk.green('   ¡CONFIGURACIÓN MAESTRA COMPLETADA!           '));
     console.log(chalk.blue('##################################################'));
-    console.log(`\nAcceso Web: ${chalk.cyan(`http://localhost:${finalPort} / http://TU_IP:${finalPort}`)}`);
-    console.log(chalk.yellow('\nFinalizando instalación del servicio...'));
+    console.log(`\nAcceso Web: ${chalk.cyan(`http://localhost:${finalPort}`)}`);
     process.exit(0);
 }
 
 startSetup().catch(err => {
-    console.error(chalk.red('\n❌ Error crítico en el instalador:'), err.message);
+    console.error(chalk.red('\n❌ Error:'), err.message);
     process.exit(1);
 });
