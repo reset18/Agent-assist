@@ -21,19 +21,13 @@ Un Agente IA autónomo, premium y multi-plataforma diseñado para centralizar tu
 
 ## 📦 Instalación
 
-### Método 1: Máquina Virtual Linux (Recomendado)
-Nuestro instalador interactivo estilo **OpenClaw Master** configurará todo por ti (IA, Modelos, Telegram/WhatsApp):
+### 🚀 Instalación en 1 solo paso (Recomendado)
+Para desplegar tu agente con interfaz premium, selección de IA y vinculación en vivo, simplemente copia y pega este comando en tu terminal Ubuntu/Debian:
 
-1. **Clona el repositorio** (Usa tu Token de Clave si es privado):
-   ```bash
-   git clone https://github.com/reset18/Agent-assist.git
-   cd Agent-assist
-   ```
-2. **Lanza el Super-Instalador**:
-   ```bash
-   sudo bash setup.sh
-   ```
-*Este comando instalará Node.js, configurará tu IA preferida, vinculará tu WhatsApp o Telegram y levantará el servidor en el puerto **3005**.*
+```bash
+git clone https://github.com/reset18/Agent-assist.git && cd Agent-assist && sudo bash setup.sh
+```
+*Este comando hará TODO por ti: instalar dependencias, configurar tu IA, vincular tu WhatsApp/Telegram y encender el servidor en el puerto **3005**.*
 
 #### 🛠️ Agent-Assist CLI (Gestión Pro)
 Una vez instalado, gestiona tu agente con comandos globales:
