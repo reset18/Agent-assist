@@ -28,8 +28,15 @@ apt update && apt upgrade -y
 
 # 3. Instalar Dependencias Base
 echo -e "${GREEN}[2/7] Instalando dependencias del sistema (Puppeteer Ready)...${NC}"
+
+# Manejar diferencias de nombres en librerías (Ubuntu 24.04+)
+LIBASOUND="libasound2"
+if apt-cache show libasound2t64 >/dev/null 2>&1; then
+    LIBASOUND="libasound2t64"
+fi
+
 DEPENDENCIES="git python3 make g++ curl openssh-client libgbm-dev libnss3 \
-libatk-bridge2.0-0 libgtk-3-0 libasound2 libxss1 libpangocairo-1.0-0 \
+libatk-bridge2.0-0 libgtk-3-0 $LIBASOUND libxss1 libpangocairo-1.0-0 \
 libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 libxi6 libxtst6 \
 libcups2 libxrandr2 libpango-1.0-0 libatk1.0-0 libfontconfig1 wget jq"
 
