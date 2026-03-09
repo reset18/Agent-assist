@@ -22,28 +22,28 @@ Un Agente IA autónomo, premium y multi-plataforma diseñado para centralizar tu
 ## 📦 Instalación
 
 ### Método 1: Máquina Virtual Linux (Recomendado)
-Como tu repositorio es **Privado**, el comando directo `wget` no funcionará. Usa este proceso de 2 pasos:
+Nuestro instalador interactivo estilo **OpenClaw Master** configurará todo por ti (IA, Modelos, Telegram/WhatsApp):
 
-1. **Clona el repositorio** usando tu Token:
+1. **Clona el repositorio** (Usa tu Token de Clave si es privado):
    ```bash
-   git clone https://reset18:TU_TOKEN_AQUI@github.com/reset18/Agent-assist.git
+   git clone https://github.com/reset18/Agent-assist.git
    cd Agent-assist
    ```
-2. **Ejecuta el instalador** localmente:
+2. **Lanza el Super-Instalador**:
    ```bash
    sudo bash setup.sh
    ```
-*Este comando instalará Node.js, todas las dependencias de WhatsApp (Puppeteer), ejecutará el asistente y configurará Agent-Assist con PM2.*
+*Este comando instalará Node.js, configurará tu IA preferida, vinculará tu WhatsApp o Telegram y levantará el servidor en el puerto **3005**.*
 
-#### 🛠️ Agent-Assist CLI (Gestión del Agente)
-Una vez instalado, puedes usar el comando `agent-assist` para gestionar todo el sistema:
-- `agent-assist status` - Ver el estado actual del agente.
-- `agent-assist logs` - Ver logs en tiempo real.
-- `agent-assist restart` - Reiniciar el servicio.
-- `agent-assist doctor` - **Novedad**: Diagnostica automáticamente problemas de dependencias, Node.js o red, y ofrece autofix.
+#### 🛠️ Agent-Assist CLI (Gestión Pro)
+Una vez instalado, gestiona tu agente con comandos globales:
+- `agent-assist status` - Ver si el agente está vivo.
+- `agent-assist logs` - Ver lo que está pensando el agente en tiempo real.
+- `agent-assist restart` - Reiniciar el sistema.
+- `agent-assist doctor` - Diagnóstico y auto-reparación.
+- `agent-assist uninstall` - Desinstalación limpia.
 
 ### Método 2: Manual / Docker
-...
 1. **Clonar el repositorio**:
    ```bash
    git clone https://github.com/reset18/Agent-assist.git
