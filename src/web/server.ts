@@ -62,6 +62,33 @@ app.get('/api/whatsapp/status', (req, res) => {
     res.json(whatsappGlobalState);
 });
 
+app.get('/api/status', (req, res) => {
+    const port = process.env.PORT || '3005';
+    const tgEnabled = getSetting('bot_telegram_enabled') !== '0';
+    const waEnabled = getSetting('bot_whatsapp_enabled') === '1';
+
+    res.json({
+        server: {
+            status: 'online',
+            port: port,
+            url: `http://localhost:${port}`
+        },
+        whatsapp: {
+            enabled: waEnabled,
+            status: whatsappGlobalState.status,
+            session: whatsappGlobalState.session
+        },
+        telegram: {
+            enabled: tgEnabled,
+            status: 'online' // Si el servidor corre, el bot de Telegram (polling) debería estar activo si está enabled
+        },
+        llm: {
+            provider: getSetting('model_provider') || process.env.LLM_PROVIDER || 'openrouter',
+            model: getSetting('model_name') || process.env.MODEL_NAME || 'n/a'
+        }
+    });
+});
+
 function updateEnv(key: string, value: string) {
     if (!value) return;
     process.env[key] = value;

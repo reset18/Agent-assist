@@ -55,12 +55,16 @@ NODE_NO_WARNINGS=1 npx tsx scripts/master-setup.ts
 
 # 7. CLI Setup
 echo -e "\033[0-32m[5/5] Instalando comandos globales 'agent-assist'...\033[0m"
-cat << 'EOF' > /usr/local/bin/agent-assist
+AGENT_DIR=$(pwd)
+cat << EOF > /usr/local/bin/agent-assist
 #!/bin/bash
-case "$1" in
+case "\$1" in
   logs) pm2 logs agent-assist ;;
   restart) pm2 restart agent-assist ;;
-  status) pm2 status agent-assist ;;
+  status) 
+    pm2 status agent-assist
+    NODE_NO_WARNINGS=1 npx tsx $AGENT_DIR/scripts/status.ts 2>/dev/null || echo "Info extra no disponible (servidor offline)"
+    ;;
   stop) pm2 stop agent-assist ;;
   doctor)
     echo "Ejecutando diagnóstico..."

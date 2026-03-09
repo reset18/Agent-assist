@@ -8,14 +8,13 @@ const __dirname = dirname(__filename);
 
 const dbPath = process.env.DB_PATH || join(process.cwd(), 'data', 'memory.db');
 
-export function initDb() {
-    // Asegurar que el directorio de la base de datos existe
-    const dbDir = dirname(dbPath);
-    if (!fs.existsSync(dbDir)) {
-        console.log(`[DB] Creando directorio para la base de datos: ${dbDir}`);
-        fs.mkdirSync(dbDir, { recursive: true });
-    }
+// Asegurar que el directorio de la base de datos existe ANTES de cualquier conexión
+const dbDir = dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
 
+export function initDb() {
     const db = new Database(dbPath);
     const schemaPath = join(__dirname, 'schema.sql');
     const schema = readFileSync(schemaPath, 'utf8');
