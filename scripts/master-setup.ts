@@ -8,6 +8,7 @@ import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth } = pkg;
 import qrcode from 'qrcode-terminal';
 import prompts from 'prompts';
+import os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -218,10 +219,23 @@ async function startSetup() {
         });
     }
 
+    // Obtener IP local
+    const nets = os.networkInterfaces();
+    let localIp = 'localhost';
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]!) {
+            if (net.family === 'IPv4' && !net.internal) {
+                localIp = net.address;
+                break;
+            }
+        }
+    }
+
     console.log('\n' + chalk.blue('##################################################'));
     console.log(chalk.green('   ¡CONFIGURACIÓN MAESTRA COMPLETADA!           '));
     console.log(chalk.blue('##################################################'));
-    console.log(`\nAcceso Web: ${chalk.cyan(`http://localhost:${finalPort}`)}`);
+    console.log(`\nAcceso Local: ${chalk.cyan(`http://localhost:${finalPort}`)}`);
+    console.log(`Acceso Red (LAN/VM): ${chalk.cyan(`http://${localIp}:${finalPort}`)}`);
     process.exit(0);
 }
 
