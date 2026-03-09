@@ -22,10 +22,10 @@ Un Agente IA autónomo, premium y multi-plataforma diseñado para centralizar tu
 ## 📦 Instalación
 
 ### 🚀 Instalación en 1 solo paso (Recomendado)
-Para un despliegue limpio y profesional, usa este comando (si ya tienes la carpeta, la borrará con permisos de superusuario y reinstalará de cero):
+Para un despliegue limpio y profesional (borra instalaciones previas y limpia procesos bloqueados):
 
 ```bash
-sudo rm -rf Agent-assist && git clone https://github.com/reset18/Agent-assist.git && cd Agent-assist && sudo bash setup.sh
+sudo pm2 stop agent-assist || true; sudo pkill -9 node || true; cd ..; sudo rm -rf Agent-assist; git clone https://github.com/reset18/Agent-assist.git && cd Agent-assist && sudo bash setup.sh
 ```
 *Este comando hará TODO por ti: instalar dependencias, configurar tu IA, vincular tu WhatsApp/Telegram y encender el servidor en el puerto **3005**.*
 
