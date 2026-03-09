@@ -74,14 +74,46 @@ if [ ! -f ".env" ]; then
     cp .env.example .env
 fi
 
-read -p "Introduce tu OpenRouter/LLM API Key: " API_KEY
+# Selección de IA
+echo -e "Selecciona el proveedor de IA que deseas usar:"
+echo -e "1) OpenRouter (Recomendado - Multimodelo)"
+echo -e "2) OpenAI (ChatGPT)"
+echo -e "3) Google Gemini"
+echo -e "4) Anthropic (Claude)"
+echo -e "5) Grok (xAI)"
+echo -e "6) Groq (Velocidad extrema)"
+read -p "Opción [1-6]: " LLM_OPTION
+
+case $LLM_OPTION in
+  2) LLM_PROVIDER="openai" ;;
+  3) LLM_PROVIDER="google" ;;
+  4) LLM_PROVIDER="anthropic" ;;
+  5) LLM_PROVIDER="xai" ;;
+  6) LLM_PROVIDER="groq" ;;
+  *) LLM_PROVIDER="openrouter" ;;
+esac
+
+read -p "Introduce tu API Key para $LLM_PROVIDER: " API_KEY
 read -p "Nombre del Agente [Agent-Assist]: " AGENT_NAME
 AGENT_NAME=${AGENT_NAME:-Agent-Assist}
 read -p "Puerto del servidor [3000]: " PORT
 PORT=${PORT:-3000}
 
-# Actualizar .env (usando sed de forma segura)
-sed -i "s|OPENROUTER_API_KEY=.*|OPENROUTER_API_KEY=$API_KEY|" .env
+# Limpiar .env de claves previas de otros proveedores si es necesario (opcional)
+# O simplemente establecer el proveedor activo
+sed -i "s|LLM_PROVIDER=.*|LLM_PROVIDER=$LLM_PROVIDER|" .env
+
+# Mapear clave al campo genérico o específico
+if [ "$LLM_PROVIDER" == "openrouter" ]; then
+    sed -i "s|OPENROUTER_API_KEY=.*|OPENROUTER_API_KEY=$API_KEY|" .env
+elif [ "$LLM_PROVIDER" == "openai" ]; then
+    sed -i "s|OPENAI_API_KEY=.*|OPENAI_API_KEY=$API_KEY|" .env
+elif [ "$LLM_PROVIDER" == "google" ]; then
+    sed -i "s|GEMINI_API_KEY=.*|GEMINI_API_KEY=$API_KEY|" .env
+elif [ "$LLM_PROVIDER" == "anthropic" ]; then
+    sed -i "s|ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=$API_KEY|" .env
+fi
+
 sed -i "s|PORT=.*|PORT=$PORT|" .env
 # Añadir nombre si no existe o actualizar
 if grep -q "AGENT_NAME" .env; then
