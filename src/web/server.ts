@@ -64,6 +64,86 @@ app.get('/api/settings', (req, res) => {
     });
 });
 
+// Endpoint para probar una API Key antes de guardarla
+app.post('/api/test-llm', async (req, res) => {
+    const { provider, apiKey, model } = req.body;
+    if (!apiKey) return res.status(400).json({ success: false, error: 'API Key requerida' });
+
+    try {
+        const { chatCompletion } = await import('../agent/llm.js');
+        // Prueba mínima: un mensaje de 1 token para validar
+        await chatCompletion(model || 'gpt-4o-mini', provider, [{ role: 'user', content: 'test connection' }]);
+        res.json({ success: true });
+    } catch (error: any) {
+        res.status(401).json({ success: false, error: error.message });
+    }
+});
+
+// Endpoint para "Login" sincronizado con CLI o Web
+app.post('/api/verify-llm', async (req, res) => {
+    const { provider, apiKey, model } = req.body;
+    if (!apiKey) return res.status(400).json({ success: false, error: 'API Key requerida' });
+
+    try {
+        const { chatCompletion } = await import('../agent/llm.js');
+        await chatCompletion(model || 'gpt-4o-mini', provider, [{ role: 'user', content: 'verify login' }]);
+
+        // Guardar en DB
+        setSetting('model_provider', provider);
+        setSetting('llm_api_key', apiKey);
+        if (model) setSetting('model_name', model);
+
+        // Sincronizar con .env para el instalador
+        updateEnv('LLM_PROVIDER', provider);
+        const keyMap: any = {
+            openrouter: 'OPENROUTER_API_KEY',
+            groq: 'GROQ_API_KEY',
+            openai: 'OPENAI_API_KEY',
+            anthropic: 'ANTHROPIC_API_KEY',
+            google: 'GEMINI_API_KEY'
+        };
+        if (keyMap[provider]) updateEnv(keyMap[provider], apiKey);
+        if (model) updateEnv('MODEL_NAME', model);
+
+        res.json({ success: true });
+    } catch (error: any) {
+        res.status(401).json({ success: false, error: error.message });
+    }
+});
+
+app.get('/auth-provider', (req, res) => {
+    res.sendFile(join(__dirname, 'public', 'auth.html'));
+});
+
+const APP_VERSION = '2.1.0';
+
+app.get('/api/check-update', async (req, res) => {
+    try {
+        const fetchRemote = await fetch('https://raw.githubusercontent.com/reset18/Agent-assist/main/package.json');
+        const githubPkg: any = await fetchRemote.json();
+        const remoteVersion = githubPkg.version;
+        res.json({
+            current: APP_VERSION,
+            remote: remoteVersion,
+            updateAvailable: remoteVersion !== APP_VERSION
+        });
+    } catch (e) {
+        res.json({ current: APP_VERSION, remote: APP_VERSION, updateAvailable: false });
+    }
+});
+
+app.post('/api/run-update', async (req, res) => {
+    const { exec } = await import('child_process');
+    exec('npx ts-node scripts/updater.ts', (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Update Error: ${error.message}`);
+            return;
+        }
+        console.log(`Update Output: ${stdout}`);
+    });
+    res.json({ success: true, message: 'Actualización iniciada en segundo plano.' });
+});
+
 app.get('/api/whatsapp/status', (req, res) => {
     res.json(whatsappGlobalState);
 });

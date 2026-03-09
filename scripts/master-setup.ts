@@ -4,6 +4,8 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import express from 'express';
+import { createServer } from 'http';
 import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth } = pkg;
 import qrcode from 'qrcode-terminal';
@@ -45,6 +47,46 @@ function getEnv(key: string): string | null {
     const content = fs.readFileSync(envPath, 'utf8');
     const match = content.match(new RegExp(`^${key}="(.*)"$`, 'm')) || content.match(new RegExp(`^${key}=(.*)$`, 'm'));
     return match ? match[1] : null;
+}
+
+// Servidor temporal para login vía Web durante instalación
+async function startTempAuthServer(provider: string): Promise<string> {
+    const app = express();
+    app.use(express.json());
+    const port = 3005;
+
+    // Servir la página de auth
+    app.get('/auth-provider', (req, res) => {
+        const authPath = path.join(process.cwd(), 'src', 'web', 'public', 'auth.html');
+        // Pequeño hack: si no existe (nuevo repo), servimos un string
+        if (fs.existsSync(authPath)) {
+            res.sendFile(authPath);
+        } else {
+            res.send('<h1>Error: auth.html no encontrado. Usa el modo manual.</h1>');
+        }
+    });
+
+    return new Promise((resolve) => {
+        const server = createServer(app);
+
+        // Endpoint para recibir la clave desde el navegador
+        app.post('/api/verify-llm', (req, res) => {
+            const { apiKey } = req.body;
+            if (apiKey) {
+                res.json({ success: true });
+                server.close(() => {
+                    resolve(apiKey);
+                });
+            } else {
+                res.status(400).json({ error: 'Key vacía' });
+            }
+        });
+
+        server.listen(port, () => {
+            console.log(chalk.cyan(`\n🌐 Portal de Login activo en: ${chalk.underline(`http://localhost:${port}/auth-provider?p=${provider}`)}`));
+            console.log(chalk.yellow('Espereando a que completes el login en tu navegador...\n'));
+        });
+    });
 }
 
 async function validateApiKey(provider: string, apiKey: string) {
@@ -141,28 +183,49 @@ async function startSetup() {
     }
 
     if (!aiConfig.provider) {
-        aiConfig = await prompts([
+        const selection = await prompts([
             {
                 type: 'select',
                 name: 'provider',
                 message: 'Selecciona tu cerebro (IA):',
                 choices: [
-                    { title: 'OpenRouter (Recomendado)', value: 'openrouter' },
                     { title: 'OpenAI (ChatGPT)', value: 'openai' },
-                    { title: 'Google Gemini', value: 'google' },
                     { title: 'Anthropic (Claude)', value: 'anthropic' },
-                    { title: 'Groq (Velocidad)', value: 'groq' }
+                    { title: 'Google Gemini', value: 'google' },
+                    { title: 'Groq (Velocidad)', value: 'groq' },
+                    { title: 'OpenRouter (Recomendado)', value: 'openrouter' }
                 ]
             },
             {
-                type: 'password',
-                name: 'apiKey',
-                message: prev => `Introduce tu API Key para ${prev}:`,
-                validate: val => val.length > 0 ? true : 'La API Key es obligatoria'
+                type: 'select',
+                name: 'method',
+                message: '¿Cómo deseas conectar?',
+                choices: [
+                    { title: '🌐 Login vía Navegador (Recomendado)', value: 'web' },
+                    { title: '🔑 Introducir API Key Manualmente', value: 'manual' }
+                ]
             }
         ]);
 
-        if (!aiConfig.provider || !aiConfig.apiKey) process.exit(1);
+        if (!selection.provider) process.exit(1);
+
+        aiConfig.provider = selection.provider;
+
+        if (selection.method === 'web') {
+            aiConfig.apiKey = await startTempAuthServer(selection.provider);
+        } else {
+            const manual = await prompts([
+                {
+                    type: 'password',
+                    name: 'apiKey',
+                    message: `Introduce tu API Key para ${selection.provider}:`,
+                    validate: val => val.length > 0 ? true : 'La API Key es obligatoria'
+                }
+            ]);
+            aiConfig.apiKey = manual.apiKey;
+        }
+
+        if (!aiConfig.apiKey) process.exit(1);
     }
 
     const models = await validateApiKey(aiConfig.provider, aiConfig.apiKey);

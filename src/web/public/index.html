@@ -498,15 +498,155 @@
         }
 
         .sub-tab-btn {
-            padding: 10px 20px;
+            background: none;
             border: none;
-            background: transparent;
-            color: var(--text-muted);
-            font-weight: 500;
-            font-size: 14px;
+            padding: 10px 20px;
             cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s ease;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        /* Provider Cards */
+        .provider-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .provider-card {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: var(--shadow-md);
+        }
+
+        .provider-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.3);
+        }
+
+        .provider-icon {
+            width: 70px;
+            height: 70px;
+            background: rgba(var(--bg-rgb), 0.5);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .provider-card h3 {
+            border: none;
+            padding: 0;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .provider-card p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .provider-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .provider-badge.connected {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .provider-badge.disconnected {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        /* Modales */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 450px;
+            padding: 32px;
+            box-shadow: var(--shadow-lg);
+            animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalIn {
+            from {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .v-btn {
+            width: 100%;
+        }
+
+        .update-box {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+            border: 1px solid var(--primary);
+            padding: 16px;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        padding: 10px 20px;
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        font-weight: 500;
+        font-size: 14px;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
         }
 
         .sub-tab-btn:hover {
@@ -932,6 +1072,24 @@
             </button>
         </div>
         <div class="sidebar-footer">
+            <div id="update_notification" class="update-box">
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 13px;">Nueva Versión</div>
+                    <div id="update_version_text" style="font-size: 11px; color: var(--text-muted);">v2.2.0 disponible
+                    </div>
+                </div>
+                <button class="primary-btn" style="padding: 6px 12px; font-size: 12px;"
+                    onclick="runAppUpdate()">Actualizar</button>
+            </div>
+            <button class="nav-item" style="width: 100%; margin-top: 10px; color: var(--danger);"
+                onclick="clearMemory()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                    </path>
+                </svg>
+                Borrar Memoria
+            </button>
             <button class="theme-toggle" id="theme_toggle_btn" onclick="toggleTheme()"
                 style="width: 100%; justify-content: center; margin-bottom: 12px; font-size: 14px;">
                 <span id="theme-icon">🌗 Auto</span>
@@ -1001,27 +1159,64 @@
             <!-- Inteligencia Artificial -->
             <div id="llm" class="page-content">
                 <h2 class="page-title">Cerebro e Inteligencia</h2>
-                <p class="page-subtitle">Configura el modelo fundacional de IA.</p>
-                <div class="card">
-                    <h3>Motor LLM</h3>
-                    <!-- Formulario de configuración (esto será rellenado por el JS) -->
-                    <div class="form-group">
-                        <label for="model_provider">Proveedor de IA</label>
-                        <select id="model_provider" onchange="saveSettings()">
-                            <option value="openrouter">OpenRouter</option>
-                            <option value="groq">Groq</option>
-                            <option value="openai">OpenAI</option>
-                            <option value="anthropic">Anthropic</option>
-                            <option value="google">Google</option>
-                        </select>
+                <p class="page-subtitle">Conecta tu agente con los mejores modelos de lenguaje del mundo.</p>
+
+                <div class="provider-grid">
+                    <!-- OpenAI -->
+                    <div class="provider-card" id="card_openai">
+                        <div class="provider-badge disconnected" id="badge_openai">Desconectado</div>
+                        <div class="provider-icon">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" alt="OpenAI"
+                                style="width: 40px; filter: var(--logo-filter);">
+                        </div>
+                        <h3>OpenAI</h3>
+                        <p>GPT-4o, GPT-4o-mini</p>
+                        <button class="primary-btn v-btn" onclick="openLoginModal('openai')">Configurar</button>
                     </div>
-                    <div class="form-group">
-                        <label for="model_name">Modelo Específico</label>
-                        <input type="text" id="model_name" placeholder="Ej: gpt-4" onchange="saveSettings()" />
+
+                    <!-- Anthropic -->
+                    <div class="provider-card" id="card_anthropic">
+                        <div class="provider-badge disconnected" id="badge_anthropic">Desconectado</div>
+                        <div class="provider-icon">
+                            <span style="font-size: 30px;">A</span>
+                        </div>
+                        <h3>Anthropic</h3>
+                        <p>Claude 3.5 Sonnet</p>
+                        <button class="primary-btn v-btn" onclick="openLoginModal('anthropic')">Configurar</button>
                     </div>
-                    <div class="form-group">
-                        <label for="llm_api_key">Clave de Acceso (API Key)</label>
-                        <input type="password" id="llm_api_key" autocomplete="off" onchange="saveSettings()" />
+
+                    <!-- Google -->
+                    <div class="provider-card" id="card_google">
+                        <div class="provider-badge disconnected" id="badge_google">Desconectado</div>
+                        <div class="provider-icon">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Gemini_logo.svg"
+                                alt="Google" style="width: 40px;">
+                        </div>
+                        <h3>Google Gemini</h3>
+                        <p>Gemini 1.5 Pro/Flash</p>
+                        <button class="primary-btn v-btn" onclick="openLoginModal('google')">Configurar</button>
+                    </div>
+
+                    <!-- Groq -->
+                    <div class="provider-card" id="card_groq">
+                        <div class="provider-badge disconnected" id="badge_groq">Desconectado</div>
+                        <div class="provider-icon">
+                            <span style="font-size: 24px; font-weight: 800; color: #f55036;">GROQ</span>
+                        </div>
+                        <h3>Groq</h3>
+                        <p>Llama 3, Mixtral (Velocidad)</p>
+                        <button class="primary-btn v-btn" onclick="openLoginModal('groq')">Configurar</button>
+                    </div>
+
+                    <!-- OpenRouter -->
+                    <div class="provider-card" id="card_openrouter">
+                        <div class="provider-badge disconnected" id="badge_openrouter">Desconectado</div>
+                        <div class="provider-icon">
+                            <img src="https://openrouter.ai/favicon.ico" alt="OpenRouter" style="width: 32px;">
+                        </div>
+                        <h3>OpenRouter</h3>
+                        <p>Acceso a todos los modelos</p>
+                        <button class="primary-btn v-btn" onclick="openLoginModal('openrouter')">Configurar</button>
                     </div>
                 </div>
             </div>
@@ -1551,6 +1746,47 @@
         </div>
     </main>
 
+    <!-- Modal de Login/Configuración LLM -->
+    <div class="modal-overlay" id="llm_modal">
+        <div class="modal">
+            <h3 id="modal_provider_title" style="border:none; margin-bottom: 10px;">Configurar OpenAI</h3>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom:24px;">Configura tu conexión para empezar
+                a usar este cerebro.</p>
+
+            <div class="form-group">
+                <label>Método de Conexión</label>
+                <select id="conn_method" onchange="toggleConnMethod()">
+                    <option value="key">API Key Manual</option>
+                    <option value="web">Login vía Navegador (Oauth-like)</option>
+                </select>
+            </div>
+
+            <div id="method_key_section">
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="modal_api_key" placeholder="sk-..." />
+                </div>
+                <div class="form-group">
+                    <label>Modelo (Opcional)</label>
+                    <input type="text" id="modal_model_name" placeholder="Ej: gpt-4o-mini" />
+                </div>
+            </div>
+
+            <div id="method_web_section"
+                style="display: none; text-align: center; padding: 20px; background: var(--input-bg); border-radius: 8px; border: 1px dashed var(--border);">
+                <p style="font-size: 13px;">Haz clic abajo para abrir el portal de autenticación.</p>
+                <button class="secondary-btn" onclick="openAuthProvider()">Abrir Portal de Login</button>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top:32px;">
+                <button class="secondary-btn" style="flex:1" onclick="closeLoginModal()">Cancelar</button>
+                <button class="primary-btn" style="flex:1" id="btn_test_conn" onclick="testConnection()">Probar y
+                    Guardar</button>
+            </div>
+            <div id="modal_status_msg" style="margin-top: 15px; font-size: 13px; text-align: center;"></div>
+        </div>
+    </div>
+
     <script>
         // Lógica del Tema (Auto / Claro / Oscuro)
         function getSystemTheme() {
@@ -1742,68 +1978,75 @@
         }
 
         // Cargar configuración actual
-        fetch('/api/settings').then(r => r.json()).then(data => {
-            console.log('[Debug] Ajustes cargados de API:', data);
-            document.getElementById('model_provider').value = data.model_provider || 'openrouter';
-            document.getElementById('model_name').value = data.model_name || 'openrouter/free';
-            document.getElementById('llm_api_key').value = data.llm_api_key || '';
-            document.getElementById('telegram_bot_token').value = data.telegram_bot_token || '';
-            document.getElementById('telegram_whitelist').value = data.telegram_whitelist || '';
-            document.getElementById('tool_get_current_time').checked = data.tool_get_current_time;
-            document.getElementById('tool_read_file_local').checked = data.tool_read_file_local;
-            document.getElementById('tool_write_file_local').checked = data.tool_write_file_local;
-            document.getElementById('tool_list_dir_local').checked = data.tool_list_dir_local;
-            document.getElementById('tool_run_shell_local').checked = data.tool_run_shell_local;
-            document.getElementById('tool_run_ssh_command').checked = data.tool_run_ssh_command;
+        async function loadSettings() {
+            try {
+                const r = await fetch('/api/settings');
+                const data = await r.json();
+                console.log('[Debug] Ajustes cargados de API:', data);
 
-            if (data.agent_name) {
-                window.agentNameCache = data.agent_name.substring(0, 2).toUpperCase();
-                window.fullAgentNameCache = data.agent_name;
+                // Estos campos aún se cargan si existen en el modal o para compatibilidad
+                if (document.getElementById('telegram_bot_token')) document.getElementById('telegram_bot_token').value = data.telegram_bot_token || '';
+                if (document.getElementById('telegram_whitelist')) document.getElementById('telegram_whitelist').value = data.telegram_whitelist || '';
+
+                // Herramientas
+                const tools = ['get_current_time', 'read_file_local', 'write_file_local', 'list_dir_local', 'run_shell_local', 'run_ssh_command'];
+                tools.forEach(t => {
+                    const el = document.getElementById('tool_' + t);
+                    if (el) el.checked = data['tool_' + t];
+                });
+
+                if (data.agent_name) {
+                    window.agentNameCache = data.agent_name.substring(0, 2).toUpperCase();
+                    window.fullAgentNameCache = data.agent_name;
+                }
+                if (data.user_name) {
+                    window.userNameCache = data.user_name.substring(0, 2).toUpperCase();
+                    window.fullUserNameCache = data.user_name;
+                }
+
+                // Canales
+                const botTg = document.getElementById('bot_telegram_enabled');
+                if (botTg) botTg.checked = data.bot_telegram_enabled !== false;
+                const botWa = document.getElementById('bot_whatsapp_enabled');
+                if (botWa) botWa.checked = data.bot_whatsapp_enabled !== false;
+
+                // Voz
+                const voiceEn = document.getElementById('voice_enabled');
+                if (voiceEn) voiceEn.checked = data.voice_enabled === true;
+                const voiceEng = document.getElementById('voice_engine');
+                if (voiceEng) voiceEng.value = data.voice_engine || 'openai';
+                const openaiVoice = document.getElementById('openai_voice_id');
+                if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
+                const elevenLabsKey = document.getElementById('elevenlabs_api_key');
+                if (elevenLabsKey) elevenLabsKey.value = data.elevenlabs_api_key || '';
+
+                if (data.elevenlabs_voice_id && document.getElementById('elevenlabs_voice_id')) {
+                    const select = document.getElementById('elevenlabs_voice_id');
+                    if (!select.querySelector(`option[value="${data.elevenlabs_voice_id}"]`)) {
+                        const opt = document.createElement('option');
+                        opt.value = data.elevenlabs_voice_id;
+                        opt.text = "Voz Actual Guardada (Carga voces para ver resto)";
+                        select.appendChild(opt);
+                    }
+                    select.value = data.elevenlabs_voice_id;
+                }
+
+                // Actualizar estados de los cerebros (Cards)
+                updateProviderStatus(data.model_provider, data.llm_api_key);
+
+                window.settingsLoaded = true;
+
+                // Ejecutar toggles iniciales
+                if (typeof toggleTelegramConfig === 'function') toggleTelegramConfig();
+                if (typeof toggleWhatsappConfig === 'function') toggleWhatsappConfig();
+                if (typeof toggleVoiceMainConfig === 'function') toggleVoiceMainConfig();
+                if (typeof updateVoiceEngineFields === 'function') updateVoiceEngineFields();
+
+            } catch (e) {
+                console.error("Error cargando settings:", e);
             }
-            if (data.user_name) {
-                window.userNameCache = data.user_name.substring(0, 2).toUpperCase();
-                window.fullUserNameCache = data.user_name;
-            }
-
-            // Cargar estados de habilitación de canales y voz
-            const botTg = document.getElementById('bot_telegram_enabled');
-            if (botTg) botTg.checked = data.bot_telegram_enabled !== false;
-
-            const botWa = document.getElementById('bot_whatsapp_enabled');
-            if (botWa) botWa.checked = data.bot_whatsapp_enabled !== false;
-
-            const voiceEn = document.getElementById('voice_enabled');
-            if (voiceEn) voiceEn.checked = data.voice_enabled === true;
-
-            const voiceEng = document.getElementById('voice_engine');
-            if (voiceEng) voiceEng.value = data.voice_engine || 'openai';
-
-            const openaiVoice = document.getElementById('openai_voice_id');
-            if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
-
-            const elevenLabsKey = document.getElementById('elevenlabs_api_key');
-            if (elevenLabsKey) elevenLabsKey.value = data.elevenlabs_api_key || '';
-
-            if (data.elevenlabs_voice_id && document.getElementById('elevenlabs_voice_id')) {
-                const select = document.getElementById('elevenlabs_voice_id');
-                const opt = document.createElement('option');
-                opt.value = data.elevenlabs_voice_id;
-                opt.text = "Voz Actual Guardada (Carga voces para ver resto)";
-                select.appendChild(opt);
-                select.value = data.elevenlabs_voice_id;
-            }
-
-            window.gogSecretCache = data.gog_client_secret || '';
-            window.gogEmailCache = data.gog_email || '';
-
-            if (typeof toggleTelegramConfig === 'function') toggleTelegramConfig();
-            if (typeof toggleWhatsappConfig === 'function') toggleWhatsappConfig();
-            if (typeof toggleVoiceMainConfig === 'function') toggleVoiceMainConfig();
-            if (typeof updateVoiceEngineFields === 'function') updateVoiceEngineFields();
-
-            // Marcar que la carga ha terminado; a partir de ahora saveSettings() puede dispararse
-            window.settingsLoaded = true;
-        });
+        }
+        loadSettings();
 
         // Cargar MCP Skills
         function loadMCPSkills() {
@@ -2017,7 +2260,7 @@
         }
 
         function toggleWhatsappConfig() {
-            const isEnabled = document.getElementById('bot_whatsapp_enabled').checked;
+            const isEnabled = document.getElementById('bot_whatsapp_enabled');
             document.getElementById('whatsapp_config_section').style.display = isEnabled ? 'block' : 'none';
             saveSettings();
         }
@@ -2281,6 +2524,141 @@
                 statusEl.style.color = "var(--danger)";
             }
         }
+
+        // --- SISTEMA DE CEREBRO V4 (LOGIN) ---
+        let currentModalProvider = '';
+
+        function openLoginModal(provider) {
+            currentModalProvider = provider;
+            const names = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google Gemini', groq: 'Groq', openrouter: 'OpenRouter' };
+            document.getElementById('modal_provider_title').textContent = `Conectar con ${names[provider]}`;
+            document.getElementById('llm_modal').style.display = 'flex';
+            document.getElementById('modal_status_msg').textContent = '';
+            document.getElementById('modal_api_key').value = '';
+            document.getElementById('modal_model_name').value = '';
+        }
+
+        function closeLoginModal() {
+            document.getElementById('llm_modal').style.display = 'none';
+        }
+
+        function toggleConnMethod() {
+            const method = document.getElementById('conn_method').value;
+            document.getElementById('method_key_section').style.display = method === 'key' ? 'block' : 'none';
+            document.getElementById('method_web_section').style.display = method === 'web' ? 'block' : 'none';
+            document.getElementById('btn_test_conn').style.display = method === 'key' ? 'block' : 'none';
+        }
+
+        function openAuthProvider() {
+            // Abre la misma tab o una nueva para el proceso de login
+            const url = `http://localhost:3005/auth-provider?p=${currentModalProvider}`;
+            window.open(url, '_blank');
+            // Aquí podríamos iniciar un polling para ver si se ha logueado
+            const checkLogin = setInterval(async () => {
+                const r = await fetch('/api/settings');
+                const d = await r.json();
+                if (d.model_provider === currentModalProvider && d.llm_api_key) {
+                    clearInterval(checkLogin);
+                    closeLoginModal();
+                    updateProviderStatus(d.model_provider, d.llm_api_key);
+                    alert(`¡${currentModalProvider} conectado exitosamente vía Web!`);
+                }
+            }, 2000);
+            setTimeout(() => clearInterval(checkLogin), 60000); // 1 min timeout
+        }
+
+        async function testConnection() {
+            const apiKey = document.getElementById('modal_api_key').value;
+            const model = document.getElementById('modal_model_name').value;
+            const statusMsg = document.getElementById('modal_status_msg');
+            const btn = document.getElementById('btn_test_conn');
+
+            if (!apiKey) {
+                statusMsg.textContent = '❌ Introduce una API Key';
+                statusMsg.style.color = 'var(--danger)';
+                return;
+            }
+
+            btn.disabled = true;
+            statusMsg.textContent = '⌛ Verificando conexión...';
+            statusMsg.style.color = 'var(--primary)';
+
+            try {
+                const res = await fetch('/api/verify-llm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider: currentModalProvider, apiKey, model })
+                });
+
+                if (res.ok) {
+                    statusMsg.textContent = '✅ ¡Conectado con éxito!';
+                    statusMsg.style.color = 'var(--success)';
+                    setTimeout(() => {
+                        closeLoginModal();
+                        updateProviderStatus(currentModalProvider, apiKey);
+                    }, 1500);
+                } else {
+                    const data = await res.json();
+                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Clave inválida');
+                    statusMsg.style.color = 'var(--danger)';
+                }
+            } catch (e) {
+                statusMsg.textContent = '❌ Error de red';
+                statusMsg.style.color = 'var(--danger)';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function updateProviderStatus(activeProvider, apiKey) {
+            // Resetear todos
+            document.querySelectorAll('.provider-badge').forEach(b => {
+                b.textContent = 'Desconectado';
+                b.className = 'provider-badge disconnected';
+            });
+            document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--border)');
+
+            if (activeProvider && apiKey) {
+                const badge = document.getElementById(`badge_${activeProvider}`);
+                const card = document.getElementById(`card_${activeProvider}`);
+                if (badge) {
+                    badge.textContent = 'Conectado';
+                    badge.className = 'provider-badge connected';
+                }
+                if (card) {
+                    card.style.borderColor = 'var(--success)';
+                }
+            }
+        }
+
+        // --- SISTEMA DE UPDATES ---
+        async function checkForUpdates() {
+            try {
+                const r = await fetch('/api/check-update');
+                const d = await r.json();
+                if (d.updateAvailable) {
+                    document.getElementById('update_notification').style.display = 'flex';
+                    document.getElementById('update_version_text').textContent = `v${d.remote} disponible`;
+                }
+            } catch (e) { }
+        }
+
+        async function runAppUpdate() {
+            if (!confirm("Se descargará la nueva versión y el servidor se reiniciará. ¿Continuar?")) return;
+            try {
+                const res = await fetch('/api/run-update', { method: 'POST' });
+                if (res.ok) {
+                    alert("Actualización iniciada. La página se recargará en unos segundos...");
+                    setTimeout(() => location.reload(), 15000);
+                } else {
+                    const data = await res.json();
+                    alert("Error al iniciar actualización: " + (data.error || "Error desconocido"));
+                }
+            } catch (e) {
+                alert("Error de red al intentar iniciar la actualización.");
+            }
+        }
+        checkForUpdates();
 
 
 

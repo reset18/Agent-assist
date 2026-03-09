@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentAssist - Autenticación</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root[data-theme="dark"] {
+            --bg: #0f172a;
+            --fg: #f8fafc;
+            --primary: #3b82f6;
+            --card: #1e293b;
+            --border: #334155;
+            --input-bg: #0f172a;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--fg);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+
+        .auth-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 30px;
+            display: inline-block;
+        }
+
+        .provider-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--input-bg);
+            color: var(--fg);
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            font-size: 15px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-card">
+        <div class="logo">AgentAssist</div>
+        <div class="provider-name" id="provider_display">Proveedor</div>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 30px;">Introduce tu API Key para vincular
+            este cerebro.</p>
+
+        <input type="password" id="api_key" placeholder="Pega tu API Key aquí..." />
+        <button class="btn" id="login_btn" onclick="performLogin()">Vincular Cerebro</button>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const provider = urlParams.get('p') || 'openai';
+        document.getElementById('provider_display').textContent = provider.toUpperCase();
+
+        async function performLogin() {
+            const apiKey = document.getElementById('api_key').value;
+            const status = document.getElementById('status');
+            const btn = document.getElementById('login_btn');
+
+            if (!apiKey) return;
+
+            btn.disabled = true;
+            status.textContent = '⌛ Verificando...';
+            status.style.color = 'var(--primary)';
+
+            try {
+                const res = await fetch('/api/verify-llm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, apiKey })
+                });
+
+                if (res.ok) {
+                    status.textContent = '✅ ¡Éxito! Puedes cerrar esta ventana.';
+                    status.style.color = 'var(--success)';
+                    // Enviar mensaje al opener si existe
+                    if (window.opener) {
+                        window.opener.postMessage({ type: 'llm-auth-success', provider }, '*');
+                    }
+                    setTimeout(() => window.close(), 2000);
+                } else {
+                    const d = await res.json();
+                    status.textContent = '❌ Error: ' + (d.error || 'Clave inválida');
+                    status.style.color = 'var(--danger)';
+                    btn.disabled = false;
+                }
+            } catch (e) {
+                status.textContent = '❌ Error de red';
+                status.style.color = 'var(--danger)';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>

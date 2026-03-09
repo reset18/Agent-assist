@@ -1,0 +1,35 @@
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import chalk from 'chalk';
+
+const execAsync = promisify(exec);
+
+async function runUpdate() {
+    console.log(chalk.blue('🚀 Iniciando actualización desde GitHub...'));
+
+    try {
+        // 1. Git Pull
+        console.log(chalk.gray('  - Descargando cambios (git pull)...'));
+        await execAsync('git pull origin main');
+
+        // 2. Install dependencies (if needed)
+        console.log(chalk.gray('  - Instalando posibles nuevas dependencias...'));
+        await execAsync('npm install');
+
+        // 3. Rebuild
+        console.log(chalk.gray('  - Reconstruyendo el proyecto (build)...'));
+        await execAsync('npm run build');
+
+        console.log(chalk.green('✅ Actualización completada con éxito.'));
+        console.log(chalk.yellow('🔄 El servidor se reiniciará automáticamente vía PM2.'));
+
+        // 4. Restart (optional, if running under PM2 it might auto-restart on build changes)
+        // await execAsync('pm2 restart agent-assist');
+
+    } catch (error: any) {
+        console.error(chalk.red('❌ Error durante la actualización:'), error.message);
+        process.exit(1);
+    }
+}
+
+runUpdate();
