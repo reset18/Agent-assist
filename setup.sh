@@ -92,7 +92,9 @@ echo -e "\033[0-32mIniciando PM2 como usuario: $REAL_USER\033[0m"
 # Dar permisos al usuario original sobre la carpeta
 chown -R $REAL_USER:$REAL_USER .
 
-sudo -u $REAL_USER bash -c "pm2 start dist/index.js --name agent-assist && pm2 save"
+AGENT_DIR=$(pwd)
+sudo -u $REAL_USER bash -c "pm2 delete agent-assist 2>/dev/null || true"
+sudo -u $REAL_USER bash -c "cd $AGENT_DIR && pm2 start dist/index.js --name agent-assist && pm2 save"
 env PATH=$PATH:/usr/bin /usr/bin/pm2 startup systemd -u $REAL_USER --hp $(eval echo ~$REAL_USER) || true
 
 # 9. Mensaje Final de Finalización
