@@ -116,9 +116,10 @@ Se te han otorgado herramientas para interactuar con sistemas locales de manera 
     }
 
     if (provider !== 'openrouter' && model.includes('/')) {
-        console.log(`[Agent] Limpiando Model ID: ${model} -> ${model.split('/').pop()}`);
         model = model.split('/').pop() || model;
     }
+
+    console.log(`[Core] Configuración LLM detectada -> Proveedor: ${provider}, Modelo: ${model}, Origen: ${getSetting('model_provider') ? 'Base de Datos' : 'Variables de Entorno (.env)'}`);
 
     let fullSystemPrompt = systemPromptTemplate
         .replace('{agent_name}', nameToUse)

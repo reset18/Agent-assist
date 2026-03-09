@@ -27,5 +27,3 @@ CREATE TABLE IF NOT EXISTS tools_config (
 -- Valores por defecto iniciales
 INSERT OR IGNORE INTO sessions (id, name) VALUES ('default', 'Chat Principal');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('agent_name', 'AgentAssist');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('model_provider', 'openrouter');
-INSERT OR IGNORE INTO settings (key, value) VALUES ('model_name', 'openrouter/free');
