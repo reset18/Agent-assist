@@ -42,14 +42,8 @@ apt install -y $DEPENDENCIES
 
 # 4. Configurar Node.js (v22)
 echo -e "\033[0-32m[2/5] Configurando motor de ejecución (Node.js v22)...\033[0m"
-if ! command -v node &> /dev/null; then
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-  export NVM_DIR="$HOME/.nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-  nvm install 22
-  nvm use 22
-  nvm alias default 22
-fi
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt-get install -y nodejs
 
 # 5. Instalar dependencias del proyecto
 echo -e "\033[0-32m[3/5] Sincronizando librerías del Agente...\033[0m"
@@ -98,7 +92,7 @@ echo -e "\033[0-32mIniciando PM2 como usuario: $REAL_USER\033[0m"
 # Dar permisos al usuario original sobre la carpeta
 chown -R $REAL_USER:$REAL_USER .
 
-sudo -u $REAL_USER bash -c "export NVM_DIR=\"$HOME/.nvm\"; [ -s \"\$NVM_DIR/nvm.sh\" ] && \\. \"\$NVM_DIR/nvm.sh\"; pm2 start dist/index.js --name agent-assist && pm2 save"
-env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u $REAL_USER --hp $(eval echo ~$REAL_USER) || true
+sudo -u $REAL_USER bash -c "pm2 start dist/index.js --name agent-assist && pm2 save"
+env PATH=$PATH:/usr/bin /usr/bin/pm2 startup systemd -u $REAL_USER --hp $(eval echo ~$REAL_USER) || true
 
 # Mensaje final
