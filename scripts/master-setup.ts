@@ -85,20 +85,21 @@ async function validateApiKey(provider: string, apiKey: string) {
 }
 
 async function startSetup() {
-    process.stdout.write('\x1Bc'); // Limpiar pantalla
+    console.clear();
     console.log(logo);
     console.log(chalk.blue('##################################################'));
     console.log(chalk.blue('#            AGENT-ASSIST MASTER v2.0            #'));
     console.log(chalk.blue('##################################################\n'));
+    console.log(chalk.yellow('💡 Usa las flechas [↑/↓] del teclado para seleccionar y [Enter] para confirmar.\n'));
 
     const security = await inquirer.prompt([
         {
             type: 'list',
             name: 'confirm',
-            message: chalk.red('⚠️  ADVERTENCIA: Esta instalación puede modificar archivos del sistema y servicios. ¿Deseas continuar?'),
+            message: chalk.red('⚠️  ADVERTENCIA: Esta instalación tomará el CONTROL TOTAL de este sistema y modificará archivos críticos. ¿Estás seguro de continuar?'),
             choices: [
-                { name: 'Sí, estoy seguro', value: true },
-                { name: 'No, cancelar', value: false }
+                { name: 'Sí, acepto el control total y deseo continuar', value: true },
+                { name: 'No, cancelar instalación', value: false }
             ]
         }
     ]);
