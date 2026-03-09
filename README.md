@@ -21,12 +21,19 @@ Un Agente IA autónomo, premium y multi-plataforma diseñado para centralizar tu
 
 ## 📦 Instalación
 
-### Método 1: Máquina Virtual Linux (Recomendado - Estilo OpenClaw)
-Para un despliegue rápido y profesional en Ubuntu/Debian, usa nuestro instalador de un solo comando:
-```bash
-wget -qO- https://raw.githubusercontent.com/reset18/Agent-assist/main/setup.sh | sudo bash
-```
-*Este comando instalará Node.js, todas las dependencias de WhatsApp (Puppeteer), ejecutará un **asistente de configuración interactivo** y configurará Agent-Assist como un servicio persistente con PM2.*
+### Método 1: Máquina Virtual Linux (Recomendado)
+Como tu repositorio es **Privado**, el comando directo `wget` no funcionará. Usa este proceso de 2 pasos:
+
+1. **Clona el repositorio** usando tu Token:
+   ```bash
+   git clone https://reset18:TU_TOKEN_AQUI@github.com/reset18/Agent-assist.git
+   cd Agent-assist
+   ```
+2. **Ejecuta el instalador** localmente:
+   ```bash
+   sudo bash setup.sh
+   ```
+*Este comando instalará Node.js, todas las dependencias de WhatsApp (Puppeteer), ejecutará el asistente y configurará Agent-Assist con PM2.*
 
 #### 🛠️ Agent-Assist CLI (Gestión del Agente)
 Una vez instalado, puedes usar el comando `agent-assist` para gestionar todo el sistema:
