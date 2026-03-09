@@ -39,6 +39,14 @@ function updateEnv(key: string, value: string) {
     fs.writeFileSync(envPath, content.trim() + '\n');
 }
 
+function getEnv(key: string): string | null {
+    const envPath = path.join(process.cwd(), '.env');
+    if (!fs.existsSync(envPath)) return null;
+    const content = fs.readFileSync(envPath, 'utf8');
+    const match = content.match(new RegExp(`^${key}="(.*)"$`, 'm')) || content.match(new RegExp(`^${key}=(.*)$`, 'm'));
+    return match ? match[1] : null;
+}
+
 async function validateApiKey(provider: string, apiKey: string) {
     const spinner = ora(`Validando API Key para ${provider}...`).start();
     try {
@@ -105,29 +113,57 @@ async function startSetup() {
         process.exit(0);
     }
 
-    // IA Setup
-    const aiConfig = await prompts([
-        {
-            type: 'select',
-            name: 'provider',
-            message: 'Selecciona tu cerebro (IA):',
-            choices: [
-                { title: 'OpenRouter (Recomendado)', value: 'openrouter' },
-                { title: 'OpenAI (ChatGPT)', value: 'openai' },
-                { title: 'Google Gemini', value: 'google' },
-                { title: 'Anthropic (Claude)', value: 'anthropic' },
-                { title: 'Groq (Velocidad)', value: 'groq' }
-            ]
-        },
-        {
-            type: 'password',
-            name: 'apiKey',
-            message: prev => `Introduce tu API Key para ${prev}:`,
-            validate: val => val.length > 0 ? true : 'La API Key es obligatoria'
-        }
-    ]);
+    // Revisar credenciales existentes
+    const existingProvider = getEnv('LLM_PROVIDER');
+    let aiConfig: any = {};
+    const keyMap: any = {
+        openrouter: 'OPENROUTER_API_KEY',
+        openai: 'OPENAI_API_KEY',
+        google: 'GEMINI_API_KEY',
+        anthropic: 'ANTHROPIC_API_KEY',
+        groq: 'GROQ_API_KEY'
+    };
 
-    if (!aiConfig.provider || !aiConfig.apiKey) process.exit(1);
+    if (existingProvider && getEnv(keyMap[existingProvider])) {
+        const keepExisting = await prompts([{
+            type: 'confirm',
+            name: 'keep',
+            message: `Detectamos una configuración previa de IA (${chalk.cyan(existingProvider)}). ¿Deseas mantenerla?`,
+            initial: true
+        }]);
+
+        if (keepExisting.keep) {
+            aiConfig = {
+                provider: existingProvider,
+                apiKey: getEnv(keyMap[existingProvider])
+            };
+        }
+    }
+
+    if (!aiConfig.provider) {
+        aiConfig = await prompts([
+            {
+                type: 'select',
+                name: 'provider',
+                message: 'Selecciona tu cerebro (IA):',
+                choices: [
+                    { title: 'OpenRouter (Recomendado)', value: 'openrouter' },
+                    { title: 'OpenAI (ChatGPT)', value: 'openai' },
+                    { title: 'Google Gemini', value: 'google' },
+                    { title: 'Anthropic (Claude)', value: 'anthropic' },
+                    { title: 'Groq (Velocidad)', value: 'groq' }
+                ]
+            },
+            {
+                type: 'password',
+                name: 'apiKey',
+                message: prev => `Introduce tu API Key para ${prev}:`,
+                validate: val => val.length > 0 ? true : 'La API Key es obligatoria'
+            }
+        ]);
+
+        if (!aiConfig.provider || !aiConfig.apiKey) process.exit(1);
+    }
 
     const models = await validateApiKey(aiConfig.provider, aiConfig.apiKey);
     if (!models) {
@@ -144,37 +180,12 @@ async function startSetup() {
 
     if (!modelSelect.model) process.exit(1);
 
-    // Puerto Setup
-    const portConfig = await prompts([{
-        type: 'select',
-        name: 'useDefault',
-        message: '¿Quieres usar el puerto predeterminado (3005)?',
-        choices: [
-            { title: 'Sí (3005)', value: true },
-            { title: 'No, quiero otro', value: false }
-        ]
-    }]);
-
-    if (portConfig.useDefault === undefined) process.exit(1);
-
-    const finalPort = portConfig.useDefault ? '3005' : (await prompts([{
-        type: 'number',
-        name: 'customPort',
-        message: 'Introduce el puerto deseado:',
-        validate: val => val > 1024 ? true : 'Debe ser un puerto válido > 1024'
-    }])).customPort;
-
-    // Guardar Config Base
+    // Guardar Config Base IA
     updateEnv('LLM_PROVIDER', aiConfig.provider);
-    updateEnv('PORT', finalPort.toString());
-    const keyMap: any = {
-        openrouter: 'OPENROUTER_API_KEY',
-        openai: 'OPENAI_API_KEY',
-        google: 'GEMINI_API_KEY',
-        anthropic: 'ANTHROPIC_API_KEY',
-        groq: 'GROQ_API_KEY'
-    };
     updateEnv(keyMap[aiConfig.provider], aiConfig.apiKey);
+    updateEnv('MODEL_NAME', modelSelect.model);
+
+    updateEnv('PORT', finalPort.toString());
 
     // Plataforma Setup
     const platformConfig = await prompts([{
@@ -190,13 +201,29 @@ async function startSetup() {
     if (!platformConfig.platform) process.exit(1);
 
     if (platformConfig.platform === 'telegram') {
-        const tg = await prompts([
-            { type: 'text', name: 'token', message: 'Introduce el Token de tu Bot de Telegram:' },
-            { type: 'text', name: 'userId', message: 'Introduce tu ID de usuario de Telegram:' }
-        ]);
-        if (!tg.token || !tg.userId) process.exit(1);
-        updateEnv('TELEGRAM_BOT_TOKEN', tg.token);
-        updateEnv('TELEGRAM_ALLOWED_USER_IDS', tg.userId);
+        const existingTgToken = getEnv('TELEGRAM_BOT_TOKEN');
+        const existingTgUser = getEnv('TELEGRAM_ALLOWED_USER_IDS');
+        let useExistingTg = false;
+
+        if (existingTgToken && existingTgToken !== 'SUTITUYE POR EL TUYO' && existingTgUser) {
+            const keepTg = await prompts([{
+                type: 'confirm',
+                name: 'keep',
+                message: 'Detectamos una configuración previa de Telegram. ¿Deseas mantenerla?',
+                initial: true
+            }]);
+            useExistingTg = keepTg.keep;
+        }
+
+        if (!useExistingTg) {
+            const tg = await prompts([
+                { type: 'text', name: 'token', message: 'Introduce el Token de tu Bot de Telegram:' },
+                { type: 'text', name: 'userId', message: 'Introduce tu ID de usuario de Telegram:' }
+            ]);
+            if (!tg.token || !tg.userId) process.exit(1);
+            updateEnv('TELEGRAM_BOT_TOKEN', tg.token);
+            updateEnv('TELEGRAM_ALLOWED_USER_IDS', tg.userId);
+        }
         console.log(chalk.green('\n✔ Telegram configurado.'));
     } else {
         console.log(chalk.cyan('\nIniciando cliente de WhatsApp. Espera al código QR...'));
@@ -219,23 +246,9 @@ async function startSetup() {
         });
     }
 
-    // Obtener IP local
-    const nets = os.networkInterfaces();
-    let localIp = 'localhost';
-    for (const name of Object.keys(nets)) {
-        for (const net of nets[name]!) {
-            if (net.family === 'IPv4' && !net.internal) {
-                localIp = net.address;
-                break;
-            }
-        }
-    }
-
-    console.log('\n' + chalk.blue('##################################################'));
-    console.log(chalk.green('   ¡CONFIGURACIÓN MAESTRA COMPLETADA!           '));
-    console.log(chalk.blue('##################################################'));
-    console.log(`\nAcceso Local: ${chalk.cyan(`http://localhost:${finalPort}`)}`);
-    console.log(`Acceso Red (LAN/VM): ${chalk.cyan(`http://${localIp}:${finalPort}`)}`);
+    // El mensaje final lo muestra setup.sh una vez que el proceso arranca correctamente.
+    const confFile = path.join(process.cwd(), '.setup_done');
+    fs.writeFileSync(confFile, finalPort.toString());
     process.exit(0);
 }
 

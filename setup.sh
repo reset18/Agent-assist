@@ -95,4 +95,21 @@ chown -R $REAL_USER:$REAL_USER .
 sudo -u $REAL_USER bash -c "pm2 start dist/index.js --name agent-assist && pm2 save"
 env PATH=$PATH:/usr/bin /usr/bin/pm2 startup systemd -u $REAL_USER --hp $(eval echo ~$REAL_USER) || true
 
-# Mensaje final
+# 9. Mensaje Final de Finalización
+PORT="3005"
+if [ -f .setup_done ]; then
+  PORT=$(cat .setup_done)
+  rm .setup_done
+fi
+
+LOCAL_IP=$(hostname -I | awk '{print $1}')
+if [ -z "$LOCAL_IP" ]; then LOCAL_IP="localhost"; fi
+
+echo -e "\n${CYAN}##################################################${NC}"
+echo -e "${CYAN}   ¡AGENT-ASSIST INSTALADO COMPLETAMENTE!         ${NC}"
+echo -e "${CYAN}##################################################${NC}"
+echo -e "\n🚀 Agente ejecutándose en 2do plano (PM2)"
+echo -e "Puedes ver los logs con: \033[0-33magent-assist logs\033[0m"
+echo -e "\n🌐 Accede a tu interfaz de configuración web:"
+echo -e "   - Acceso Local: \033[0-36mhttp://localhost:${PORT}\033[0m"
+echo -e "   - Acceso Red (LAN/VM): \033[0-36mhttp://${LOCAL_IP}:${PORT}\033[0m\n"
