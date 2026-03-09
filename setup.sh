@@ -14,7 +14,7 @@ YELLOW='\033[1-33m'
 CYAN='\033[0-36m'
 NC='\033[0m' # No Color
 
-# Logo ASCII Premium
+# Logo ASCII Premium (Forzado al inicio)
 clear
 echo -e "${CYAN}"
 echo "    ___                         __           ___                _      __ "
@@ -27,6 +27,7 @@ echo -e "${NC}"
 echo -e "${BLUE}##################################################${NC}"
 echo -e "${BLUE}#            AGENT-ASSIST INSTALLER v1.1.0       #${NC}"
 echo -e "${BLUE}##################################################${NC}"
+echo -e "${YELLOW}Preparando instalación profesional...${NC}"
 echo ""
 
 # 1. Verificar Sudo
@@ -36,11 +37,11 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # 2. Actualizar Sistema
-echo -e "${GREEN}[1/7] Preparando el entorno y dependencias...${NC}"
+echo -e "${GREEN}[1/7] Actualizando repositorios del sistema...${NC}"
 apt update && apt upgrade -y
 
 # 3. Instalar Dependencias Base
-echo -e "${GREEN}[2/7] Instalando librerías del sistema (Puppeteer Ready)...${NC}"
+echo -e "${GREEN}[2/7] Instalando librerías críticas (Puppeteer Ready)...${NC}"
 
 # Manejar diferencias de nombres en librerías (Ubuntu 24.04+)
 LIBASOUND="libasound2"
@@ -72,7 +73,7 @@ fi
 echo -e "${GREEN}[4/7] Sincronizando repositorio Agent-assist...${NC}"
 if [ ! -f "package.json" ]; then
   echo -e "${RED}Error: package.json no encontrado.${NC}"
-  echo -e "Asegúrate de ejecutar este script desde la raíz del proyecto clonado."
+  echo -e "Debes ejecutar este script desde la carpeta central del proyecto."
   exit 1
 fi
 
@@ -129,14 +130,15 @@ sed -i "s|PORT=.*|PORT=$PORT|" .env
 
 echo -e "\n${GREEN}✔ Configuración guardada correctamente.${NC}"
 
-# 7. Preparar Agent-Assist CLI + Doctor
-echo -e "${GREEN}[5/7] Instalando Agent-Assist CLI Commands...${NC}"
+# 7. Preparar Agent-Assist CLI + Doctor + Uninstall
+echo -e "${GREEN}[5/7] Instalando Agent-Assist CLI Master...${NC}"
 cat << 'EOF' > /usr/local/bin/agent-assist
 #!/bin/bash
 GREEN='\033[0-32m'
 BLUE='\033[0-34m'
 RED='\033[0-31m'
 YELLOW='\033[1-33m'
+CYAN='\033[0-36m'
 NC='\033[0m'
 
 case "$1" in
@@ -154,7 +156,6 @@ case "$1" in
     ;;
   doctor)
     echo -e "${BLUE}=== Agent-Assist System Doctor ===${NC}"
-    
     NODE_V=$(node -v 2>/dev/null || echo "No instalado")
     echo -n "Node.js: "
     if [[ $NODE_V == v20* ]] || [[ $NODE_V == v22* ]]; then
@@ -165,15 +166,12 @@ case "$1" in
 
     echo -n "Librerías Puppeteer: "
     MISSING_LIBS=""
-    # Check for both libasound2 and libasound2t64
     for lib in libgbm1 libnss3 libatk-bridge2.0-0 libgtk-3-0; do
         if ! dpkg -l | grep -q $lib; then
             MISSING_LIBS="$MISSING_LIBS $lib"
         fi
     done
-    if ! dpkg -l | grep -E "libasound2|libasound2t64" >/dev/null; then
-        MISSING_LIBS="$MISSING_LIBS libasound2"
-    fi
+    if ! dpkg -l | grep -E "libasound2|libasound2t64" >/dev/null; then MISSING_LIBS="$MISSING_LIBS libasound2"; fi
 
     if [ -z "$MISSING_LIBS" ]; then
         echo -e "${GREEN}Presentes (OK)${NC}"
@@ -184,28 +182,31 @@ case "$1" in
     fi
 
     echo -n "Proceso PM2: "
-    if pm2 status agent-assist | grep -q "online"; then
-        echo -e "${GREEN}Online (OK)${NC}"
-    else
+    if pm2 status agent-assist | grep -q "online"; then echo -e "${GREEN}Online (OK)${NC}"; else
         echo -e "${RED}Offline${NC}"
-        echo -e "${BLUE}Intentando reiniciar...${NC}"
         pm2 restart agent-assist || pm2 start dist/index.js --name agent-assist
     fi
-
-    echo -n "Archivo .env: "
-    if [ -f ".env" ]; then
-        echo -e "${GREEN}Presente (OK)${NC}"
-    else
-        echo -e "${RED}No encontrado${NC}"
+    ;;
+  uninstall)
+    echo -e "${RED}⚠️  VAS A DESINSTALAR AGENT-ASSIST COMPLETAMENTE${NC}"
+    read -p "¿Estás seguro? (s/n): " confirm </dev/tty
+    if [[ "$confirm" == "s" || "$confirm" == "S" ]]; then
+        echo -e "${YELLOW}Deteniendo servicios...${NC}"
+        pm2 stop agent-assist || true
+        pm2 delete agent-assist || true
+        echo -e "${YELLOW}Eliminando binarios...${NC}"
+        rm /usr/local/bin/agent-assist
+        echo -e "${GREEN}✔ Desinstalado. Nota: Los archivos del proyecto y base de datos no se han borrado manualmente por seguridad.${NC}"
     fi
     ;;
   *)
-    echo -e "${BLUE}Comandos de Agent-Assist:${NC}"
-    echo "  agent-assist status  - Ver estado del proceso"
-    echo "  agent-assist logs    - Ver logs en tiempo real"
-    echo "  agent-assist restart - Reiniciar el agente"
-    echo "  agent-assist stop    - Detener el agente"
-    echo "  agent-assist doctor  - Diagnosticar y reparar el sistema"
+    echo -e "${CYAN}Agent-Assist Master Command:${NC}"
+    echo "  agent-assist status    - Ver estado del proceso"
+    echo "  agent-assist logs      - Ver logs en tiempo real"
+    echo "  agent-assist restart   - Reiniciar el agente"
+    echo "  agent-assist stop      - Detener el agente"
+    echo "  agent-assist doctor    - Diagnosticar y reparar el sistema"
+    echo "  agent-assist uninstall - Eliminar el agente del sistema"
     ;;
 esac
 EOF
@@ -225,5 +226,5 @@ echo -e "${GREEN}   AGENT-ASSIST INSTALADO CORRECTAMENTE!        ${NC}"
 echo -e "${BLUE}##################################################${NC}"
 echo -e "Acceso Web: http://$(hostname -I | awk '{print $1}'):$PORT"
 echo -e "Versión: 1.1.0"
-echo -e "Comando de gestión: ${GREEN}agent-assist${NC}"
+echo -e "Uso: ${GREEN}agent-assist${NC}"
 echo -e "${BLUE}##################################################${NC}"
