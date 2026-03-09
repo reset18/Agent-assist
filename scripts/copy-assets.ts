@@ -19,4 +19,12 @@ function copyRecursiveSync(src: string, dest: string) {
 
 console.log('Copiando Assets web/public a dist...');
 copyRecursiveSync(path.join(process.cwd(), 'src', 'web', 'public'), path.join(process.cwd(), 'dist', 'web', 'public'));
+
+console.log('Copiando esquema de la base de datos a dist/db...');
+const dbDistPath = path.join(process.cwd(), 'dist', 'db');
+if (!fs.existsSync(dbDistPath)) {
+    fs.mkdirSync(dbDistPath, { recursive: true });
+}
+copyRecursiveSync(path.join(process.cwd(), 'src', 'db', 'schema.sql'), path.join(dbDistPath, 'schema.sql'));
+
 console.log('Copia finalizada.');
