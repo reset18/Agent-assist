@@ -24,7 +24,7 @@ Un Agente IA autónomo, premium y multi-plataforma diseñado para centralizar tu
 ### Método 1: Máquina Virtual Linux (Recomendado - Estilo OpenClaw)
 Para un despliegue rápido y profesional en Ubuntu/Debian, usa nuestro instalador de un solo comando:
 ```bash
-wget -qO- https://raw.githubusercontent.com/TU_USUARIO/Agent-assist/main/setup.sh | sudo bash
+wget -qO- https://raw.githubusercontent.com/reset18/Agent-assist/main/setup.sh | sudo bash
 ```
 *Este comando instalará Node.js, todas las dependencias de WhatsApp (Puppeteer), ejecutará un **asistente de configuración interactivo** y configurará Horus como un servicio persistente con PM2.*
 
