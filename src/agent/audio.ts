@@ -38,7 +38,7 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
     }
 
     const form = new FormData();
-    const blob = new Blob([audioBuffer]);
+    const blob = new Blob([new Uint8Array(audioBuffer)]);
     form.append('file', blob, filename);
     form.append('model', model);
     form.append('response_format', 'json');

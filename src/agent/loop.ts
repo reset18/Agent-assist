@@ -176,9 +176,10 @@ ${voiceContext}
             const responseMessage = await chatCompletion(model, provider, thread, tools);
             thread.push(responseMessage);
 
-            if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
-                console.log(`[Agent] Se invocan ${responseMessage.tool_calls.length} herramientas...`);
-                for (const toolCall of responseMessage.tool_calls) {
+            if ('tool_calls' in responseMessage && (responseMessage as any).tool_calls && (responseMessage as any).tool_calls.length > 0) {
+                const msg = responseMessage as any;
+                console.log(`[Agent] Se invocan ${msg.tool_calls.length} herramientas...`);
+                for (const toolCall of msg.tool_calls) {
                     let functionResult;
                     const isMCPTool = mcpTools.some(t => t.function.name === toolCall.function.name);
                     if (isMCPTool) {

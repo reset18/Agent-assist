@@ -56,7 +56,7 @@ async function startMCPServer(name: string, config: MCPServerConfig) {
             command: config.command,
             args: config.args,
             env: {
-                ...process.env,
+                ...process.env as Record<string, string>,
                 ...(config.env || {})
             }
         });
@@ -65,9 +65,7 @@ async function startMCPServer(name: string, config: MCPServerConfig) {
             name: `AgentAssist-${name}`,
             version: "1.0.0"
         }, {
-            capabilities: {
-                tools: {}
-            }
+            capabilities: {}
         });
 
         await client.connect(transport);
@@ -127,7 +125,7 @@ export async function executeMCPTool(toolName: string, args: any) {
         }
 
         let outText = '';
-        for (const block of result.content) {
+        for (const block of result.content as any[]) {
             if (block.type === 'text') outText += block.text + "\n";
             else outText += `[Contenido Binario/Imagen omitido del MCP]`;
         }

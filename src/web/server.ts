@@ -294,7 +294,7 @@ app.get('/api/skills', (req, res) => {
 });
 
 import { processUserMessage } from '../agent/loop.js';
-import { clearMessages, getRecentMessages } from '../db/index.js';
+import { getRecentMessages } from '../db/index.js';
 
 app.post('/api/clear-memory', (req, res) => {
     const { sessionId } = req.body;
