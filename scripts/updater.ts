@@ -8,9 +8,10 @@ async function runUpdate() {
     console.log(chalk.blue('🚀 Iniciando actualización desde GitHub...'));
 
     try {
-        // 1. Git Pull
-        console.log(chalk.gray('  - Descargando cambios (git pull)...'));
-        await execAsync('git pull origin main');
+        // 1. Git Pull (Hard Reset to recover from failed builds)
+        console.log(chalk.gray('  - Descargando cambios (git reset & pull)...'));
+        await execAsync('git fetch origin main');
+        await execAsync('git reset --hard origin/main');
 
         // 2. Install dependencies (if needed)
         console.log(chalk.gray('  - Instalando posibles nuevas dependencias...'));
