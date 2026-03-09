@@ -73,11 +73,11 @@ async function _internalCompletion(model: string, provider: string, messages: an
 
 export async function chatCompletion(model: string, provider: string, messages: any[], tools: any[] = []) {
     // Sistema Multi-tier (v5.0)
-    const tiers = [
+    const tiers = ([
         { p: getSetting('llm_primary_provider') || provider, m: getSetting('llm_primary_model') || model },
         { p: getSetting('llm_secondary_provider'), m: getSetting('llm_secondary_model') },
         { p: getSetting('llm_tertiary_provider'), m: getSetting('llm_tertiary_model') }
-    ].filter(t => t.p);
+    ].filter(t => t.p && t.m) as { p: string, m: string }[]);
 
     let lastError: any = null;
 

@@ -9,14 +9,18 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
     if (voiceEngine === 'local') {
         console.log('[Audio] Usando Whisper Local para transcripción...');
         try {
-            const { transcribe } = await import('whisper-node');
+            // @ts-ignore
+            const whisper = await import('whisper-node').catch(() => null);
+            if (!whisper || typeof whisper.transcribe !== 'function') {
+                throw new Error("Módulo whisper-node no encontrado o no válido.");
+            }
+
             const tmpFile = path.join(os.tmpdir(), filename);
             fs.writeFileSync(tmpFile, audioBuffer);
-            // @ts-ignore
-            const result = await transcribe(tmpFile);
+            const result = await whisper.transcribe(tmpFile);
             return result;
-        } catch (e) {
-            console.warn('[Audio] Whisper-node no detectado o falló. Reintentando con cloud fallback...');
+        } catch (e: any) {
+            console.warn(`[Audio] Whisper-node no detectado o falló: ${e.message}. Reintentando con cloud fallback...`);
         }
     }
 
