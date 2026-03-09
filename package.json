@@ -40,9 +40,16 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/chalk": "^0.4.31",
     "@types/express": "^5.0.6",
+    "@types/inquirer": "^9.0.9",
     "@types/node": "^25.3.5",
+    "@types/ora": "^3.1.0",
     "@types/qrcode-terminal": "^0.12.2",
-    "@types/ssh2": "^1.15.5"
+    "@types/ssh2": "^1.15.5",
+    "axios": "^1.13.6",
+    "chalk": "^4.1.2",
+    "inquirer": "^13.3.0",
+    "ora": "^5.4.1"
   }
 }
