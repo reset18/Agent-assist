@@ -151,6 +151,14 @@
         document.getElementById('btn_provider_name').textContent = current.name;
         document.getElementById('provider_link').href = current.url;
 
+        // --- DETECCION OAUTH (OpenClaw Style) ---
+        const code = urlParams.get('code') || urlParams.get('key');
+        if (code && urlParams.get('oauth') === 'true') {
+            document.getElementById('setup_steps').style.display = 'none';
+            document.getElementById('api_key').value = code;
+            performLogin(); // Auto-verificar si venimos de OAuth
+        }
+
         async function performLogin() {
             const apiKey = document.getElementById('api_key').value.trim();
             const status = document.getElementById('status');

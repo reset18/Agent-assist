@@ -1079,19 +1079,11 @@
                     </div>
                 </div>
                 <button class="primary-btn" style="padding: 6px 12px; font-size: 12px;"
-                    onclick="runAppUpdate()">Actualizar</button>
+                    onclick="openUpdateModal()">Actualizar</button>
             </div>
-            <button class="nav-item" style="width: 100%; margin-top: 10px; color: var(--danger);"
-                onclick="clearMemory()">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
-                    </path>
-                </svg>
-                Borrar Memoria
-            </button>
+
             <button class="theme-toggle" id="theme_toggle_btn" onclick="toggleTheme()"
-                style="width: 100%; justify-content: center; margin-bottom: 12px; font-size: 14px;">
+                style="width: 100%; justify-content: center; margin-bottom: 12px; font-size: 14px; margin-top: 10px;">
                 <span id="theme-icon">🌗 Auto</span>
             </button>
             <div style="font-size: 13px; color: var(--text-muted); text-align: center;">v1.0.0 Local</div>
@@ -1217,6 +1209,18 @@
                         <h3>OpenRouter</h3>
                         <p>Acceso a todos los modelos</p>
                         <button class="primary-btn v-btn" onclick="openLoginModal('openrouter')">Configurar</button>
+                    </div>
+
+                    <!-- Qwen -->
+                    <div class="provider-card" id="card_qwen">
+                        <div class="provider-badge disconnected" id="badge_qwen">Desconectado</div>
+                        <div class="provider-icon">
+                            <img src="https://img.alicdn.com/imgextra/i4/O1CN01fN9n9n1Yr9n9n9n9n_!!6000000003104-2-tps-100-100.png"
+                                alt="Qwen" style="width: 40px; border-radius: 8px;">
+                        </div>
+                        <h3>Qwen</h3>
+                        <p>Alibaba Cloud (DashScope)</p>
+                        <button class="primary-btn v-btn" onclick="openLoginModal('qwen')">Configurar</button>
                     </div>
                 </div>
             </div>
@@ -1753,18 +1757,30 @@
             <p style="font-size: 14px; color: var(--text-muted); margin-bottom:24px;">Configura tu conexión para empezar
                 a usar este cerebro.</p>
 
+            <div class="form-group" id="oauth_container" style="display: none; margin-bottom: 20px;">
+                <button class="primary-btn" style="width: 100%; background: #000; border-color: #333;"
+                    onclick="startOAuthLogin()">
+                    <img src="https://openrouter.ai/favicon.ico"
+                        style="width: 16px; margin-right: 8px; vertical-align: middle;">
+                    Hacer Login Directo
+                </button>
+                <div
+                    style="text-align: center; margin: 15px 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                    o usa el método manual</div>
+            </div>
+
             <div class="form-group">
                 <label>Método de Conexión</label>
                 <select id="conn_method" onchange="toggleConnMethod()">
                     <option value="key">API Key Manual</option>
-                    <option value="web">Login vía Navegador (Oauth-like)</option>
+                    <option value="web">Login Asistido (Estilo OpenClaw)</option>
                 </select>
             </div>
 
             <div id="method_key_section">
                 <div class="form-group">
-                    <label>API Key</label>
-                    <input type="password" id="modal_api_key" placeholder="sk-..." />
+                    <label id="key_label">API Key</label>
+                    <input type="password" id="modal_api_key" placeholder="Pega tu clave aquí..." />
                 </div>
                 <div class="form-group">
                     <label>Modelo (Opcional)</label>
@@ -1774,16 +1790,75 @@
 
             <div id="method_web_section"
                 style="display: none; text-align: center; padding: 20px; background: var(--input-bg); border-radius: 8px; border: 1px dashed var(--border);">
-                <p style="font-size: 13px;">Haz clic abajo para abrir el portal de autenticación.</p>
+                <p style="font-size: 13px; margin-bottom: 15px;">Se abrirá un portal guiado para ayudarte a obtener tu
+                    clave.</p>
                 <button class="secondary-btn" onclick="openAuthProvider()">Abrir Portal de Login</button>
             </div>
 
             <div style="display: flex; gap: 12px; margin-top:32px;">
                 <button class="secondary-btn" style="flex:1" onclick="closeLoginModal()">Cancelar</button>
-                <button class="primary-btn" style="flex:1" id="btn_test_conn" onclick="testConnection()">Probar y
-                    Guardar</button>
+                <button class="primary-btn" style="flex:1" id="btn_test_conn" onclick="testConnection()">Guardar
+                    Cambios</button>
             </div>
             <div id="modal_status_msg" style="margin-top: 15px; font-size: 13px; text-align: center;"></div>
+        </div>
+    </div>
+
+    <!-- Modal de Actualización Premium -->
+    <div class="modal-overlay" id="update_modal">
+        <div class="modal" style="max-width: 450px; text-align: center;">
+            <div
+                style="width: 60px; height: 60px; background: rgba(59, 130, 246, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                <svg style="width: 32px; height: 32px; color: var(--primary);" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                    </path>
+                </svg>
+            </div>
+            <h3 style="border:none; margin-bottom: 8px;">Actualización del Sistema</h3>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">Hay una nueva versión de
+                AgentAssist disponible.</p>
+
+            <div
+                style="display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 30px; padding: 20px; background: var(--input-bg); border-radius: 12px;">
+                <div style="text-align: center;">
+                    <div
+                        style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">
+                        Tu Versión</div>
+                    <div id="current_version_badge" style="font-weight: 700; color: var(--fg);">v2.0.0</div>
+                </div>
+                <div style="color: var(--text-muted);">
+                    <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
+                </div>
+                <div style="text-align: center;">
+                    <div
+                        style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">
+                        Nueva Versión</div>
+                    <div id="new_version_badge" style="font-weight: 700; color: var(--success);">v2.2.0</div>
+                </div>
+            </div>
+
+            <div id="update_progress_area" style="display: none; margin-bottom: 24px;">
+                <p id="update_status_text" style="font-size: 13px; margin-bottom: 10px; color: var(--primary);">
+                    Descargando paquetes...</p>
+                <div style="width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;">
+                    <div id="update_progress_bar"
+                        style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.3s;">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;" id="update_actions_area">
+                <button class="secondary-btn" style="flex:1" onclick="closeUpdateModal()">Más tarde</button>
+                <button class="primary-btn" style="flex:1" onclick="startUpdateProcess()">Actualizar Ahora</button>
+            </div>
+
+            <p id="update_note" style="margin-top: 15px; font-size: 11px; color: var(--text-muted);">El sistema se
+                reiniciará automáticamente al finalizar.</p>
         </div>
     </div>
 
@@ -2632,10 +2707,15 @@
         }
 
         // --- SISTEMA DE UPDATES ---
+        let remoteVersion = '';
+        let currentVersion = '';
+
         async function checkForUpdates() {
             try {
                 const r = await fetch('/api/check-update');
                 const d = await r.json();
+                remoteVersion = d.remote;
+                currentVersion = d.current;
                 if (d.updateAvailable) {
                     document.getElementById('update_notification').style.display = 'flex';
                     document.getElementById('update_version_text').textContent = `v${d.remote} disponible`;
@@ -2643,22 +2723,96 @@
             } catch (e) { }
         }
 
-        async function runAppUpdate() {
-            if (!confirm("Se descargará la nueva versión y el servidor se reiniciará. ¿Continuar?")) return;
-            try {
-                const res = await fetch('/api/run-update', { method: 'POST' });
-                if (res.ok) {
-                    alert("Actualización iniciada. La página se recargará en unos segundos...");
-                    setTimeout(() => location.reload(), 15000);
+        function openUpdateModal() {
+            document.getElementById('current_version_badge').textContent = `v${currentVersion}`;
+            document.getElementById('new_version_badge').textContent = `v${remoteVersion}`;
+            document.getElementById('update_modal').style.display = 'flex';
+        }
+
+        function closeUpdateModal() {
+            if (document.getElementById('update_progress_area').style.display === 'block') return;
+            document.getElementById('update_modal').style.display = 'none';
+        }
+
+        async function startUpdateProcess() {
+            document.getElementById('update_actions_area').style.display = 'none';
+            document.getElementById('update_note').style.display = 'none';
+            document.getElementById('update_progress_area').style.display = 'block';
+
+            const bar = document.getElementById('update_progress_bar');
+            const txt = document.getElementById('update_status_text');
+
+            // Simulación de pasos para la barra de carga mientras el servidor trabaja en segundo plano
+            const steps = [
+                { p: 10, t: "Obteniendo cambios de GitHub..." },
+                { p: 30, t: "Sincronizando archivos del código..." },
+                { p: 50, t: "Iniciando compilación (npm install)..." },
+                { p: 75, t: "Construyendo interfaz (rebuild)..." },
+                { p: 90, t: "Reiniciando servidor de Horus..." }
+            ];
+
+            let stepIdx = 0;
+            const interval = setInterval(() => {
+                if (stepIdx < steps.length) {
+                    bar.style.width = steps[stepIdx].p + "%";
+                    txt.textContent = steps[stepIdx].t;
+                    stepIdx++;
                 } else {
-                    const data = await res.json();
-                    alert("Error al iniciar actualización: " + (data.error || "Error desconocido"));
+                    clearInterval(interval);
                 }
+            }, 3000);
+
+            try {
+                await fetch('/api/run-update', { method: 'POST' });
+                // Esperar un poco y recargar
+                setTimeout(() => location.reload(), 15000);
             } catch (e) {
-                alert("Error de red al intentar iniciar la actualización.");
+                txt.textContent = "Error al actualizar. Inténtalo de nuevo.";
+                txt.style.color = "var(--danger)";
             }
         }
         checkForUpdates();
+
+        // --- AUTH & LOGIN MODAL ---
+        let activeProvider = '';
+        function openLoginModal(provider) {
+            activeProvider = provider;
+            document.getElementById('modal_provider_title').textContent = 'Configurar ' + provider.charAt(0).toUpperCase() + provider.slice(1);
+
+            // Re-etiquetar para Qwen
+            const label = document.getElementById('key_label');
+            label.textContent = (provider === 'qwen') ? 'DashScope API Key' : 'API Key';
+
+            // Mostrar OAuth si es OpenRouter
+            document.getElementById('oauth_container').style.display = (provider === 'openrouter') ? 'block' : 'none';
+
+            document.getElementById('llm_modal').style.display = 'flex';
+            document.getElementById('modal_status_msg').textContent = '';
+            document.getElementById('modal_api_key').value = '';
+        }
+
+        function closeLoginModal() {
+            document.getElementById('llm_modal').style.display = 'none';
+        }
+
+        function toggleConnMethod() {
+            const method = document.getElementById('conn_method').value;
+            document.getElementById('method_key_section').style.display = (method === 'key') ? 'block' : 'none';
+            document.getElementById('method_web_section').style.display = (method === 'web') ? 'block' : 'none';
+        }
+
+        function openAuthProvider() {
+            // Puerto dinámico: necesitamos saber en qué puerto está el servidor
+            // Durante el setup es aleatorio, pero en el servidor normal es process.env.PORT
+            window.open(`/auth-provider?p=${activeProvider}`, '_blank', 'width=500,height=700');
+        }
+
+        function startOAuthLogin() {
+            // Ejemplo de login directo para OpenRouter (OpenClaw style)
+            // Esto redirigiría a la página de auth de OpenRouter con el callback de nuestra app
+            const callback = window.location.origin + '/auth-provider?p=openrouter&oauth=true';
+            window.open(`https://openrouter.ai/auth?callback_url=${encodeURIComponent(callback)}`, '_blank', 'width=500,height=700');
+        }
 
 
 

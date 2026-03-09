@@ -237,6 +237,7 @@ app.post('/api/settings', (req, res) => {
         if (providerToUse === 'openai') { updateEnv('OPENAI_API_KEY', llm_api_key); process.env.OPENAI_API_KEY = llm_api_key; }
         if (providerToUse === 'anthropic') { updateEnv('ANTHROPIC_API_KEY', llm_api_key); process.env.ANTHROPIC_API_KEY = llm_api_key; }
         if (providerToUse === 'google') { updateEnv('GEMINI_API_KEY', llm_api_key); process.env.GEMINI_API_KEY = llm_api_key; }
+        if (providerToUse === 'qwen') { updateEnv('QWEN_API_KEY', llm_api_key); process.env.QWEN_API_KEY = llm_api_key; }
     }
 
     if (telegram_bot_token !== undefined) updateEnv('TELEGRAM_BOT_TOKEN', telegram_bot_token);
@@ -297,10 +298,21 @@ app.post('/api/models', async (req, res) => {
         });
     }
 
+    if (provider === 'qwen') {
+        return res.json({
+            models: [
+                { id: 'qwen-turbo', name: 'Qwen Turbo' },
+                { id: 'qwen-plus', name: 'Qwen Plus' },
+                { id: 'qwen-max', name: 'Qwen Max' }
+            ]
+        });
+    }
+
     let url = '';
     if (provider === 'openrouter') url = 'https://openrouter.ai/api/v1/models';
     if (provider === 'groq') url = 'https://api.groq.com/openai/v1/models';
     if (provider === 'openai') url = 'https://api.openai.com/v1/models';
+    if (provider === 'qwen') url = 'https://dashscope.aliyuncs.com/compatible-mode/v1/models';
 
     try {
         const headers: any = {};

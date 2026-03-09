@@ -129,6 +129,9 @@ async function validateApiKey(provider: string, apiKey: string) {
             headers['anthropic-version'] = '2023-06-01';
             delete headers['Authorization'];
         }
+        if (provider === 'qwen') {
+            url = 'https://dashscope.aliyuncs.com/compatible-mode/v1/models';
+        }
 
         const response = await axios.get(url, { headers, timeout: 10000 });
         spinner.succeed(chalk.green('¡API Key válida!'));
@@ -142,6 +145,12 @@ async function validateApiKey(provider: string, apiKey: string) {
             models = [
                 { title: 'Claude 3.5 Sonnet', value: 'claude-3-5-sonnet-20241022' },
                 { title: 'Claude 3.5 Haiku', value: 'claude-3-5-haiku-20241022' }
+            ];
+        } else if (provider === 'qwen') {
+            models = [
+                { title: 'Qwen Turbo', value: 'qwen-turbo' },
+                { title: 'Qwen Plus', value: 'qwen-plus' },
+                { title: 'Qwen Max', value: 'qwen-max' }
             ];
         } else {
             models = (response.data.data || []).map((m: any) => ({ title: m.id, value: m.id }));
@@ -184,7 +193,8 @@ async function startSetup() {
         openai: 'OPENAI_API_KEY',
         google: 'GEMINI_API_KEY',
         anthropic: 'ANTHROPIC_API_KEY',
-        groq: 'GROQ_API_KEY'
+        groq: 'GROQ_API_KEY',
+        qwen: 'QWEN_API_KEY'
     };
 
     if (existingProvider && getEnv(keyMap[existingProvider])) {
@@ -214,6 +224,7 @@ async function startSetup() {
                     { title: 'Anthropic (Claude)', value: 'anthropic' },
                     { title: 'Google Gemini', value: 'google' },
                     { title: 'Groq (Velocidad)', value: 'groq' },
+                    { title: 'Qwen (Alibaba Cloud)', value: 'qwen' },
                     { title: 'OpenRouter (Recomendado)', value: 'openrouter' }
                 ]
             },
