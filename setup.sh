@@ -89,6 +89,6 @@ npm install -g pm2
 npm run build
 pm2 start dist/index.js --name agent-assist
 pm2 save
-pm2 startup | bash || true
+env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u root --hp /root || true
 
-# Mensaje final lo da PM2 y el script de node, así que terminamos aquí.
+# Mensaje final
