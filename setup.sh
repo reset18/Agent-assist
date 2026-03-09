@@ -82,7 +82,7 @@ echo -e "3) Google Gemini"
 echo -e "4) Anthropic (Claude)"
 echo -e "5) Grok (xAI)"
 echo -e "6) Groq (Velocidad extrema)"
-read -p "Opción [1-6]: " LLM_OPTION
+read -p "Opción [1-6]: " LLM_OPTION </dev/tty
 
 case $LLM_OPTION in
   2) LLM_PROVIDER="openai" ;;
@@ -93,10 +93,10 @@ case $LLM_OPTION in
   *) LLM_PROVIDER="openrouter" ;;
 esac
 
-read -p "Introduce tu API Key para $LLM_PROVIDER: " API_KEY
-read -p "Nombre del Agente [Agent-Assist]: " AGENT_NAME
+read -p "Introduce tu API Key para $LLM_PROVIDER: " API_KEY </dev/tty
+read -p "Nombre del Agente [Agent-Assist]: " AGENT_NAME </dev/tty
 AGENT_NAME=${AGENT_NAME:-Agent-Assist}
-read -p "Puerto del servidor [3000]: " PORT
+read -p "Puerto del servidor [3000]: " PORT </dev/tty
 PORT=${PORT:-3000}
 
 # Limpiar .env de claves previas de otros proveedores si es necesario (opcional)
@@ -107,11 +107,23 @@ sed -i "s|LLM_PROVIDER=.*|LLM_PROVIDER=$LLM_PROVIDER|" .env
 if [ "$LLM_PROVIDER" == "openrouter" ]; then
     sed -i "s|OPENROUTER_API_KEY=.*|OPENROUTER_API_KEY=$API_KEY|" .env
 elif [ "$LLM_PROVIDER" == "openai" ]; then
-    sed -i "s|OPENAI_API_KEY=.*|OPENAI_API_KEY=$API_KEY|" .env
+    if grep -q "OPENAI_API_KEY" .env; then
+        sed -i "s|OPENAI_API_KEY=.*|OPENAI_API_KEY=$API_KEY|" .env
+    else
+        echo "OPENAI_API_KEY=$API_KEY" >> .env
+    fi
 elif [ "$LLM_PROVIDER" == "google" ]; then
-    sed -i "s|GEMINI_API_KEY=.*|GEMINI_API_KEY=$API_KEY|" .env
+    if grep -q "GEMINI_API_KEY" .env; then
+        sed -i "s|GEMINI_API_KEY=.*|GEMINI_API_KEY=$API_KEY|" .env
+    else
+        echo "GEMINI_API_KEY=$API_KEY" >> .env
+    fi
 elif [ "$LLM_PROVIDER" == "anthropic" ]; then
-    sed -i "s|ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=$API_KEY|" .env
+    if grep -q "ANTHROPIC_API_KEY" .env; then
+        sed -i "s|ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=$API_KEY|" .env
+    else
+        echo "ANTHROPIC_API_KEY=$API_KEY" >> .env
+    fi
 fi
 
 sed -i "s|PORT=.*|PORT=$PORT|" .env
