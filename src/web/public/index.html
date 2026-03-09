@@ -638,15 +638,16 @@
             margin-top: 12px;
         }
 
-        padding: 10px 20px;
-        border: none;
-        background: transparent;
-        color: var(--text-muted);
-        font-weight: 500;
-        font-size: 14px;
-        cursor: pointer;
-        border-bottom: 3px solid transparent;
-        transition: all 0.2s ease;
+        .sub-tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
         }
 
         .sub-tab-btn:hover {
@@ -1176,7 +1177,7 @@
                             style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
                                 style="height: 24px;">
-                            <span class="provider-status" id="badge_openai">Desconectado</span>
+                            <span class="provider-badge disconnected" id="badge_openai">Desconectado</span>
                         </div>
                         <h3>OpenAI</h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">GPT-4o, GPT-4o-mini y
@@ -1184,14 +1185,13 @@
                         <button class="secondary-btn" style="width: 100%;"
                             onclick="openLoginModal('openai')">Configurar</button>
                     </div>
-
                     <!-- Anthropic -->
                     <div class="card provider-card" id="card_anthropic">
                         <div
                             style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/7/75/Anthropic_logo.svg"
                                 style="height: 20px;">
-                            <span class="provider-status" id="badge_anthropic">Próximamente</span>
+                            <span class="provider-badge pending" id="badge_anthropic">Próximamente</span>
                         </div>
                         <h3>Anthropic</h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Claude 3.5 Sonnet.
@@ -1205,7 +1205,7 @@
                             style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg?20240210200543"
                                 style="height: 24px;">
-                            <span class="provider-status" id="badge_google">Desconectado</span>
+                            <span class="provider-badge disconnected" id="badge_google">Desconectado</span>
                         </div>
                         <h3>Google Gemini</h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Gemini 1.5 Pro.
@@ -1219,7 +1219,7 @@
                         <div
                             style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                             <div style="font-weight: 900; font-size: 20px; color: var(--fg);">GROQ</div>
-                            <span class="provider-status" id="badge_groq">Desconectado</span>
+                            <span class="provider-badge disconnected" id="badge_groq">Desconectado</span>
                         </div>
                         <h3>Groq</h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Inferencia ultra
@@ -1233,7 +1233,7 @@
                         <div
                             style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                             <img src="https://openrouter.ai/favicon.ico" style="height: 24px;">
-                            <span class="provider-status" id="badge_openrouter">Desconectado</span>
+                            <span class="provider-badge disconnected" id="badge_openrouter">Desconectado</span>
                         </div>
                         <h3>OpenRouter</h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Acceso a todos los
@@ -1247,7 +1247,7 @@
                         <div
                             style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                             <div style="font-weight: 800; font-size: 18px; color: var(--primary);">Qwen AI</div>
-                            <span class="provider-status" id="badge_qwen">Desconectado</span>
+                            <span class="provider-badge disconnected" id="badge_qwen">Desconectado</span>
                         </div>
                         <h3>Alibaba Qwen</h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Modelos SoTA de
@@ -1256,605 +1256,594 @@
                             onclick="openLoginModal('qwen')">Configurar</button>
                     </div>
                 </div>
+            </div>
 
-                <!-- SECCIÓN MULTI-TIER (v5.0) -->
-                <div class="card" style="margin-top: 32px;">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-                        <div
-                            style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                            <svg style="width: 24px; height: 24px; color: var(--primary);" fill="none"
-                                stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 style="margin: 0; border: none; padding: 0;">Configuración de Relevos (Fallbacks)</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Si falla tu IA principal,
-                                Horus
-                                saltará automáticamente a la siguiente.</p>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                        <div class="form-group">
-                            <label>1. Cerebro Principal</label>
-                            <select id="llm_primary_fallback" onchange="saveMultiTierSettings()">
-                                <option value="">(Usar predeterminado)</option>
-                                <option value="openai">OpenAI</option>
-                                <option value="anthropic">Anthropic</option>
-                                <option value="google">Gemini</option>
-                                <option value="groq">Groq</option>
-                                <option value="openrouter">OpenRouter</option>
-                                <option value="qwen">Qwen</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>2. Cerebro de Respaldo</label>
-                            <select id="llm_secondary_fallback" onchange="saveMultiTierSettings()">
-                                <option value="">Ninguno</option>
-                                <option value="openai">OpenAI</option>
-                                <option value="anthropic">Anthropic</option>
-                                <option value="google">Gemini</option>
-                                <option value="groq">Groq</option>
-                                <option value="qwen">Qwen</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>3. Última Opción</label>
-                            <select id="llm_tertiary_fallback" onchange="saveMultiTierSettings()">
-                                <option value="">Ninguno</option>
-                                <option value="openai">OpenAI</option>
-                                <option value="google">Gemini</option>
-                                <option value="groq">Groq</option>
-                                <option value="qwen">Qwen</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- DASHBOARD DE TOKENS (v5.0) -->
-                <div class="card" style="margin-top: 24px;">
+            <!-- SECCIÓN MULTI-TIER (v5.0) -->
+            <div class="card" style="margin-top: 32px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
                     <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3 style="margin: 0; border: none; padding: 0;">Consumo de Tokens (Hoy)</h3>
-                        <button class="secondary-btn" style="padding: 6px 12px; font-size: 12px;"
-                            onclick="loadTokenUsage()">Actualizar</button>
+                        style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <svg style="width: 24px; height: 24px; color: var(--primary);" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
                     </div>
-                    <div id="token_usage_stats"
-                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
-                        <!-- Aquí se cargarán las estadísticas -->
-                        <div
-                            style="text-align: center; padding: 15px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border);">
-                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">
-                                Cargando...
-                            </div>
+                    <div>
+                        <h3 style="margin: 0; border: none; padding: 0;">Configuración de Relevos (Fallbacks)</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Si falla tu IA principal,
+                            Horus
+                            saltará automáticamente a la siguiente.</p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div class="form-group">
+                        <label>1. Cerebro Principal</label>
+                        <select id="llm_primary_fallback" onchange="saveMultiTierSettings()">
+                            <option value="">(Usar predeterminado)</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="google">Gemini</option>
+                            <option value="groq">Groq</option>
+                            <option value="openrouter">OpenRouter</option>
+                            <option value="qwen">Qwen</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>2. Cerebro de Respaldo</label>
+                        <select id="llm_secondary_fallback" onchange="saveMultiTierSettings()">
+                            <option value="">Ninguno</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="google">Gemini</option>
+                            <option value="groq">Groq</option>
+                            <option value="qwen">Qwen</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>3. Última Opción</label>
+                        <select id="llm_tertiary_fallback" onchange="saveMultiTierSettings()">
+                            <option value="">Ninguno</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="google">Gemini</option>
+                            <option value="groq">Groq</option>
+                            <option value="qwen">Qwen</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DASHBOARD DE TOKENS (v5.0) -->
+            <div class="card" style="margin-top: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; border: none; padding: 0;">Consumo de Tokens (Hoy)</h3>
+                    <button class="secondary-btn" style="padding: 6px 12px; font-size: 12px;"
+                        onclick="loadTokenUsage()">Actualizar</button>
+                </div>
+                <div id="token_usage_stats"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
+                    <!-- Aquí se cargarán las estadísticas -->
+                    <div
+                        style="text-align: center; padding: 15px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border);">
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">
+                            Cargando...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canales -->
+        <div id="channels" class="page-content">
+            <h2 class="page-title">Canales</h2>
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" onclick="switchChannelTab('tab_telegram', this)">Telegram</button>
+                <button class="sub-tab-btn" onclick="switchChannelTab('tab_whatsapp', this)">WhatsApp</button>
+            </div>
+            <div id="tab_telegram" class="sub-tab-content active">
+                <div class="card">
+                    <div
+                        style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
+                        <h3 style="margin: 0; border: none; padding: 0;">Telegram</h3>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="bot_telegram_enabled" onchange="toggleTelegramConfig()" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div id="telegram_config_section">
+                        <div class="form-group">
+                            <label for="telegram_bot_token">Token</label>
+                            <input type="password" id="telegram_bot_token" onchange="saveSettings()" />
+                        </div>
+                        <div class="form-group">
+                            <label for="telegram_whitelist">Whitelisted IDs</label>
+                            <input type="text" id="telegram_whitelist" onchange="saveSettings()" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Canales -->
-            <div id="channels" class="page-content">
-                <h2 class="page-title">Canales</h2>
-                <div class="sub-tabs">
-                    <button class="sub-tab-btn active"
-                        onclick="switchChannelTab('tab_telegram', this)">Telegram</button>
-                    <button class="sub-tab-btn" onclick="switchChannelTab('tab_whatsapp', this)">WhatsApp</button>
-                </div>
-                <div id="tab_telegram" class="sub-tab-content active">
-                    <div class="card">
-                        <div
-                            style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
-                            <h3 style="margin: 0; border: none; padding: 0;">Telegram</h3>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="bot_telegram_enabled" onchange="toggleTelegramConfig()"
-                                    checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div id="telegram_config_section">
-                            <div class="form-group">
-                                <label for="telegram_bot_token">Token</label>
-                                <input type="password" id="telegram_bot_token" onchange="saveSettings()" />
-                            </div>
-                            <div class="form-group">
-                                <label for="telegram_whitelist">Whitelisted IDs</label>
-                                <input type="text" id="telegram_whitelist" onchange="saveSettings()" />
-                            </div>
-                        </div>
+            <!-- Tab WhatsApp -->
+            <div id="tab_whatsapp" class="sub-tab-content">
+                <div class="card">
+                    <div
+                        style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
+                        <h3 style="margin: 0; border: none; padding: 0;">Vincular WhatsApp de
+                            forma segura</h3>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="bot_whatsapp_enabled" onchange="toggleWhatsappConfig()" checked>
+                            <span class="slider"></span>
+                        </label>
                     </div>
-                </div>
+                    <div id="whatsapp_config_section">
+                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
+                            <b>Nota importante:</b> Utiliza el interruptor superior si deseas
+                            apagar o encender
+                            el
+                            bot
+                            de
+                            WhatsApp (tras guardarlo, requiere que reinicies el servidor con
+                            <code>npm run dev</code>).
+                        </p>
 
-                <!-- Tab WhatsApp -->
-                <div id="tab_whatsapp" class="sub-tab-content">
-                    <div class="card">
-                        <div
-                            style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
-                            <h3 style="margin: 0; border: none; padding: 0;">Vincular WhatsApp de
-                                forma segura</h3>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="bot_whatsapp_enabled" onchange="toggleWhatsappConfig()"
-                                    checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div id="whatsapp_config_section">
-                            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
-                                <b>Nota importante:</b> Utiliza el interruptor superior si deseas
-                                apagar o encender
-                                el
-                                bot
-                                de
-                                WhatsApp (tras guardarlo, requiere que reinicies el servidor con
-                                <code>npm run dev</code>).
-                            </p>
+                        <div class="whatsapp-status-box" id="whatsapp_status_box_container">
+                            <div style="margin-bottom: 20px; font-size: 15px; color: var(--fg); font-weight: 500;">
+                                Estado de conexión de la sesión: <span id="wa_status_badge"
+                                    class="badge disconnected">Sin
+                                    Inicializar</span>
+                            </div>
 
-                            <div class="whatsapp-status-box" id="whatsapp_status_box_container">
-                                <div style="margin-bottom: 20px; font-size: 15px; color: var(--fg); font-weight: 500;">
-                                    Estado de conexión de la sesión: <span id="wa_status_badge"
-                                        class="badge disconnected">Sin
-                                        Inicializar</span>
-                                </div>
+                            <div id="wa_qr_section" style="display: none;">
+                                <p style="font-size: 14px; margin-bottom:15px; color: var(--text-muted);">
+                                    Ve a <b>WhatsApp > Dispositivos Vinculados > Vincular un
+                                        dispositivo</b> y
+                                    enfoca
+                                    este
+                                    código QR para dar acceso al agente.
+                                </p>
+                                <div id="qrcode_container"></div>
+                            </div>
 
-                                <div id="wa_qr_section" style="display: none;">
-                                    <p style="font-size: 14px; margin-bottom:15px; color: var(--text-muted);">
-                                        Ve a <b>WhatsApp > Dispositivos Vinculados > Vincular un
-                                            dispositivo</b> y
-                                        enfoca
-                                        este
-                                        código QR para dar acceso al agente.
-                                    </p>
-                                    <div id="qrcode_container"></div>
-                                </div>
-
-                                <div id="wa_connected_msg" style="display: none;">
-                                    <svg style="width: 48px; height: 48px; color: var(--success); margin: 0 auto;"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
-                                        </path>
-                                    </svg>
-                                    <p
-                                        style="color: var(--success); font-weight:600; font-size: 17px; margin-top: 15px;">
-                                        Agente de WhatsApp vinculado correctamente.
-                                    </p>
-                                </div>
+                            <div id="wa_connected_msg" style="display: none;">
+                                <svg style="width: 48px; height: 48px; color: var(--success); margin: 0 auto;"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
+                                    </path>
+                                </svg>
+                                <p style="color: var(--success); font-weight:600; font-size: 17px; margin-top: 15px;">
+                                    Agente de WhatsApp vinculado correctamente.
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Habilidades -->
-            <div id="skills" class="page-content">
-                <h2 class="page-title">Habilidades Autónomas (Tools)</h2>
-                <p class="page-subtitle">Las habilidades activas permiten al Agente ejecutar código
-                    de forma autónoma
-                    durante el razonamiento.</p>
+        <!-- Habilidades -->
+        <div id="skills" class="page-content">
+            <h2 class="page-title">Habilidades Autónomas (Tools)</h2>
+            <p class="page-subtitle">Las habilidades activas permiten al Agente ejecutar código
+                de forma autónoma
+                durante el razonamiento.</p>
 
-                <!-- SubTabs para Skills -->
-                <div class="sub-tabs">
-                    <button class="sub-tab-btn active"
-                        onclick="switchSkillTab('tab_skills_natives', this)">Nativas</button>
-                    <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_mcp', this)">Externas (MCP)</button>
-                    <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_voice', this)">Voz
-                        (OpenAI/ElevenLabs)</button>
+            <!-- SubTabs para Skills -->
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" onclick="switchSkillTab('tab_skills_natives', this)">Nativas</button>
+                <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_mcp', this)">Externas (MCP)</button>
+                <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_voice', this)">Voz
+                    (OpenAI/ElevenLabs)</button>
+            </div>
+
+            <!-- Tab Nativas -->
+            <div id="tab_skills_natives" class="sub-tab-content active">
+                <div class="card">
+                    <h3>Herramientas Nativas</h3>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
+                        Puedes añadir más desarrollando archivos en `src/agent/tools`. Estas son
+                        las detectadas
+                        actualmente:
+                    </p>
+
+                    <div class="form-group">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Obtener Hora Local (get_current_time)</div>
+                                <span class="helper-text" style="margin-top: 0;">Otorga
+                                    percepción temporal al LLM
+                                    nativamente para programar o saber qué día es.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_get_current_time" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Herramientas OpenClaw (Sistema Local) -->
+                    <div class="form-group" style="margin-top: 15px;">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Leer Archivo (read_file_local)</div>
+                                <span class="helper-text" style="margin-top: 0;">Lectura de
+                                    archivos alojados en el
+                                    mismo contenedor donde está este Agente.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_read_file_local" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Escribir Archivo (write_file_local)</div>
+                                <span class="helper-text" style="margin-top: 0;">Escritura o
+                                    alteración del código y
+                                    contenido de archivos locales.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_write_file_local" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Listar Directorio (list_dir_local)</div>
+                                <span class="helper-text" style="margin-top: 0;">Inspección del
+                                    árbol de archivos en
+                                    base a una ruta local dada.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_list_dir_local" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Ejecutar Shell/Bash Local (run_shell_local)</div>
+                                <span class="helper-text" style="margin-top: 0;">Permite al
+                                    Agente lanzar scripts
+                                    npm, bash_commands o comandos locales autónomos.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_run_shell_local" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Herramienta de Acceso Proxmox/VMs -->
+                    <div class="form-group" style="margin-top: 15px;">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Túnel SSH Remoto (run_ssh_command)</div>
+                                <span class="helper-text" style="margin-top: 0;">Conexión y
+                                    ejecución de comandos
+                                    SSH en Host externos usando sus credenciales seguras.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_run_ssh_command" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
+            </div>
 
-                <!-- Tab Nativas -->
-                <div id="tab_skills_natives" class="sub-tab-content active">
-                    <div class="card">
-                        <h3>Herramientas Nativas</h3>
+            <!-- Tab MCP -->
+            <div id="tab_skills_mcp" class="sub-tab-content">
+                <div class="skills-filter-bar">
+                    <button class="filter-btn active" onclick="filterSkills('all')">Todas</button>
+                    <button class="filter-btn" onclick="filterSkills('active')">Activas</button>
+                    <button class="filter-btn" onclick="filterSkills('inactive')">Inactivas</button>
+                    <div style="flex: 1;"></div>
+                    <input type="text" id="skill_search" placeholder="Buscar habilidad..." oninput="filterSkills()">
+                </div>
+                <div id="mcp_skills_container" class="skills-grid">
+                    <!-- Carga dinámica desde js -->
+                </div>
+            </div>
+
+            <style>
+                .skills-filter-bar {
+                    display: flex;
+                    gap: 12px;
+                    margin-bottom: 24px;
+                    align-items: center;
+                    background: rgba(0, 0, 0, 0.03);
+                    padding: 16px;
+                    border-radius: 16px;
+                    border: 1px solid var(--border);
+                }
+
+                .filter-btn {
+                    background: var(--card);
+                    border: 1px solid var(--border);
+                    color: var(--text-muted);
+                    padding: 10px 20px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                .filter-btn:hover {
+                    border-color: var(--primary);
+                    color: var(--fg);
+                    transform: translateY(-1px);
+                }
+
+                .filter-btn.active {
+                    background: var(--primary);
+                    border-color: var(--primary);
+                    color: white !important;
+                    box-shadow: 0 4px 12px rgba(var(--primary-rgb, 59, 130, 246), 0.3);
+                }
+
+                #skill_search {
+                    padding: 10px 16px;
+                    border-radius: 10px;
+                    border: 1px solid var(--border);
+                    background: var(--card);
+                    color: var(--fg);
+                    font-size: 14px;
+                    min-width: 240px;
+                    transition: border-color 0.2s;
+                }
+
+                #skill_search:focus {
+                    border-color: var(--primary);
+                    outline: none;
+                    box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 59, 130, 246), 0.1);
+                }
+
+                .skills-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                    gap: 40px;
+                    margin-top: 10px;
+                }
+
+                .skill-card {
+                    background-color: var(--card);
+                    border: 1px solid var(--border);
+                    border-radius: 16px;
+                    padding: 24px;
+                    display: flex;
+                    flex-direction: column;
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+                    position: relative;
+                    overflow: visible;
+                    min-height: 200px;
+                }
+
+                .skill-card:hover {
+                    transform: translateY(-6px);
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                    border-color: var(--primary);
+                }
+
+                .skill-card.enabled {
+                    border-bottom: 5px solid var(--primary);
+                }
+
+                .skill-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 24px;
+                }
+
+                .skill-title-area {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                }
+
+                .skill-emoji {
+                    font-size: 22px;
+                    background: rgba(var(--primary-rgb, 59, 130, 246), 0.1);
+                    width: 44px;
+                    height: 44px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 10px;
+                    border: 1px solid rgba(var(--primary-rgb, 59, 130, 246), 0.2);
+                    flex-shrink: 0;
+                }
+
+                .skill-title {
+                    font-weight: 700;
+                    font-size: 15px;
+                    color: var(--fg);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    position: relative;
+                    line-height: 1.2;
+                }
+
+                .info-icon {
+                    width: 22px;
+                    height: 22px;
+                    color: var(--text-muted);
+                    cursor: help;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                    border-radius: 50%;
+                    background: rgba(0, 0, 0, 0.05);
+                }
+
+                .info-icon:hover {
+                    color: var(--primary);
+                    background: rgba(var(--primary-rgb, 59, 130, 246), 0.1);
+                    transform: scale(1.1);
+                }
+
+                .tooltip-text {
+                    visibility: hidden;
+                    width: 280px;
+                    background-color: var(--card);
+                    color: var(--fg);
+                    text-align: left;
+                    border: 1px solid var(--primary);
+                    border-radius: 14px;
+                    padding: 18px;
+                    position: absolute;
+                    z-index: 1000;
+                    bottom: 140%;
+                    left: 50%;
+                    transform: translateX(-50%) translateY(10px);
+                    opacity: 0;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    font-size: 14px;
+                    line-height: 1.6;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                    pointer-events: none;
+                }
+
+                .info-icon:hover~.tooltip-text {
+                    visibility: visible;
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(0);
+                }
+
+                .skill-description {
+                    display: none;
+                }
+
+                .skill-footer {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-top: auto;
+                    padding-top: 20px;
+                    border-top: 1px solid var(--border);
+                }
+
+                .skill-status-badge {
+                    font-size: 12px;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    padding: 6px 12px;
+                    border-radius: 8px;
+                    letter-spacing: 0.5px;
+                }
+
+                .badge-active {
+                    background-color: rgba(16, 185, 129, 0.1);
+                    color: var(--success);
+                    border: 1px solid rgba(16, 185, 129, 0.2);
+                }
+
+                .badge-inactive {
+                    background-color: rgba(148, 163, 184, 0.1);
+                    color: var(--text-muted);
+                    border: 1px solid rgba(148, 163, 184, 0.2);
+                }
+            </style>
+
+            <!-- Tab Voz -->
+            <div id="tab_skills_voice" class="sub-tab-content">
+                <div class="card">
+                    <div
+                        style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px;">
+                        <h3 style="margin: 0; border: none; padding: 0;">Configuración de Voz
+                            (TTS)</h3>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="voice_enabled" onchange="toggleVoiceMainConfig()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div id="voice_engine_section" style="display: none;">
                         <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
-                            Puedes añadir más desarrollando archivos en `src/agent/tools`. Estas son
-                            las detectadas
-                            actualmente:
+                            Otorga a tu Agente una voz realista e hiperhumana. Selecciona el
+                            motor que prefieras.
                         </p>
 
                         <div class="form-group">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Obtener Hora Local (get_current_time)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Otorga
-                                        percepción temporal al LLM
-                                        nativamente para programar o saber qué día es.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_get_current_time" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
+                            <label for="voice_engine">Motor de Voz Principal</label>
+                            <select id="voice_engine" onchange="updateVoiceEngineFields()">
+                                <option value="openai">OpenAI TTS (Recomendado si ya usas
+                                    OpenAI)</option>
+                                <option value="elevenlabs">ElevenLabs (Voces Premium / Clonadas)
+                                </option>
+                            </select>
                         </div>
 
-                        <!-- Herramientas OpenClaw (Sistema Local) -->
-                        <div class="form-group" style="margin-top: 15px;">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Leer Archivo (read_file_local)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Lectura de
-                                        archivos alojados en el
-                                        mismo contenedor donde está este Agente.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_read_file_local" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-group" style="margin-top: 15px;">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Escribir Archivo (write_file_local)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Escritura o
-                                        alteración del código y
-                                        contenido de archivos locales.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_write_file_local" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-group" style="margin-top: 15px;">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Listar Directorio (list_dir_local)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Inspección del
-                                        árbol de archivos en
-                                        base a una ruta local dada.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_list_dir_local" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-group" style="margin-top: 15px;">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Ejecutar Shell/Bash Local (run_shell_local)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Permite al
-                                        Agente lanzar scripts
-                                        npm, bash_commands o comandos locales autónomos.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_run_shell_local" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Herramienta de Acceso Proxmox/VMs -->
-                        <div class="form-group" style="margin-top: 15px;">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Túnel SSH Remoto (run_ssh_command)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Conexión y
-                                        ejecución de comandos
-                                        SSH en Host externos usando sus credenciales seguras.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_run_ssh_command" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab MCP -->
-                <div id="tab_skills_mcp" class="sub-tab-content">
-                    <div class="skills-filter-bar">
-                        <button class="filter-btn active" onclick="filterSkills('all')">Todas</button>
-                        <button class="filter-btn" onclick="filterSkills('active')">Activas</button>
-                        <button class="filter-btn" onclick="filterSkills('inactive')">Inactivas</button>
-                        <div style="flex: 1;"></div>
-                        <input type="text" id="skill_search" placeholder="Buscar habilidad..." oninput="filterSkills()">
-                    </div>
-                    <div id="mcp_skills_container" class="skills-grid">
-                        <!-- Carga dinámica desde js -->
-                    </div>
-                </div>
-
-                <style>
-                    .skills-filter-bar {
-                        display: flex;
-                        gap: 12px;
-                        margin-bottom: 24px;
-                        align-items: center;
-                        background: rgba(0, 0, 0, 0.03);
-                        padding: 16px;
-                        border-radius: 16px;
-                        border: 1px solid var(--border);
-                    }
-
-                    .filter-btn {
-                        background: var(--card);
-                        border: 1px solid var(--border);
-                        color: var(--text-muted);
-                        padding: 10px 20px;
-                        border-radius: 10px;
-                        cursor: pointer;
-                        font-size: 14px;
-                        font-weight: 600;
-                        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                    }
-
-                    .filter-btn:hover {
-                        border-color: var(--primary);
-                        color: var(--fg);
-                        transform: translateY(-1px);
-                    }
-
-                    .filter-btn.active {
-                        background: var(--primary);
-                        border-color: var(--primary);
-                        color: white !important;
-                        box-shadow: 0 4px 12px rgba(var(--primary-rgb, 59, 130, 246), 0.3);
-                    }
-
-                    #skill_search {
-                        padding: 10px 16px;
-                        border-radius: 10px;
-                        border: 1px solid var(--border);
-                        background: var(--card);
-                        color: var(--fg);
-                        font-size: 14px;
-                        min-width: 240px;
-                        transition: border-color 0.2s;
-                    }
-
-                    #skill_search:focus {
-                        border-color: var(--primary);
-                        outline: none;
-                        box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 59, 130, 246), 0.1);
-                    }
-
-                    .skills-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-                        gap: 40px;
-                        margin-top: 10px;
-                    }
-
-                    .skill-card {
-                        background-color: var(--card);
-                        border: 1px solid var(--border);
-                        border-radius: 16px;
-                        padding: 24px;
-                        display: flex;
-                        flex-direction: column;
-                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-                        position: relative;
-                        overflow: visible;
-                        min-height: 200px;
-                    }
-
-                    .skill-card:hover {
-                        transform: translateY(-6px);
-                        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-                        border-color: var(--primary);
-                    }
-
-                    .skill-card.enabled {
-                        border-bottom: 5px solid var(--primary);
-                    }
-
-                    .skill-header {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-bottom: 24px;
-                    }
-
-                    .skill-title-area {
-                        display: flex;
-                        align-items: center;
-                        gap: 16px;
-                    }
-
-                    .skill-emoji {
-                        font-size: 22px;
-                        background: rgba(var(--primary-rgb, 59, 130, 246), 0.1);
-                        width: 44px;
-                        height: 44px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        border-radius: 10px;
-                        border: 1px solid rgba(var(--primary-rgb, 59, 130, 246), 0.2);
-                        flex-shrink: 0;
-                    }
-
-                    .skill-title {
-                        font-weight: 700;
-                        font-size: 15px;
-                        color: var(--fg);
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        position: relative;
-                        line-height: 1.2;
-                    }
-
-                    .info-icon {
-                        width: 22px;
-                        height: 22px;
-                        color: var(--text-muted);
-                        cursor: help;
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        transition: all 0.2s;
-                        border-radius: 50%;
-                        background: rgba(0, 0, 0, 0.05);
-                    }
-
-                    .info-icon:hover {
-                        color: var(--primary);
-                        background: rgba(var(--primary-rgb, 59, 130, 246), 0.1);
-                        transform: scale(1.1);
-                    }
-
-                    .tooltip-text {
-                        visibility: hidden;
-                        width: 280px;
-                        background-color: var(--card);
-                        color: var(--fg);
-                        text-align: left;
-                        border: 1px solid var(--primary);
-                        border-radius: 14px;
-                        padding: 18px;
-                        position: absolute;
-                        z-index: 1000;
-                        bottom: 140%;
-                        left: 50%;
-                        transform: translateX(-50%) translateY(10px);
-                        opacity: 0;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        font-size: 14px;
-                        line-height: 1.6;
-                        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-                        pointer-events: none;
-                    }
-
-                    .info-icon:hover~.tooltip-text {
-                        visibility: visible;
-                        opacity: 1;
-                        transform: translateX(-50%) translateY(0);
-                    }
-
-                    .skill-description {
-                        display: none;
-                    }
-
-                    .skill-footer {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-top: auto;
-                        padding-top: 20px;
-                        border-top: 1px solid var(--border);
-                    }
-
-                    .skill-status-badge {
-                        font-size: 12px;
-                        font-weight: 800;
-                        text-transform: uppercase;
-                        padding: 6px 12px;
-                        border-radius: 8px;
-                        letter-spacing: 0.5px;
-                    }
-
-                    .badge-active {
-                        background-color: rgba(16, 185, 129, 0.1);
-                        color: var(--success);
-                        border: 1px solid rgba(16, 185, 129, 0.2);
-                    }
-
-                    .badge-inactive {
-                        background-color: rgba(148, 163, 184, 0.1);
-                        color: var(--text-muted);
-                        border: 1px solid rgba(148, 163, 184, 0.2);
-                    }
-                </style>
-
-                <!-- Tab Voz -->
-                <div id="tab_skills_voice" class="sub-tab-content">
-                    <div class="card">
-                        <div
-                            style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px;">
-                            <h3 style="margin: 0; border: none; padding: 0;">Configuración de Voz
-                                (TTS)</h3>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="voice_enabled" onchange="toggleVoiceMainConfig()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div id="voice_engine_section" style="display: none;">
-                            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
-                                Otorga a tu Agente una voz realista e hiperhumana. Selecciona el
-                                motor que prefieras.
-                            </p>
-
+                        <!-- Campos OpenAI -->
+                        <div id="openai_voice_config_area"
+                            style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
                             <div class="form-group">
-                                <label for="voice_engine">Motor de Voz Principal</label>
-                                <select id="voice_engine" onchange="updateVoiceEngineFields()">
-                                    <option value="openai">OpenAI TTS (Recomendado si ya usas
-                                        OpenAI)</option>
-                                    <option value="elevenlabs">ElevenLabs (Voces Premium / Clonadas)
-                                    </option>
+                                <label for="openai_voice_id">Identidad Vocal de OpenAI</label>
+                                <select id="openai_voice_id">
+                                    <option value="alloy">Alloy (Neutral, equilibrada)</option>
+                                    <option value="echo">Echo (Masculina, cálida)</option>
+                                    <option value="fable">Fable (Narrativa, británica)</option>
+                                    <option value="onyx">Onyx (Masculina, profunda)</option>
+                                    <option value="nova">Nova (Femenina, enérgica)</option>
+                                    <option value="shimmer">Shimmer (Femenina, suave)</option>
                                 </select>
+                                <span class="helper-text">Usará tu API Key principal de
+                                    OpenAI.</span>
+                            </div>
+                        </div>
+
+                        <!-- Campos ElevenLabs -->
+                        <div id="elevenlabs_voice_config_area"
+                            style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
+                            <div class="form-group">
+                                <label for="elevenlabs_api_key">ElevenLabs API Key</label>
+                                <input type="password" id="elevenlabs_api_key" placeholder="Ej: sk_..."
+                                    autocomplete="off" onchange="saveSettings()" />
                             </div>
 
-                            <!-- Campos OpenAI -->
-                            <div id="openai_voice_config_area"
-                                style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
-                                <div class="form-group">
-                                    <label for="openai_voice_id">Identidad Vocal de OpenAI</label>
-                                    <select id="openai_voice_id">
-                                        <option value="alloy">Alloy (Neutral, equilibrada)</option>
-                                        <option value="echo">Echo (Masculina, cálida)</option>
-                                        <option value="fable">Fable (Narrativa, británica)</option>
-                                        <option value="onyx">Onyx (Masculina, profunda)</option>
-                                        <option value="nova">Nova (Femenina, enérgica)</option>
-                                        <option value="shimmer">Shimmer (Femenina, suave)</option>
-                                    </select>
-                                    <span class="helper-text">Usará tu API Key principal de
-                                        OpenAI.</span>
-                                </div>
-                            </div>
-
-                            <!-- Campos ElevenLabs -->
-                            <div id="elevenlabs_voice_config_area"
-                                style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
-                                <div class="form-group">
-                                    <label for="elevenlabs_api_key">ElevenLabs API Key</label>
-                                    <input type="password" id="elevenlabs_api_key" placeholder="Ej: sk_..."
-                                        autocomplete="off" onchange="saveSettings()" />
-                                </div>
-
-                                <div class="form-group" style="margin-top: 15px;">
-                                    <label for="elevenlabs_voice_id">Voz Personalizada
-                                        ElevenLabs</label>
-                                    <div style="display: flex; gap: 12px; align-items: stretch;">
-                                        <div style="flex: 1;">
-                                            <select id="elevenlabs_voice_id"
-                                                style="width: 100%; height: 100%; margin: 0;" onchange="saveSettings()">
-                                                <option value="">-- Carga las voces con tu API Key
-                                                    --</option>
-                                            </select>
-                                        </div>
-                                        <button type="button" class="secondary-btn" onclick="loadElevenLabsVoices()"
-                                            style="display: flex; align-items: center; white-space: nowrap; height: 100%;">
-                                            Cargar Voces
-                                        </button>
+                            <div class="form-group" style="margin-top: 15px;">
+                                <label for="elevenlabs_voice_id">Voz Personalizada
+                                    ElevenLabs</label>
+                                <div style="display: flex; gap: 12px; align-items: stretch;">
+                                    <div style="flex: 1;">
+                                        <select id="elevenlabs_voice_id" style="width: 100%; height: 100%; margin: 0;"
+                                            onchange="saveSettings()">
+                                            <option value="">-- Carga las voces con tu API Key
+                                                --</option>
+                                        </select>
                                     </div>
+                                    <button type="button" class="secondary-btn" onclick="loadElevenLabsVoices()"
+                                        style="display: flex; align-items: center; white-space: nowrap; height: 100%;">
+                                        Cargar Voces
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
         </div> <!-- End of settings_container -->
     </main>
@@ -1982,6 +1971,16 @@
     </div>
 
     <script>
+        // Sistema de Registro de Errores Críticos (Detección para el usuario)
+        window.onerror = function (msg, url, line) {
+            console.error("CRITICAL JS ERROR:", msg, "at", line);
+            const errBox = document.createElement('div');
+            errBox.style = "position:fixed; top:0; left:0; width:100%; background:red; color:white; padding:10px; z-index:9999; text-align:center; font-weight:bold; font-size:12px;";
+            errBox.textContent = "Error en la Web: " + msg + " (Línea " + line + "). Por favor, contacta con soporte.";
+            document.body.appendChild(errBox);
+            setTimeout(() => errBox.remove(), 8000);
+        };
+
         // Lógica del Tema (Auto / Claro / Oscuro)
         function getSystemTheme() {
             return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -2243,6 +2242,10 @@
 
             } catch (e) {
                 console.error("Error cargando settings:", e);
+                // Aseguramos que el sistema no se bloquee aunque falle la carga de ajustes
+                window.settingsLoaded = true;
+            } finally {
+                window.settingsLoaded = true;
             }
         }
         loadSettings();
@@ -2459,8 +2462,11 @@
         }
 
         function toggleWhatsappConfig() {
-            const isEnabled = document.getElementById('bot_whatsapp_enabled');
-            document.getElementById('whatsapp_config_section').style.display = isEnabled ? 'block' : 'none';
+            const el = document.getElementById('bot_whatsapp_enabled');
+            const section = document.getElementById('whatsapp_config_section');
+            if (el && section) {
+                section.style.display = el.checked ? 'block' : 'none';
+            }
             saveSettings();
         }
 
@@ -2810,10 +2816,10 @@
         }
 
         function updateProviderStatus(activeProvider, apiKey) {
-            // Resetear todos
-            document.querySelectorAll('.provider-status').forEach(b => {
+            // Resetear todos los badges y tarjetas
+            document.querySelectorAll('.provider-badge').forEach(b => {
                 b.textContent = b.id === 'badge_anthropic' ? 'Próximamente' : 'Desconectado';
-                b.className = 'provider-status';
+                b.className = b.id === 'badge_anthropic' ? 'provider-badge pending' : 'provider-badge disconnected';
             });
             document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--border)');
 
