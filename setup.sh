@@ -94,8 +94,6 @@ case $LLM_OPTION in
 esac
 
 read -p "Introduce tu API Key para $LLM_PROVIDER: " API_KEY </dev/tty
-read -p "Nombre del Agente [Agent-Assist]: " AGENT_NAME </dev/tty
-AGENT_NAME=${AGENT_NAME:-Agent-Assist}
 read -p "Puerto del servidor [3000]: " PORT </dev/tty
 PORT=${PORT:-3000}
 
