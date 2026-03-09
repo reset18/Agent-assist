@@ -18,8 +18,9 @@ if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
 }
 
+const db = new Database(dbPath);
+
 export function initDb() {
-    const db = new Database(dbPath);
     const schemaPath = join(__dirname, 'schema.sql');
     if (!fs.existsSync(schemaPath)) {
         console.error(`[DB] ERROR CRÍTICO: No se encuentra el esquema en ${schemaPath}`);
@@ -27,31 +28,29 @@ export function initDb() {
     }
     const schema = readFileSync(schemaPath, 'utf8');
     db.exec(schema);
+
+    // Migración manual: Añadir columnas si no existen
+    try {
+        // sessions.platform
+        const sessionsCols = db.prepare("PRAGMA table_info(sessions)").all() as any[];
+        const hasPlatform = sessionsCols.some(col => col.name === 'platform');
+        if (!hasPlatform) {
+            console.log("[DB] Migración: Añadiendo columna 'platform' a la tabla 'sessions'...");
+            db.exec("ALTER TABLE sessions ADD COLUMN platform TEXT NOT NULL DEFAULT 'web'");
+        }
+
+        // messages.session_id
+        const messagesCols = db.prepare("PRAGMA table_info(messages)").all() as any[];
+        const hasSessionId = messagesCols.some(col => col.name === 'session_id');
+        if (!hasSessionId) {
+            console.log("[DB] Migración: Añadiendo columna 'session_id' a la tabla 'messages'...");
+            db.exec("ALTER TABLE messages ADD COLUMN session_id TEXT NOT NULL DEFAULT 'default'");
+        }
+    } catch (err) {
+        console.error("[DB] Error en migración:", err);
+    }
+
     console.log(`[DB] Base de datos inicializada correctamente en: ${dbPath}`);
-}
-
-// Migración manual: Añadir columnas si no existen
-try {
-    // sessions.platform
-    const sessionsCols = db.prepare("PRAGMA table_info(sessions)").all() as any[];
-    const hasPlatform = sessionsCols.some(col => col.name === 'platform');
-    if (!hasPlatform) {
-        console.log("[DB] Migración: Añadiendo columna 'platform' a la tabla 'sessions'...");
-        db.exec("ALTER TABLE sessions ADD COLUMN platform TEXT NOT NULL DEFAULT 'web'");
-    }
-
-    // messages.session_id
-    const messagesCols = db.prepare("PRAGMA table_info(messages)").all() as any[];
-    const hasSessionId = messagesCols.some(col => col.name === 'session_id');
-    if (!hasSessionId) {
-        console.log("[DB] Migración: Añadiendo columna 'session_id' a la tabla 'messages'...");
-        db.exec("ALTER TABLE messages ADD COLUMN session_id TEXT NOT NULL DEFAULT 'default'");
-    }
-} catch (err) {
-    console.error("[DB] Error en migración:", err);
-}
-
-console.log(`[DB] Base de datos SQLite inicializada en ${dbPath}`);
 }
 
 export function getSetting(key: string): string | null {
@@ -107,8 +106,7 @@ export function setToolEnabled(toolName: string, enabled: boolean) {
 }
 
 export function getDbInstance() {
-    return new Database(dbPath);
+    return db;
 }
 
-const db = new Database(dbPath);
 export default db;
