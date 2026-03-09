@@ -1176,7 +1176,7 @@
                             style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
                                 style="height: 24px;">
-                            <span class="provider-status" id="status_openai">Desconectado</span>
+                            <span class="provider-status" id="badge_openai">Desconectado</span>
                         </div>
                         <h3>OpenAI</h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">GPT-4o, GPT-4o-mini y
@@ -1191,7 +1191,7 @@
                             style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/7/75/Anthropic_logo.svg"
                                 style="height: 20px;">
-                            <span class="provider-status" id="status_anthropic">Próximamente</span>
+                            <span class="provider-status" id="badge_anthropic">Próximamente</span>
                         </div>
                         <h3>Anthropic</h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Claude 3.5 Sonnet.
@@ -1205,7 +1205,7 @@
                             style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg?20240210200543"
                                 style="height: 24px;">
-                            <span class="provider-status" id="status_google">Desconectado</span>
+                            <span class="provider-status" id="badge_google">Desconectado</span>
                         </div>
                         <h3>Google Gemini</h3>
                         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Gemini 1.5 Pro.
@@ -2182,6 +2182,11 @@
                 if (document.getElementById('telegram_bot_token')) document.getElementById('telegram_bot_token').value = data.telegram_bot_token || '';
                 if (document.getElementById('telegram_whitelist')) document.getElementById('telegram_whitelist').value = data.telegram_whitelist || '';
 
+                // Populate hidden inputs for compatibility
+                if (document.getElementById('model_provider')) document.getElementById('model_provider').value = data.model_provider || 'openai';
+                if (document.getElementById('model_name')) document.getElementById('model_name').value = data.model_name || 'gpt-4o';
+                if (document.getElementById('llm_api_key')) document.getElementById('llm_api_key').value = data.llm_api_key || '';
+
                 // Herramientas
                 const tools = ['get_current_time', 'read_file_local', 'write_file_local', 'list_dir_local', 'run_shell_local', 'run_ssh_command'];
                 tools.forEach(t => {
@@ -2806,9 +2811,9 @@
 
         function updateProviderStatus(activeProvider, apiKey) {
             // Resetear todos
-            document.querySelectorAll('.provider-badge').forEach(b => {
-                b.textContent = 'Desconectado';
-                b.className = 'provider-badge disconnected';
+            document.querySelectorAll('.provider-status').forEach(b => {
+                b.textContent = b.id === 'badge_anthropic' ? 'Próximamente' : 'Desconectado';
+                b.className = 'provider-status';
             });
             document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--border)');
 
