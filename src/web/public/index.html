@@ -1718,6 +1718,7 @@
 
         // Cargar configuración actual
         fetch('/api/settings').then(r => r.json()).then(data => {
+            console.log('[Debug] Ajustes cargados de API:', data);
             document.getElementById('model_provider').value = data.model_provider || 'openrouter';
             document.getElementById('model_name').value = data.model_name || 'openrouter/free';
             document.getElementById('llm_api_key').value = data.llm_api_key || '';
@@ -2068,6 +2069,7 @@
             const input = document.getElementById('chat_input');
             const text = input.value.trim();
             if (!text) return;
+            console.log(`[Debug] sendChatMessage: sessionId=${window.currentSessionId}, messageLength=${text.length}`);
 
             chatBusySending = true; // Evitar que el polling sobreescriba el DOM
             const chat = document.getElementById('chat_history');

@@ -102,15 +102,16 @@ Se te han otorgado herramientas para interactuar con sistemas locales de manera 
     const functionToUse = getSetting('agent_function') || 'Ayudar en tareas generales.';
 
     const provider = getSetting('model_provider') || process.env.LLM_PROVIDER || 'openrouter';
-    let model = getSetting('model_name') || process.env.MODEL_NAME || 'openrouter/free';
+    let model = getSetting('model_name') || process.env.MODEL_NAME || (provider === 'openai' ? 'gpt-4o-mini' : 'openrouter/free');
 
-    if (provider === 'openai' && (model.includes('openrouter') || model === '' || model === 'gpt-5.2')) {
+    // Mapeo forzado para mayor robustez si el instalador usó nombres antiguos o genéricos
+    if (provider === 'openai' && (model.includes('openrouter') || model === '' || model === 'gpt-5.2' || model === 'n/a')) {
         model = 'gpt-4o-mini';
-    } else if (provider === 'groq' && (model.includes('openrouter') || model === '')) {
+    } else if (provider === 'groq' && (model.includes('openrouter') || model === '' || model === 'n/a')) {
         model = 'llama-3.3-70b-versatile';
-    } else if (provider === 'anthropic' && (model.includes('openrouter') || model === '')) {
+    } else if (provider === 'anthropic' && (model.includes('openrouter') || model === '' || model === 'n/a')) {
         model = 'claude-3-5-sonnet-20241022';
-    } else if (provider === 'google' && (model.includes('openrouter') || model === '')) {
+    } else if (provider === 'google' && (model.includes('openrouter') || model === '' || model === 'n/a')) {
         model = 'gemini-1.5-flash';
     }
 

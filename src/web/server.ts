@@ -41,7 +41,7 @@ app.get('/api/settings', (req, res) => {
         agent_personality: getSetting('agent_personality') || '',
         agent_function: getSetting('agent_function') || '',
         model_provider: provider,
-        model_name: getSetting('model_name') || process.env.MODEL_NAME || 'openrouter/free',
+        model_name: getSetting('model_name') || process.env.MODEL_NAME || (provider === 'openai' ? 'gpt-4o-mini' : 'openrouter/free'),
         llm_api_key: apiKey,
         telegram_bot_token: process.env.TELEGRAM_BOT_TOKEN === 'SUTITUYE POR EL TUYO' ? '' : (process.env.TELEGRAM_BOT_TOKEN || ''),
         telegram_whitelist: process.env.TELEGRAM_ALLOWED_USER_IDS === 'SUTITUYE POR EL TUYO' ? '' : (process.env.TELEGRAM_ALLOWED_USER_IDS || ''),
