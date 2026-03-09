@@ -51,7 +51,6 @@
             --bg-rgb: 248, 250, 252;
         }
 
-        /* Scrollbar Personalizado (Estilo Oscuro) */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -70,12 +69,6 @@
             background: var(--text-muted);
         }
 
-        /* Soporte para Firefox */
-        * {
-            scrollbar-width: thin;
-            scrollbar-color: var(--border) var(--bg);
-        }
-
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg);
@@ -89,7 +82,6 @@
             overflow: hidden;
         }
 
-        /* Sidebar Styles */
         .sidebar {
             width: 280px;
             background-color: var(--sidebar-bg);
@@ -125,7 +117,6 @@
             background: linear-gradient(90deg, #3b82f6, #8b5cf6);
             -webkit-background-clip: text;
             color: transparent;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .nav-menu {
@@ -173,7 +164,6 @@
             border-top: 1px solid var(--border);
         }
 
-        /* Main Content Styles */
         .main-content {
             flex: 1;
             display: flex;
@@ -181,7 +171,6 @@
             overflow-y: auto;
             position: relative;
             background-color: var(--bg);
-            scroll-behavior: smooth;
         }
 
         .top-bar {
@@ -193,7 +182,6 @@
             padding: 0 40px;
             background-color: rgba(var(--bg-rgb, 15, 23, 42), 0.7);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
@@ -208,24 +196,6 @@
             padding: 8px;
             border-radius: 8px;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s;
-        }
-
-        .hamburger-btn:hover {
-            background-color: var(--card-hover);
-        }
-
-        .hamburger-btn svg {
-            width: 24px;
-            height: 24px;
-        }
-
-        .top-bar-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
         }
 
         .page-container {
@@ -236,7 +206,6 @@
             box-sizing: border-box;
         }
 
-        /* Page Content Animation */
         .page-content {
             display: none;
         }
@@ -258,40 +227,13 @@
             }
         }
 
-        /* Reusable UI Components */
         .card {
             background-color: var(--card);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 32px;
             margin-bottom: 24px;
-            box-shadow: var(--card-glow), var(--shadow-lg);
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        h2.page-title {
-            font-size: 26px;
-            margin-top: 0;
-            margin-bottom: 8px;
-        }
-
-        .page-subtitle {
-            color: var(--text-muted);
-            margin-bottom: 30px;
-            font-size: 15px;
-        }
-
-        h3 {
-            margin-top: 0;
-            margin-bottom: 24px;
-            font-size: 19px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 10px;
+            box-shadow: var(--shadow-lg);
         }
 
         .form-group {
@@ -308,7 +250,6 @@
 
         input[type="text"],
         input[type="password"],
-        input[list],
         select {
             width: 100%;
             padding: 14px;
@@ -316,18 +257,7 @@
             border: 1px solid var(--border);
             background-color: var(--input-bg);
             color: var(--fg);
-            box-sizing: border-box;
-            font-family: inherit;
             font-size: 14px;
-            box-shadow: var(--shadow-inner);
-            transition: all 0.2s ease;
-        }
-
-        input:focus,
-        select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), var(--shadow-inner);
         }
 
         button.primary-btn {
@@ -338,19 +268,6 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 15px;
-            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4);
-            transition: all 0.2s ease;
-            white-space: nowrap;
-        }
-
-        button.primary-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px -1px rgba(59, 130, 246, 0.5);
-        }
-
-        button.primary-btn:active {
-            transform: translateY(0);
         }
 
         button.secondary-btn {
@@ -360,76 +277,6 @@
             padding: 12px 18px;
             border-radius: 8px;
             cursor: pointer;
-            font-weight: 500;
-            font-size: 14px;
-            box-shadow: var(--shadow-sm);
-            transition: all 0.2s ease;
-        }
-
-        button.secondary-btn:hover {
-            background-color: var(--card-hover);
-        }
-
-        .danger-btn {
-            background: linear-gradient(135deg, var(--danger), #b91c1c);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);
-            transition: all 0.2s;
-        }
-
-        .danger-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px -1px rgba(239, 68, 68, 0.4);
-        }
-
-        .success-msg {
-            display: none;
-            color: var(--success);
-            background-color: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            padding: 14px 20px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            font-weight: 500;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .theme-toggle {
-            background: var(--card);
-            border: 1px solid var(--border);
-            color: var(--fg);
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: var(--shadow-sm);
-            transition: all 0.2s ease;
-        }
-
-        .theme-toggle:hover {
-            background: var(--card-hover);
-            transform: translateY(-1px);
-        }
-
-        /* Toggles and specific controls */
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 20px;
-            background-color: var(--input-bg);
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow-inner);
         }
 
         .toggle-switch {
@@ -437,7 +284,6 @@
             display: inline-block;
             width: 54px;
             height: 28px;
-            flex-shrink: 0;
         }
 
         .toggle-switch input {
@@ -456,7 +302,6 @@
             background-color: var(--text-muted);
             transition: .3s;
             border-radius: 34px;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .slider:before {
@@ -467,9 +312,8 @@
             left: 4px;
             bottom: 4px;
             background-color: white;
-            transition: .3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            transition: .3s;
             border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         input:checked+.slider {
@@ -480,253 +324,12 @@
             transform: translateX(26px);
         }
 
-        .helper-text {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-top: 8px;
-            display: block;
-            line-height: 1.5;
-        }
-
-        /* Sub-Tabs para Canales */
-        .sub-tabs {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 1px;
-        }
-
-        .sub-tab-btn {
-            background: none;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            color: var(--text-muted);
-            font-size: 14px;
-            font-weight: 600;
-            position: relative;
-            transition: all 0.2s;
-        }
-
-        /* Provider Cards */
-        .provider-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 24px;
-            margin-top: 20px;
-        }
-
-        .provider-card {
-            background-color: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 30px;
-            text-align: center;
-            position: relative;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: var(--shadow-md);
-        }
-
-        .provider-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--primary);
-            box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.3);
-        }
-
-        .provider-icon {
-            width: 70px;
-            height: 70px;
-            background: rgba(var(--bg-rgb), 0.5);
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-            border: 1px solid var(--border);
-        }
-
-        .provider-card h3 {
-            border: none;
-            padding: 0;
-            margin-bottom: 8px;
-            font-size: 18px;
-        }
-
-        .provider-card p {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 24px;
-        }
-
-        .provider-badge {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .provider-badge.connected {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-            border: 1px solid var(--success);
-        }
-
-        .provider-badge.disconnected {
-            background: rgba(148, 163, 184, 0.1);
-            color: var(--text-muted);
-            border: 1px solid var(--border);
-        }
-
-        /* Modales */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            width: 100%;
-            max-width: 450px;
-            padding: 32px;
-            box-shadow: var(--shadow-lg);
-            animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes modalIn {
-            from {
-                transform: scale(0.95);
-                opacity: 0;
-            }
-
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        .v-btn {
-            width: 100%;
-        }
-
-        .update-box {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
-            border: 1px solid var(--primary);
-            padding: 16px;
-            border-radius: 10px;
-            display: none;
-            align-items: center;
-            gap: 12px;
-            margin-top: 12px;
-        }
-
-        .sub-tab-btn {
-            padding: 10px 20px;
-            border: none;
-            background: transparent;
-            color: var(--text-muted);
-            font-weight: 500;
-            font-size: 14px;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s ease;
-        }
-
-        .sub-tab-btn:hover {
-            color: var(--fg);
-        }
-
-        .sub-tab-btn.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
-
-        .sub-tab-content {
-            display: none;
-        }
-
-        .sub-tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease forwards;
-        }
-
-        /* Widgets (WhatsApp / Chat) */
-        .whatsapp-status-box {
-            padding: 24px;
-            border-radius: 12px;
-            background: var(--input-bg);
-            margin-top: 15px;
-            text-align: center;
-            border: 1px dashed var(--border);
-            box-shadow: var(--shadow-inner);
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .badge.connected {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-
-        .badge.disconnected {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-
-        .badge.pending {
-            background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-
-        #qrcode_container {
-            margin: 25px auto;
-            display: flex;
-            justify-content: center;
-            padding: 24px;
-            background: white;
-            border-radius: 16px;
-            width: fit-content;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e2e8f0;
-        }
-
         .chat-container {
             display: flex;
             flex-direction: column;
             height: 100%;
-            background-color: var(--bg);
-            overflow: hidden;
             width: 100%;
             align-items: center;
-            /* Centrar horizontalmente hijos */
         }
 
         .chat-main {
@@ -734,54 +337,16 @@
             display: flex;
             flex-direction: column;
             width: 100%;
-            /* Eliminamos max-width para que el scroll esté a la derecha */
-            background-color: var(--bg);
-            position: relative;
             overflow: hidden;
-        }
-
-        /* Menu de sesiones en el header o top del chat */
-        .sessions-dropdown-container {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .sessions-select {
-            background-color: var(--card);
-            border: 1px solid var(--border);
-            color: var(--fg);
-            padding: 8px 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            outline: none;
-            transition: all 0.2s;
-            appearance: none;
-            padding-right: 40px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 16px;
-        }
-
-        .sessions-select:hover {
-            border-color: var(--primary);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         .chat-history {
             flex: 1;
             padding: 24px;
-            padding-top: 30px;
-            /* Ya no necesitamos tanto padding-top porque está en su propio contenedor main */
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 24px;
-            scroll-behavior: smooth;
             width: 100%;
             box-sizing: border-box;
         }
@@ -806,42 +371,17 @@
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            font-size: 14px;
             flex-shrink: 0;
         }
 
         .avatar.assistant {
-            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            background: var(--primary);
             color: white;
-            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
         }
 
         .avatar.user {
-            background-color: var(--card-hover);
-            color: var(--fg);
+            background: var(--card-hover);
             border: 1px solid var(--border);
-        }
-
-        .message-content {
-            display: flex;
-            flex-direction: column;
-            max-width: 85%;
-        }
-
-        .chat-message-wrapper.user .message-content {
-            align-items: flex-end;
-        }
-
-        .chat-message-wrapper.assistant .message-content {
-            align-items: flex-start;
-        }
-
-        .sender-name {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-            padding: 0 4px;
         }
 
         .chat-bubble {
@@ -849,106 +389,21 @@
             border-radius: 18px;
             font-size: 15px;
             line-height: 1.6;
-            word-wrap: break-word;
-            max-width: 100%;
-        }
-
-        .chat-bubble p {
-            margin: 0 0 12px 0;
-        }
-
-        .chat-bubble p:last-child {
-            margin-bottom: 0;
-        }
-
-        .chat-bubble pre {
-            background-color: rgba(0, 0, 0, 0.2);
-            padding: 16px;
-            border-radius: 12px;
-            overflow-x: auto;
-            margin: 12px 0;
-            border: 1px solid var(--border);
-        }
-
-        .chat-bubble code {
-            font-family: 'Fira Code', 'Roboto Mono', monospace;
-            font-size: 14px;
-            background-color: rgba(0, 0, 0, 0.1);
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        .chat-bubble pre code {
-            background-color: transparent;
-            padding: 0;
-        }
-
-        .chat-bubble ul,
-        .chat-bubble ol {
-            margin: 12px 0;
-            padding-left: 24px;
         }
 
         .chat-bubble.user {
-            background-color: var(--card-hover);
-            color: var(--fg);
+            background: var(--card-hover);
             border: 1px solid var(--border);
             border-top-right-radius: 4px;
         }
 
         .chat-bubble.assistant {
-            background-color: transparent;
-            color: var(--fg);
-            border: none;
-            padding-left: 0;
-            padding-top: 8px;
-        }
-
-        /* Animación "Pensando" estilo iMessage / Moderno */
-        .typing-indicator {
-            display: flex;
-            gap: 5px;
-            padding: 8px 12px;
-            align-items: center;
-            height: 24px;
-        }
-
-        .typing-dot {
-            width: 6px;
-            height: 6px;
-            background-color: var(--text-muted);
-            border-radius: 50%;
-            animation: typing 1.4s infinite ease-in-out both;
-        }
-
-        .typing-dot:nth-child(1) {
-            animation-delay: -0.32s;
-        }
-
-        .typing-dot:nth-child(2) {
-            animation-delay: -0.16s;
-        }
-
-        @keyframes typing {
-
-            0%,
-            80%,
-            100% {
-                transform: scale(0);
-                opacity: 0.5;
-            }
-
-            40% {
-                transform: scale(1.2);
-                opacity: 1;
-                text-shadow: 0 0 5px var(--primary);
-                background-color: var(--primary);
-            }
+            background: transparent;
+            border-top-left-radius: 4px;
         }
 
         .chat-input-area {
-            padding: 24px 0 40px 0;
-            background: linear-gradient(to top, var(--bg) 70%, transparent);
+            padding: 24px 0;
             width: 100%;
             display: flex;
             justify-content: center;
@@ -964,2259 +419,274 @@
             box-sizing: border-box;
         }
 
-        .chat-input-area input {
+        .chat-input-container input {
             flex: 1;
             border: 1px solid var(--border);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
             border-radius: 20px;
-            padding: 16px 60px 16px 20px;
-            /* Padding derecho para el botón */
-            background-color: var(--card);
+            padding: 16px 20px;
+            background: var(--card);
             color: var(--fg);
             font-size: 15px;
-            outline: none;
-            transition: all 0.3s;
         }
 
-        .chat-input-area input:focus {
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), 0 0 0 2px var(--primary);
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
         }
 
-        .send-btn-inside {
-            position: absolute;
-            right: 32px;
-            /* Ajustado para estar dentro del input considerando el padding del container */
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 38px;
-            height: 38px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(var(--primary-rgb, 59, 130, 246), 0.3);
-            z-index: 10;
+        .badge.connected {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
         }
 
-        .send-btn-inside:hover {
-            transform: translateY(-50%) scale(1.05);
-            background: var(--primary-hover);
-            box-shadow: 0 6px 16px rgba(var(--primary-rgb, 59, 130, 246), 0.5);
+        .badge.disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
         }
 
-        .flex-row {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-
-        .flex-row>div {
-            flex: 1;
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                position: absolute;
-                height: 100%;
-                transform: translateX(-100%);
-            }
-
-            .sidebar.mobile-open {
-                transform: translateX(0);
-            }
+        #debug_box {
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 10px;
+            color: #fbbf24;
         }
     </style>
 </head>
 
 <body>
-
-    <!-- Menú Lateral (Sidebar) -->
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar">
         <div class="sidebar-header">
             <h1>AgentAssist</h1>
         </div>
         <div class="nav-menu">
-            <button class="nav-item active" onclick="navigate('chat')">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z">
-                    </path>
-                </svg>
-                Chat
-            </button>
-            <button class="nav-item" onclick="navigate('llm')">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                </svg>
-                Cerebro (LLM)
-            </button>
-            <button class="nav-item" onclick="navigate('channels')">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z">
-                    </path>
-                </svg>
-                Canales y Bots
-            </button>
-            <button class="nav-item" onclick="navigate('skills')">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                </svg>
-                Habilidades (Skills)
-            </button>
+            <button class="nav-item active" onclick="navigate('chat')">Chat</button>
+            <button class="nav-item" onclick="navigate('llm')">Cerebro</button>
+            <button class="nav-item" onclick="navigate('channels')">Canales</button>
+            <button class="nav-item" onclick="navigate('skills')">Skills</button>
         </div>
         <div class="sidebar-footer">
-            <div id="update_notification" class="update-box" style="display: none;">
-                <div style="flex: 1;">
-                    <div style="font-weight: 700; font-size: 13px;">Nueva Versión</div>
-                    <div id="update_version_text" style="font-size: 11px; color: var(--text-muted);">v2.2.0 disponible
-                    </div>
-                </div>
-                <button class="primary-btn" style="padding: 6px 12px; font-size: 12px;"
-                    onclick="openUpdateModal()">Actualizar</button>
+            <div id="update_notification"
+                style="display:none; padding:10px; background:rgba(59,130,246,0.1); border-radius:8px; margin-bottom:10px;">
+                <div id="update_version_text" style="font-size:11px;">v2.0 disponible</div>
+                <button onclick="location.reload()" class="primary-btn"
+                    style="padding:4px 8px; font-size:10px;">Actualizar</button>
             </div>
-
-            <button class="secondary-btn" id="btn_search_updates" onclick="checkForUpdatesManually()"
-                style="width: 100%; justify-content: center; margin-bottom: 12px; font-size: 14px; border-radius: 12px; padding: 10px;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    style="width:16px; height:16px; margin-right:8px; vertical-align:middle;">
-                    <path
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Buscar actualizaciones
-            </button>
-
-            <button class="theme-toggle" id="theme_toggle_btn" onclick="toggleTheme()"
-                style="width: 100%; justify-content: center; margin-bottom: 12px; font-size: 14px; margin-top: 10px;">
-                <span id="theme-icon">🌗 Auto</span>
-            </button>
-            <div id="ui_version_label"
-                style="font-size: 12px; color: var(--text-muted); text-align: center; opacity: 0.8;">v1.0.0 Local</div>
-
-            <!-- DEBUG BOX (Micro-consola visual) -->
-            <div id="debug_box"
-                style="margin-top: 10px; padding: 6px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 10px; color: #fbbf24; display: none; max-height: 80px; overflow-y: auto; border: 1px solid rgba(251,191,36,0.2);">
-                <div
-                    style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(251,191,36,0.1); padding-bottom: 2px;">
-                    DEBUG LOG</div>
+            <button class="theme-toggle" onclick="toggleTheme()" style="width:100%"><span id="theme-icon">🌗
+                    Auto</span></button>
+            <div id="debug_box" style="display:none">
                 <div id="debug_content"></div>
             </div>
         </div>
     </aside>
 
-    <!-- Contenido Principal -->
     <main class="main-content">
-        <!-- Barra Superior -->
         <header class="top-bar">
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <button class="hamburger-btn" onclick="toggleSidebar()">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
-                </button>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <select id="sessions_select" onchange="switchSession(this.value)"
+                    style="padding:6px; border-radius:8px; background:var(--card); color:var(--fg); border:1px solid var(--border)"></select>
+                <button onclick="createNewChatSession()" class="secondary-btn"
+                    style="padding:6px 12px; font-size:12px;">+ Nuevo</button>
             </div>
-
-            <div class="top-bar-actions">
-                <button id="new_chat_btn" class="secondary-btn" onclick="createNewChatSession()"
-                    style="display: none; border-radius: 12px; padding: 10px 16px; font-weight: 600;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        style="width:16px; height:16px; margin-right:8px; vertical-align:middle;">
-                        <path d="M12 5v14M5 12h14" />
-                    </svg>
-                    Nuevo Chat
-                </button>
-                <div id="sessions_nav" class="sessions-dropdown-container" style="display: none;">
-                    <select id="sessions_select" class="sessions-select" onchange="switchSession(this.value)">
-                        <!-- Sesiones cargadas dinámicamente -->
-                    </select>
-                </div>
-            </div>
+            <div id="wa_status_badge" class="badge disconnected">WhatsApp: Off</div>
         </header>
 
-        <!-- Chat Web (Rediseñado Centrado) -->
-        <div id="chat" class="page-content active"
-            style="padding: 0; height: calc(100vh - 72px); border-top: 1px solid var(--border);">
+        <div id="chat" class="page-content active" style="height:calc(100vh - 72px)">
             <div class="chat-container">
                 <div class="chat-main">
-                    <div class="chat-history" id="chat_history">
-                        <!-- Mensajes de la sesión activa -->
-                    </div>
+                    <div id="chat_history" class="chat-history"></div>
                     <div class="chat-input-area">
                         <div class="chat-input-container">
-                            <input type="text" id="chat_input" placeholder="Pregúntale algo a Horus..."
-                                onkeypress="handleChatEnter(event)" autocomplete="off" />
-                            <button class="send-btn-inside" onclick="sendChatMessage()">
-                                <svg style="width: 18px; height: 18px; transform: rotate(90deg) translateX(1px);"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                                </svg>
-                            </button>
+                            <input type="text" id="chat_input" placeholder="Escribe un mensaje..."
+                                onkeypress="if(event.key==='Enter')sendChatMessage()" />
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="page-container" id="settings_container" style="display: none;">
-            <div id="successMsg" class="success-msg">✓ Configuración guardada correctamente.</div>
-
-            <!-- Inteligencia Artificial -->
+        <div id="settings_container" class="page-container" style="display:none">
             <div id="llm" class="page-content">
-                <h2 class="page-title">Cerebro e Inteligencia</h2>
-                <p class="page-subtitle">Conecta tu agente con los mejores modelos de lenguaje del mundo.</p>
-
-                <!-- Hidden inputs for compatibility with saveSettings() logic -->
-                <input type="hidden" id="model_provider">
-                <input type="hidden" id="model_name">
-                <input type="hidden" id="llm_api_key">
-
-                <div id="provider_marketplace"
-                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 32px;">
-                    <!-- OpenAI -->
-                    <div class="card provider-card" id="card_openai">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
-                                style="height: 24px;">
-                            <span class="provider-badge disconnected" id="badge_openai">Desconectado</span>
-                        </div>
-                        <h3>OpenAI</h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">GPT-4o, GPT-4o-mini y
-                            más. El estándar de la industria.</p>
-                        <button class="secondary-btn" style="width: 100%;"
-                            onclick="openLoginModal('openai')">Configurar</button>
-                    </div>
-                    <!-- Anthropic -->
-                    <div class="card provider-card" id="card_anthropic">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/7/75/Anthropic_logo.svg"
-                                style="height: 20px;">
-                            <span class="provider-badge pending" id="badge_anthropic">Próximamente</span>
-                        </div>
-                        <h3>Anthropic</h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Claude 3.5 Sonnet.
-                            Razonamiento superior y escritura humana.</p>
-                        <button class="secondary-btn" style="width: 100%; opacity: 0.5;" disabled>Bloqueado</button>
-                    </div>
-
-                    <!-- Gemini -->
-                    <div class="card provider-card" id="card_google">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg?20240210200543"
-                                style="height: 24px;">
-                            <span class="provider-badge disconnected" id="badge_google">Desconectado</span>
-                        </div>
-                        <h3>Google Gemini</h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Gemini 1.5 Pro.
-                            Ventana de contexto masiva y multimodality.</p>
-                        <button class="secondary-btn" style="width: 100%;"
-                            onclick="openLoginModal('google')">Configurar</button>
-                    </div>
-
-                    <!-- Groq -->
-                    <div class="card provider-card" id="card_groq">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                            <div style="font-weight: 900; font-size: 20px; color: var(--fg);">GROQ</div>
-                            <span class="provider-badge disconnected" id="badge_groq">Desconectado</span>
-                        </div>
-                        <h3>Groq</h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Inferencia ultra
-                            rápida con Llama 3 y Mixtral.</p>
-                        <button class="secondary-btn" style="width: 100%;"
-                            onclick="openLoginModal('groq')">Configurar</button>
-                    </div>
-
-                    <!-- OpenRouter -->
-                    <div class="card provider-card" id="card_openrouter">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                            <img src="https://openrouter.ai/favicon.ico" style="height: 24px;">
-                            <span class="provider-badge disconnected" id="badge_openrouter">Desconectado</span>
-                        </div>
-                        <h3>OpenRouter</h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Acceso a todos los
-                            modelos (DeepSeek, Llama, Qwen) vía API unificada.</p>
-                        <button class="secondary-btn" style="width: 100%;"
-                            onclick="openLoginModal('openrouter')">Configurar</button>
-                    </div>
-
-                    <!-- Qwen -->
-                    <div class="card provider-card" id="card_qwen">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                            <div style="font-weight: 800; font-size: 18px; color: var(--primary);">Qwen AI</div>
-                            <span class="provider-badge disconnected" id="badge_qwen">Desconectado</span>
-                        </div>
-                        <h3>Alibaba Qwen</h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Modelos SoTA de
-                            código abierto optimizados para razonamiento complejo.</p>
-                        <button class="secondary-btn" style="width: 100%;"
-                            onclick="openLoginModal('qwen')">Configurar</button>
-                    </div>
+                <h3>Configuración de Cerebro</h3>
+                <div class="form-group">
+                    <label>Proveedor</label>
+                    <select id="model_provider" onchange="saveSettings()">
+                        <option value="openai">OpenAI</option>
+                        <option value="google">Gemini</option>
+                        <option value="groq">Groq</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="password" id="llm_api_key" onchange="saveSettings()" />
+                </div>
+                <div class="form-group">
+                    <label>Modelo</label>
+                    <input type="text" id="model_name" onchange="saveSettings()" />
                 </div>
             </div>
 
-            <!-- SECCIÓN MULTI-TIER (v5.0) -->
-            <div class="card" style="margin-top: 32px;">
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-                    <div
-                        style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <svg style="width: 24px; height: 24px; color: var(--primary);" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 style="margin: 0; border: none; padding: 0;">Configuración de Relevos (Fallbacks)</h3>
-                        <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Si falla tu IA principal,
-                            Horus
-                            saltará automáticamente a la siguiente.</p>
-                    </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                    <div class="form-group">
-                        <label>1. Cerebro Principal</label>
-                        <select id="llm_primary_fallback" onchange="saveMultiTierSettings()">
-                            <option value="">(Usar predeterminado)</option>
-                            <option value="openai">OpenAI</option>
-                            <option value="anthropic">Anthropic</option>
-                            <option value="google">Gemini</option>
-                            <option value="groq">Groq</option>
-                            <option value="openrouter">OpenRouter</option>
-                            <option value="qwen">Qwen</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>2. Cerebro de Respaldo</label>
-                        <select id="llm_secondary_fallback" onchange="saveMultiTierSettings()">
-                            <option value="">Ninguno</option>
-                            <option value="openai">OpenAI</option>
-                            <option value="anthropic">Anthropic</option>
-                            <option value="google">Gemini</option>
-                            <option value="groq">Groq</option>
-                            <option value="qwen">Qwen</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>3. Última Opción</label>
-                        <select id="llm_tertiary_fallback" onchange="saveMultiTierSettings()">
-                            <option value="">Ninguno</option>
-                            <option value="openai">OpenAI</option>
-                            <option value="google">Gemini</option>
-                            <option value="groq">Groq</option>
-                            <option value="qwen">Qwen</option>
-                        </select>
-                    </div>
+            <div id="channels" class="page-content">
+                <h3>Canales</h3>
+                <div class="card">
+                    <label class="toggle-switch"><input type="checkbox" id="bot_whatsapp_enabled"
+                            onchange="saveSettings()" /><span class="slider"></span></label>
+                    <span>WhatsApp Bot</span>
                 </div>
             </div>
 
-            <!-- DASHBOARD DE TOKENS (v5.0) -->
-            <div class="card" style="margin-top: 24px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="margin: 0; border: none; padding: 0;">Consumo de Tokens (Hoy)</h3>
-                    <button class="secondary-btn" style="padding: 6px 12px; font-size: 12px;"
-                        onclick="loadTokenUsage()">Actualizar</button>
-                </div>
-                <div id="token_usage_stats"
-                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
-                    <!-- Aquí se cargarán las estadísticas -->
-                    <div
-                        style="text-align: center; padding: 15px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border);">
-                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">
-                            Cargando...
-                        </div>
-                    </div>
-                </div>
+            <div id="skills" class="page-content">
+                <h3>Habilidades (MCP)</h3>
+                <div id="mcp_skills_container"></div>
             </div>
         </div>
-
-        <!-- Canales -->
-        <div id="channels" class="page-content">
-            <h2 class="page-title">Canales</h2>
-            <div class="sub-tabs">
-                <button class="sub-tab-btn active" onclick="switchChannelTab('tab_telegram', this)">Telegram</button>
-                <button class="sub-tab-btn" onclick="switchChannelTab('tab_whatsapp', this)">WhatsApp</button>
-            </div>
-            <div id="tab_telegram" class="sub-tab-content active">
-                <div class="card">
-                    <div
-                        style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
-                        <h3 style="margin: 0; border: none; padding: 0;">Telegram</h3>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="bot_telegram_enabled" onchange="toggleTelegramConfig()" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div id="telegram_config_section">
-                        <div class="form-group">
-                            <label for="telegram_bot_token">Token</label>
-                            <input type="password" id="telegram_bot_token" onchange="saveSettings()" />
-                        </div>
-                        <div class="form-group">
-                            <label for="telegram_whitelist">Whitelisted IDs</label>
-                            <input type="text" id="telegram_whitelist" onchange="saveSettings()" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab WhatsApp -->
-            <div id="tab_whatsapp" class="sub-tab-content">
-                <div class="card">
-                    <div
-                        style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
-                        <h3 style="margin: 0; border: none; padding: 0;">Vincular WhatsApp de
-                            forma segura</h3>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="bot_whatsapp_enabled" onchange="toggleWhatsappConfig()" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div id="whatsapp_config_section">
-                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
-                            <b>Nota importante:</b> Utiliza el interruptor superior si deseas
-                            apagar o encender
-                            el
-                            bot
-                            de
-                            WhatsApp (tras guardarlo, requiere que reinicies el servidor con
-                            <code>npm run dev</code>).
-                        </p>
-
-                        <div class="whatsapp-status-box" id="whatsapp_status_box_container">
-                            <div style="margin-bottom: 20px; font-size: 15px; color: var(--fg); font-weight: 500;">
-                                Estado de conexión de la sesión: <span id="wa_status_badge"
-                                    class="badge disconnected">Sin
-                                    Inicializar</span>
-                            </div>
-
-                            <div id="wa_qr_section" style="display: none;">
-                                <p style="font-size: 14px; margin-bottom:15px; color: var(--text-muted);">
-                                    Ve a <b>WhatsApp > Dispositivos Vinculados > Vincular un
-                                        dispositivo</b> y
-                                    enfoca
-                                    este
-                                    código QR para dar acceso al agente.
-                                </p>
-                                <div id="qrcode_container"></div>
-                            </div>
-
-                            <div id="wa_connected_msg" style="display: none;">
-                                <svg style="width: 48px; height: 48px; color: var(--success); margin: 0 auto;"
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
-                                    </path>
-                                </svg>
-                                <p style="color: var(--success); font-weight:600; font-size: 17px; margin-top: 15px;">
-                                    Agente de WhatsApp vinculado correctamente.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Habilidades -->
-        <div id="skills" class="page-content">
-            <h2 class="page-title">Habilidades Autónomas (Tools)</h2>
-            <p class="page-subtitle">Las habilidades activas permiten al Agente ejecutar código
-                de forma autónoma
-                durante el razonamiento.</p>
-
-            <!-- SubTabs para Skills -->
-            <div class="sub-tabs">
-                <button class="sub-tab-btn active" onclick="switchSkillTab('tab_skills_natives', this)">Nativas</button>
-                <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_mcp', this)">Externas (MCP)</button>
-                <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_voice', this)">Voz
-                    (OpenAI/ElevenLabs)</button>
-            </div>
-
-            <!-- Tab Nativas -->
-            <div id="tab_skills_natives" class="sub-tab-content active">
-                <div class="card">
-                    <h3>Herramientas Nativas</h3>
-                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
-                        Puedes añadir más desarrollando archivos en `src/agent/tools`. Estas son
-                        las detectadas
-                        actualmente:
-                    </p>
-
-                    <div class="form-group">
-                        <div class="toggle-container">
-                            <div>
-                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                    Obtener Hora Local (get_current_time)</div>
-                                <span class="helper-text" style="margin-top: 0;">Otorga
-                                    percepción temporal al LLM
-                                    nativamente para programar o saber qué día es.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="tool_get_current_time" onchange="saveSettings()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Herramientas OpenClaw (Sistema Local) -->
-                    <div class="form-group" style="margin-top: 15px;">
-                        <div class="toggle-container">
-                            <div>
-                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                    Leer Archivo (read_file_local)</div>
-                                <span class="helper-text" style="margin-top: 0;">Lectura de
-                                    archivos alojados en el
-                                    mismo contenedor donde está este Agente.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="tool_read_file_local" onchange="saveSettings()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-group" style="margin-top: 15px;">
-                        <div class="toggle-container">
-                            <div>
-                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                    Escribir Archivo (write_file_local)</div>
-                                <span class="helper-text" style="margin-top: 0;">Escritura o
-                                    alteración del código y
-                                    contenido de archivos locales.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="tool_write_file_local" onchange="saveSettings()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-group" style="margin-top: 15px;">
-                        <div class="toggle-container">
-                            <div>
-                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                    Listar Directorio (list_dir_local)</div>
-                                <span class="helper-text" style="margin-top: 0;">Inspección del
-                                    árbol de archivos en
-                                    base a una ruta local dada.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="tool_list_dir_local" onchange="saveSettings()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-group" style="margin-top: 15px;">
-                        <div class="toggle-container">
-                            <div>
-                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                    Ejecutar Shell/Bash Local (run_shell_local)</div>
-                                <span class="helper-text" style="margin-top: 0;">Permite al
-                                    Agente lanzar scripts
-                                    npm, bash_commands o comandos locales autónomos.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="tool_run_shell_local" onchange="saveSettings()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Herramienta de Acceso Proxmox/VMs -->
-                    <div class="form-group" style="margin-top: 15px;">
-                        <div class="toggle-container">
-                            <div>
-                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                    Túnel SSH Remoto (run_ssh_command)</div>
-                                <span class="helper-text" style="margin-top: 0;">Conexión y
-                                    ejecución de comandos
-                                    SSH en Host externos usando sus credenciales seguras.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="tool_run_ssh_command" onchange="saveSettings()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab MCP -->
-            <div id="tab_skills_mcp" class="sub-tab-content">
-                <div class="skills-filter-bar">
-                    <button class="filter-btn active" onclick="filterSkills('all')">Todas</button>
-                    <button class="filter-btn" onclick="filterSkills('active')">Activas</button>
-                    <button class="filter-btn" onclick="filterSkills('inactive')">Inactivas</button>
-                    <div style="flex: 1;"></div>
-                    <input type="text" id="skill_search" placeholder="Buscar habilidad..." oninput="filterSkills()">
-                </div>
-                <div id="mcp_skills_container" class="skills-grid">
-                    <!-- Carga dinámica desde js -->
-                </div>
-            </div>
-
-            <style>
-                .skills-filter-bar {
-                    display: flex;
-                    gap: 12px;
-                    margin-bottom: 24px;
-                    align-items: center;
-                    background: rgba(0, 0, 0, 0.03);
-                    padding: 16px;
-                    border-radius: 16px;
-                    border: 1px solid var(--border);
-                }
-
-                .filter-btn {
-                    background: var(--card);
-                    border: 1px solid var(--border);
-                    color: var(--text-muted);
-                    padding: 10px 20px;
-                    border-radius: 10px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 600;
-                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                }
-
-                .filter-btn:hover {
-                    border-color: var(--primary);
-                    color: var(--fg);
-                    transform: translateY(-1px);
-                }
-
-                .filter-btn.active {
-                    background: var(--primary);
-                    border-color: var(--primary);
-                    color: white !important;
-                    box-shadow: 0 4px 12px rgba(var(--primary-rgb, 59, 130, 246), 0.3);
-                }
-
-                #skill_search {
-                    padding: 10px 16px;
-                    border-radius: 10px;
-                    border: 1px solid var(--border);
-                    background: var(--card);
-                    color: var(--fg);
-                    font-size: 14px;
-                    min-width: 240px;
-                    transition: border-color 0.2s;
-                }
-
-                #skill_search:focus {
-                    border-color: var(--primary);
-                    outline: none;
-                    box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 59, 130, 246), 0.1);
-                }
-
-                .skills-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-                    gap: 40px;
-                    margin-top: 10px;
-                }
-
-                .skill-card {
-                    background-color: var(--card);
-                    border: 1px solid var(--border);
-                    border-radius: 16px;
-                    padding: 24px;
-                    display: flex;
-                    flex-direction: column;
-                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-                    position: relative;
-                    overflow: visible;
-                    min-height: 200px;
-                }
-
-                .skill-card:hover {
-                    transform: translateY(-6px);
-                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-                    border-color: var(--primary);
-                }
-
-                .skill-card.enabled {
-                    border-bottom: 5px solid var(--primary);
-                }
-
-                .skill-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 24px;
-                }
-
-                .skill-title-area {
-                    display: flex;
-                    align-items: center;
-                    gap: 16px;
-                }
-
-                .skill-emoji {
-                    font-size: 22px;
-                    background: rgba(var(--primary-rgb, 59, 130, 246), 0.1);
-                    width: 44px;
-                    height: 44px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 10px;
-                    border: 1px solid rgba(var(--primary-rgb, 59, 130, 246), 0.2);
-                    flex-shrink: 0;
-                }
-
-                .skill-title {
-                    font-weight: 700;
-                    font-size: 15px;
-                    color: var(--fg);
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    position: relative;
-                    line-height: 1.2;
-                }
-
-                .info-icon {
-                    width: 22px;
-                    height: 22px;
-                    color: var(--text-muted);
-                    cursor: help;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    transition: all 0.2s;
-                    border-radius: 50%;
-                    background: rgba(0, 0, 0, 0.05);
-                }
-
-                .info-icon:hover {
-                    color: var(--primary);
-                    background: rgba(var(--primary-rgb, 59, 130, 246), 0.1);
-                    transform: scale(1.1);
-                }
-
-                .tooltip-text {
-                    visibility: hidden;
-                    width: 280px;
-                    background-color: var(--card);
-                    color: var(--fg);
-                    text-align: left;
-                    border: 1px solid var(--primary);
-                    border-radius: 14px;
-                    padding: 18px;
-                    position: absolute;
-                    z-index: 1000;
-                    bottom: 140%;
-                    left: 50%;
-                    transform: translateX(-50%) translateY(10px);
-                    opacity: 0;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    font-size: 14px;
-                    line-height: 1.6;
-                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-                    pointer-events: none;
-                }
-
-                .info-icon:hover~.tooltip-text {
-                    visibility: visible;
-                    opacity: 1;
-                    transform: translateX(-50%) translateY(0);
-                }
-
-                .skill-description {
-                    display: none;
-                }
-
-                .skill-footer {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-top: auto;
-                    padding-top: 20px;
-                    border-top: 1px solid var(--border);
-                }
-
-                .skill-status-badge {
-                    font-size: 12px;
-                    font-weight: 800;
-                    text-transform: uppercase;
-                    padding: 6px 12px;
-                    border-radius: 8px;
-                    letter-spacing: 0.5px;
-                }
-
-                .badge-active {
-                    background-color: rgba(16, 185, 129, 0.1);
-                    color: var(--success);
-                    border: 1px solid rgba(16, 185, 129, 0.2);
-                }
-
-                .badge-inactive {
-                    background-color: rgba(148, 163, 184, 0.1);
-                    color: var(--text-muted);
-                    border: 1px solid rgba(148, 163, 184, 0.2);
-                }
-            </style>
-
-            <!-- Tab Voz -->
-            <div id="tab_skills_voice" class="sub-tab-content">
-                <div class="card">
-                    <div
-                        style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px;">
-                        <h3 style="margin: 0; border: none; padding: 0;">Configuración de Voz
-                            (TTS)</h3>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="voice_enabled" onchange="toggleVoiceMainConfig()">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div id="voice_engine_section" style="display: none;">
-                        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
-                            Otorga a tu Agente una voz realista e hiperhumana. Selecciona el
-                            motor que prefieras.
-                        </p>
-
-                        <div class="form-group">
-                            <label for="voice_engine">Motor de Voz Principal</label>
-                            <select id="voice_engine" onchange="updateVoiceEngineFields()">
-                                <option value="openai">OpenAI TTS (Recomendado si ya usas
-                                    OpenAI)</option>
-                                <option value="elevenlabs">ElevenLabs (Voces Premium / Clonadas)
-                                </option>
-                            </select>
-                        </div>
-
-                        <!-- Campos OpenAI -->
-                        <div id="openai_voice_config_area"
-                            style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
-                            <div class="form-group">
-                                <label for="openai_voice_id">Identidad Vocal de OpenAI</label>
-                                <select id="openai_voice_id">
-                                    <option value="alloy">Alloy (Neutral, equilibrada)</option>
-                                    <option value="echo">Echo (Masculina, cálida)</option>
-                                    <option value="fable">Fable (Narrativa, británica)</option>
-                                    <option value="onyx">Onyx (Masculina, profunda)</option>
-                                    <option value="nova">Nova (Femenina, enérgica)</option>
-                                    <option value="shimmer">Shimmer (Femenina, suave)</option>
-                                </select>
-                                <span class="helper-text">Usará tu API Key principal de
-                                    OpenAI.</span>
-                            </div>
-                        </div>
-
-                        <!-- Campos ElevenLabs -->
-                        <div id="elevenlabs_voice_config_area"
-                            style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
-                            <div class="form-group">
-                                <label for="elevenlabs_api_key">ElevenLabs API Key</label>
-                                <input type="password" id="elevenlabs_api_key" placeholder="Ej: sk_..."
-                                    autocomplete="off" onchange="saveSettings()" />
-                            </div>
-
-                            <div class="form-group" style="margin-top: 15px;">
-                                <label for="elevenlabs_voice_id">Voz Personalizada
-                                    ElevenLabs</label>
-                                <div style="display: flex; gap: 12px; align-items: stretch;">
-                                    <div style="flex: 1;">
-                                        <select id="elevenlabs_voice_id" style="width: 100%; height: 100%; margin: 0;"
-                                            onchange="saveSettings()">
-                                            <option value="">-- Carga las voces con tu API Key
-                                                --</option>
-                                        </select>
-                                    </div>
-                                    <button type="button" class="secondary-btn" onclick="loadElevenLabsVoices()"
-                                        style="display: flex; align-items: center; white-space: nowrap; height: 100%;">
-                                        Cargar Voces
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        </div> <!-- End of settings_container -->
     </main>
 
-    <!-- Modal de Login/Configuración LLM -->
-    <div class="modal-overlay" id="llm_modal">
-        <div class="modal">
-            <h3 id="modal_provider_title" style="border:none; margin-bottom: 10px;">Configurar OpenAI</h3>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom:24px;">Configura tu conexión para empezar
-                a usar este cerebro.</p>
-
-            <div class="form-group" id="oauth_container" style="display: none; margin-bottom: 20px;">
-                <button class="primary-btn" style="width: 100%; background: #000; border-color: #333;"
-                    onclick="startOAuthLogin()">
-                    <img src="https://openrouter.ai/favicon.ico"
-                        style="width: 16px; margin-right: 8px; vertical-align: middle;">
-                    Hacer Login Directo
-                </button>
-                <div
-                    style="text-align: center; margin: 15px 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
-                    o usa el método manual</div>
-            </div>
-
-            <div class="form-group">
-                <label>Método de Conexión</label>
-                <select id="conn_method" onchange="toggleConnMethod()">
-                    <option value="key">API Key Manual</option>
-                    <option value="web">Login Asistido</option>
-                </select>
-            </div>
-
-            <div id="method_key_section">
-                <div class="form-group">
-                    <label id="key_label">API Key</label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="password" id="modal_api_key" placeholder="Pega tu clave aquí..."
-                            style="flex: 1;" />
-                        <button class="secondary-btn" id="btn_verify_key" onclick="verifyKeyOnly()"
-                            style="padding: 0 15px;">Verificar</button>
-                    </div>
-                </div>
-                <div class="form-group" id="model_selection_area" style="display: none;">
-                    <label>Modelo del Cerebro</label>
-                    <select id="modal_model_select"></select>
-                </div>
-                <!-- Fallback opcional para modelos manuales -->
-                <div class="form-group" id="manual_model_area" style="display: none;">
-                    <label>Modelo (Manual)</label>
-                    <input type="text" id="modal_model_name" placeholder="Ej: gpt-4o-mini" />
-                </div>
-            </div>
-
-            <div id="method_web_section"
-                style="display: none; text-align: center; padding: 20px; background: var(--input-bg); border-radius: 8px; border: 1px dashed var(--border);">
-                <p style="font-size: 13px; margin-bottom: 15px;">Se abrirá un portal guiado para ayudarte a obtener tu
-                    clave.</p>
-                <button class="secondary-btn" onclick="openAuthProvider()">Abrir Portal de Login</button>
-            </div>
-
-            <div style="display: flex; gap: 12px; margin-top:32px;">
-                <button class="secondary-btn" style="flex:1" onclick="closeLoginModal()">Cancelar</button>
-                <button class="primary-btn" style="flex:1" id="btn_test_conn" onclick="testConnection()">Guardar
-                    Cambios</button>
-            </div>
-            <div id="modal_status_msg" style="margin-top: 15px; font-size: 13px; text-align: center;"></div>
-        </div>
-    </div>
-
-    <!-- Modal de Actualización Premium -->
-    <div class="modal-overlay" id="update_modal">
-        <div class="modal" style="max-width: 450px; text-align: center;">
-            <div
-                style="width: 60px; height: 60px; background: rgba(59, 130, 246, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
-                <svg style="width: 32px; height: 32px; color: var(--primary);" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                    </path>
-                </svg>
-            </div>
-            <h3 style="border:none; margin-bottom: 8px; text-align: center; width: 100%;">Actualización del Sistema</h3>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">Hay una nueva versión de
-                AgentAssist disponible.</p>
-
-            <div
-                style="display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 30px; padding: 20px; background: var(--input-bg); border-radius: 12px;">
-                <div style="text-align: center;">
-                    <div
-                        style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">
-                        Tu Versión</div>
-                    <div id="current_version_badge" style="font-weight: 700; color: var(--fg);">v2.0.0</div>
-                </div>
-                <div style="color: var(--text-muted);">
-                    <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                    </svg>
-                </div>
-                <div style="text-align: center;">
-                    <div
-                        style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">
-                        Nueva Versión</div>
-                    <div id="new_version_badge" style="font-weight: 700; color: var(--success);">v2.2.0</div>
-                </div>
-            </div>
-
-            <div id="update_progress_area" style="display: none; margin-bottom: 24px;">
-                <p id="update_status_text" style="font-size: 13px; margin-bottom: 10px; color: var(--primary);">
-                    Descargando paquetes...</p>
-                <div style="width: 100%; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;">
-                    <div id="update_progress_bar"
-                        style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); transition: width 0.3s;">
-                    </div>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 12px;" id="update_actions_area">
-                <button class="secondary-btn" style="flex:1" onclick="closeUpdateModal()">Más tarde</button>
-                <button class="primary-btn" style="flex:1" onclick="startUpdateProcess()">Actualizar Ahora</button>
-            </div>
-
-            <p id="update_note" style="margin-top: 15px; font-size: 11px; color: var(--text-muted);">El sistema se
-                reiniciará automáticamente al finalizar.</p>
-        </div>
-    </div>
-
     <script>
-        // Sistema de Registro de Errores Críticos (Detección para el usuario)
-        // --- SISTEMA DE DIAGNÓSTICO VISUAL ---
-        const debugBox = document.getElementById('debug_box');
-        const debugContent = document.getElementById('debug_content');
+        // --- NAVEGACIÓN & UI ---
+        function navigate(id) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const target = document.getElementById(id);
+            if (target) target.classList.add('active');
 
-        function logDebug(msg, type = 'info') {
-            if (!debugBox || !debugContent) return;
-            debugBox.style.display = 'block';
-            const log = document.createElement('div');
-            log.style.marginBottom = '2px';
-            log.style.color = type === 'error' ? '#f87171' : '#fbbf24';
-            log.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            debugContent.appendChild(log);
-            if (debugContent.children.length > 5) debugContent.removeChild(debugContent.firstChild);
-            debugBox.scrollTop = debugBox.scrollHeight;
-        }
+            const settings = document.getElementById('settings_container');
+            const chat = document.getElementById('chat');
+            if (id === 'chat') {
+                settings.style.display = 'none';
+                chat.style.display = 'flex';
+            } else {
+                settings.style.display = 'block';
+                chat.style.display = 'none';
+                // Activar la subsección dentro de settings
+                document.querySelectorAll('#settings_container .page-content').forEach(p => {
+                    p.style.display = p.id === id ? 'block' : 'none';
+                });
+            }
 
-        window.onerror = function (msg, url, line) {
-            logDebug(`ERR: ${msg} (L:${line})`, 'error');
-            console.error("CRITICAL JS ERROR:", msg, "at", line);
-            const errBox = document.createElement('div');
-            errBox.style = "position:fixed; top:0; left:0; width:100%; background:red; color:white; padding:10px; z-index:9999; text-align:center; font-weight:bold; font-size:12px;";
-            errBox.textContent = "Error en la Web: " + msg + " (Línea " + line + ").";
-            document.body.appendChild(errBox);
-            setTimeout(() => errBox.remove(), 8000);
-        };
-
-        // Lógica del Tema (Auto / Claro / Oscuro)
-        function getSystemTheme() {
-            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-
-        function applyTheme(mode) {
-            const actual = mode === 'auto' ? getSystemTheme() : mode;
-            document.documentElement.setAttribute('data-theme', actual);
-            const icon = document.getElementById('theme-icon');
-            if (mode === 'auto') icon.textContent = '🌗 Auto';
-            else if (mode === 'light') icon.textContent = '☀️ Claro';
-            else icon.textContent = '🌙 Oscuro';
-        }
-
-        function initTheme() {
-            const saved = localStorage.getItem('agentTheme') || 'auto';
-            applyTheme(saved);
-            // Escuchar cambios del sistema en modo Auto
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-                if ((localStorage.getItem('agentTheme') || 'auto') === 'auto') applyTheme('auto');
+            // Highlight nav
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                if (btn.getAttribute('onclick').includes(`'${id}'`)) btn.classList.add('active');
             });
         }
 
         function toggleTheme() {
-            const modes = ['auto', 'light', 'dark'];
-            const current = localStorage.getItem('agentTheme') || 'auto';
-            const next = modes[(modes.indexOf(current) + 1) % modes.length];
-            localStorage.setItem('agentTheme', next);
-            applyTheme(next);
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            document.getElementById('theme-icon').textContent = next === 'dark' ? '🌙 Oscuro' : '☀️ Claro';
         }
 
-        initTheme();
-
-        // Control de Menú Sidebar
-        const sidebar = document.getElementById('sidebar');
-        function toggleSidebar() {
-            sidebar.classList.toggle('collapsed');
-
-            // Para móviles, abrir el sidebar es una clase diferente si no estorba el grid
-            if (window.innerWidth <= 768) {
-                sidebar.classList.toggle('mobile-open');
-            }
-        }
-
-        function navigate(pageId) {
-            logDebug(`Navigating to: ${pageId}`);
-            try {
-                // Ocultar todas las páginas
-                document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
-                // Quitar clase activa del sidebar
-                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-
-                // Activar nueva página
-                const targetPage = document.getElementById(pageId);
-                if (targetPage) {
-                    targetPage.classList.add('active');
-                } else {
-                    logDebug(`Target page not found: ${pageId}`, 'error');
-                }
-
-                // Toggle visibilidad del settings_container
-                const settingsContainer = document.getElementById('settings_container');
-                const chatContainer = document.getElementById('chat');
-
-                if (pageId === 'chat') {
-                    if (settingsContainer) settingsContainer.style.display = 'none';
-                    if (chatContainer) chatContainer.style.display = 'flex';
-                } else {
-                    if (settingsContainer) settingsContainer.style.display = 'block';
-                    if (chatContainer) chatContainer.style.display = 'none';
-                }
-
-                // Activar el botón del sidebar correspondiente (ahora usando data-page)
-                document.querySelectorAll('.nav-item').forEach(btn => {
-                    const onclickStr = btn.getAttribute('onclick') || '';
-                    if (onclickStr.includes(`'${pageId}'`)) {
-                        btn.classList.add('active');
-                    }
-                });
-
-                if (window.innerWidth <= 768) sidebar.classList.remove('mobile-open');
-                localStorage.setItem('agentLastPage', pageId);
-
-                // Header buttons
-                const newChatBtn = document.getElementById('new_chat_btn');
-                const sessionsNav = document.getElementById('sessions_nav');
-                const isChat = pageId === 'chat';
-
-                if (newChatBtn) newChatBtn.style.display = isChat ? 'flex' : 'none';
-                if (sessionsNav) sessionsNav.style.display = isChat ? 'flex' : 'none';
-
-            } catch (e) {
-                logDebug(`NAV ERROR: ${e.message}`, 'error');
-            }
-        }
-
-        function switchChannelTab(tabId, btnContext) {
-            // Ocultar todos los sub-tabs de canales
-            document.querySelectorAll('#channels .sub-tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('#channels .sub-tab-btn').forEach(el => el.classList.remove('active'));
-
-            // Mostrar el activo
-            document.getElementById(tabId).classList.add('active');
-            btnContext.classList.add('active');
-        }
-
-        function switchSkillTab(tabId, btnContext) {
-            // Ocultar todos los sub-tabs de skills
-            document.querySelectorAll('#skills .sub-tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('#skills .sub-tab-btn').forEach(el => el.classList.remove('active'));
-
-            // Mostrar el activo
-            document.getElementById(tabId).classList.add('active');
-            btnContext.classList.add('active');
-        }
-
-        // Ejecutar estado inicial (restaura la última web visitada o 'chat' por defecto)
-        const lastPage = localStorage.getItem('agentLastPage') || 'chat';
-        navigate(lastPage);
-
-        // Variables globales para nombres en el UI del chat
+        // --- CORE LOGIC ---
+        window.currentSessionId = 'default';
         window.agentNameCache = 'IA';
         window.userNameCache = 'TU';
-        window.currentSessionId = 'default';
-        window.settingsLoaded = false; // Guard para evitar que saveSettings() se dispare antes de que la config se cargue
+        let chatBusySending = false;
 
-        async function createNewChatSession() {
-            const name = prompt("Nombre del nuevo chat:", `Nuevo Chat ${new Date().toLocaleTimeString()}`);
-            if (!name) return;
-            const id = 'sess_' + Date.now();
-            const res = await fetch('/api/sessions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, name, platform: 'web' })
-            });
-            if (res.ok) {
-                window.currentSessionId = id;
-                await loadSessions();
-                await loadChatHistory();
-            }
+        async function loadSettings() {
+            try {
+                const r = await fetch('/api/settings');
+                const d = await r.json();
+                if (document.getElementById('llm_api_key')) document.getElementById('llm_api_key').value = d.llm_api_key || '';
+                if (document.getElementById('model_name')) document.getElementById('model_name').value = d.model_name || 'gpt-4o';
+                if (document.getElementById('model_provider')) document.getElementById('model_provider').value = d.model_provider || 'openai';
+                if (document.getElementById('bot_whatsapp_enabled')) document.getElementById('bot_whatsapp_enabled').checked = d.bot_whatsapp_enabled;
+
+                if (d.agent_name) window.agentNameCache = d.agent_name.substring(0, 2).toUpperCase();
+                if (d.user_name) window.userNameCache = d.user_name.substring(0, 2).toUpperCase();
+                window.settingsLoaded = true;
+            } catch (e) { window.settingsLoaded = true; }
+        }
+
+        async function saveSettings() {
+            if (!window.settingsLoaded) return;
+            const payload = {
+                model_provider: document.getElementById('model_provider')?.value,
+                model_name: document.getElementById('model_name')?.value,
+                llm_api_key: document.getElementById('llm_api_key')?.value,
+                bot_whatsapp_enabled: document.getElementById('bot_whatsapp_enabled')?.checked
+            };
+            await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         }
 
         async function loadSessions() {
-            try {
-                const res = await fetch('/api/sessions');
-                const data = await res.json();
-                const select = document.getElementById('sessions_select');
-                if (!select) return;
-
-                select.innerHTML = '';
-                data.sessions.forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s.id;
-
-                    let emoji = '🌐';
-                    if (s.platform === 'whatsapp' || s.id === 'whatsapp_default') emoji = '💬';
-                    if (s.platform === 'telegram' || s.id === 'telegram_default') emoji = '✈️';
-
-                    opt.textContent = `${emoji} ${s.name}`;
-                    if (s.id === window.currentSessionId) opt.selected = true;
-                    select.appendChild(opt);
-                });
-
-                // Sincronizar versión dinámicamente
-                fetch('/api/check-update').then(r => r.json()).then(v => {
-                    const label = document.getElementById('ui_version_label');
-                    if (label) label.textContent = v.current || 'v0.2.7-beta';
-                }).catch(() => { });
-
-            } catch (e) {
-                console.error("Error cargando sesiones:", e);
-            }
+            const r = await fetch('/api/sessions');
+            const d = await r.json();
+            const s = document.getElementById('sessions_select');
+            s.innerHTML = '';
+            d.sessions.forEach(sess => {
+                const o = document.createElement('option');
+                o.value = sess.id;
+                o.textContent = sess.name;
+                if (sess.id === window.currentSessionId) o.selected = true;
+                s.appendChild(o);
+            });
         }
 
         async function switchSession(id) {
             window.currentSessionId = id;
             loadChatHistory();
         }
-        window.fullAgentNameCache = 'Agente';
-        window.fullUserNameCache = 'Tú';
-
-        // Formateador seguro de texto a HTML usando Marked
-        function formatChatText(text) {
-            if (!text) return '';
-            try {
-                if (typeof marked !== 'undefined') {
-                    marked.setOptions({
-                        breaks: true,
-                        gfm: true,
-                        headerIds: false,
-                        mangle: false
-                    });
-                    let formatted = marked.parse(text);
-
-                    // Restablecer de capa de escape únicamente la caja del Audio generada por el agente
-                    formatted = formatted.replace(
-                        /\[AUDIO:\s*(\/media\/[^\]]+)\]/gi,
-                        '<audio src="$1" controls style="max-width: 100%; margin-top: 10px; display: block; border-radius: 20px; outline: none;"></audio>'
-                    );
-
-                    return formatted;
-                }
-            } catch (e) {
-                logDebug(`Marked Error: ${e.message}`, 'error');
-            }
-            // Fallback: Escape básico
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;")
-                .replace(/\n/g, '<br>');
-        }
-
-        // Cargar configuración actual
-        async function loadSettings() {
-            try {
-                const r = await fetch('/api/settings');
-                const data = await r.json();
-                console.log('[Debug] Ajustes cargados de API:', data);
-
-                // Estos campos aún se cargan si existen en el modal o para compatibilidad
-                if (document.getElementById('telegram_bot_token')) document.getElementById('telegram_bot_token').value = data.telegram_bot_token || '';
-                if (document.getElementById('telegram_whitelist')) document.getElementById('telegram_whitelist').value = data.telegram_whitelist || '';
-
-                // Populate hidden inputs for compatibility
-                if (document.getElementById('model_provider')) document.getElementById('model_provider').value = data.model_provider || 'openai';
-                if (document.getElementById('model_name')) document.getElementById('model_name').value = data.model_name || 'gpt-4o';
-                if (document.getElementById('llm_api_key')) document.getElementById('llm_api_key').value = data.llm_api_key || '';
-
-                // Herramientas
-                const tools = ['get_current_time', 'read_file_local', 'write_file_local', 'list_dir_local', 'run_shell_local', 'run_ssh_command'];
-                tools.forEach(t => {
-                    const el = document.getElementById('tool_' + t);
-                    if (el) el.checked = data['tool_' + t];
-                });
-
-                if (data.agent_name) {
-                    window.agentNameCache = data.agent_name.substring(0, 2).toUpperCase();
-                    window.fullAgentNameCache = data.agent_name;
-                }
-                if (data.user_name) {
-                    window.userNameCache = data.user_name.substring(0, 2).toUpperCase();
-                    window.fullUserNameCache = data.user_name;
-                }
-
-                // Canales
-                const botTg = document.getElementById('bot_telegram_enabled');
-                if (botTg) botTg.checked = data.bot_telegram_enabled !== false;
-                const botWa = document.getElementById('bot_whatsapp_enabled');
-                if (botWa) botWa.checked = data.bot_whatsapp_enabled !== false;
-
-                // Voz
-                const voiceEn = document.getElementById('voice_enabled');
-                if (voiceEn) voiceEn.checked = data.voice_enabled === true;
-                const voiceEng = document.getElementById('voice_engine');
-                if (voiceEng) voiceEng.value = data.voice_engine || 'openai';
-                const openaiVoice = document.getElementById('openai_voice_id');
-                if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
-                const elevenLabsKey = document.getElementById('elevenlabs_api_key');
-                if (elevenLabsKey) elevenLabsKey.value = data.elevenlabs_api_key || '';
-
-                if (data.elevenlabs_voice_id && document.getElementById('elevenlabs_voice_id')) {
-                    const select = document.getElementById('elevenlabs_voice_id');
-                    if (!select.querySelector(`option[value="${data.elevenlabs_voice_id}"]`)) {
-                        const opt = document.createElement('option');
-                        opt.value = data.elevenlabs_voice_id;
-                        opt.text = "Voz Actual Guardada (Carga voces para ver resto)";
-                        select.appendChild(opt);
-                    }
-                    select.value = data.elevenlabs_voice_id;
-                }
-
-                // Actualizar estados de los cerebros (Cards)
-                updateProviderStatus(data.model_provider, data.llm_api_key);
-
-                window.settingsLoaded = true;
-
-                // Ejecutar toggles iniciales
-                if (typeof toggleTelegramConfig === 'function') toggleTelegramConfig();
-                if (typeof toggleWhatsappConfig === 'function') toggleWhatsappConfig();
-                if (typeof toggleVoiceMainConfig === 'function') toggleVoiceMainConfig();
-                if (typeof updateVoiceEngineFields === 'function') updateVoiceEngineFields();
-
-            } catch (e) {
-                console.error("Error cargando settings:", e);
-                // Aseguramos que el sistema no se bloquee aunque falle la carga de ajustes
-                window.settingsLoaded = true;
-            } finally {
-                window.settingsLoaded = true;
-            }
-        }
-        loadSettings();
-
-        // Cargar MCP Skills
-        function loadMCPSkills() {
-            fetch('/api/skills').then(r => r.json()).then(data => {
-                const container = document.getElementById('mcp_skills_container');
-                container.innerHTML = '';
-                if (!data.skills || data.skills.length === 0) {
-                    container.innerHTML = '<span class="helper-text">No se hallaron archivos .zip de habilidades MCP en la carpeta base.</span>';
-                    return;
-                }
-
-                data.skills.forEach(skill => {
-                    const card = document.createElement('div');
-                    card.className = `skill-card ${skill.enabled ? 'enabled' : ''}`;
-                    card.id = `card_${skill.id}`;
-
-                    card.innerHTML = `
-                        <div class="skill-header">
-                            <div class="skill-title-area">
-                                <div class="skill-emoji">${skill.emoji || '⚡'}</div>
-                                <div class="skill-title">
-                                    ${skill.name}
-                                    <div class="info-icon">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px; height:16px;">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="tooltip-text">${skill.description}</div>
-                                </div>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="skill_enabled_${skill.id}" onchange="toggleSkillUI('${skill.id}')" ${skill.enabled ? 'checked' : ''}>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="skill-footer">
-                            <span class="skill-status-badge ${skill.enabled ? 'badge-active' : 'badge-inactive'}">
-                                ${skill.enabled ? 'Activa' : 'Desactivada'}
-                            </span>
-                            <span style="font-size: 11px; color: var(--text-muted); opacity: 0.7;">${skill.id}</span>
-                        </div>
-                    `;
-
-                    // Lógica especial para GOG
-                    if (skill.id === 'gog.zip') {
-                        const configDiv = document.createElement('div');
-                        configDiv.id = `config_gog.zip`;
-                        configDiv.style.display = skill.enabled ? 'block' : 'none';
-                        configDiv.style.marginTop = '15px';
-                        configDiv.style.padding = '15px';
-                        configDiv.style.backgroundColor = 'rgba(0,0,0,0.1)';
-                        configDiv.style.borderRadius = '8px';
-                        configDiv.style.border = '1px solid var(--border)';
-                        configDiv.innerHTML = `
-                            <label style="font-size: 13px; margin-bottom: 6px; display: block;">Ruta client_secret.json</label>
-                            <input type="text" id="gog_client_secret" value="${window.gogSecretCache || ''}" style="margin-bottom: 10px; padding: 10px; font-size: 13px;" onchange="saveSettings()">
-                            <label style="font-size: 13px; margin-bottom: 6px; display: block;">Email Gmail</label>
-                            <input type="email" id="gog_email" value="${window.gogEmailCache || ''}" style="padding: 10px; font-size: 13px;" onchange="saveSettings()">
-                        `;
-                        card.appendChild(configDiv);
-                    }
-
-                    container.appendChild(card);
-                });
-
-                // Inicializar caché para filtros
-                window.allSkillsCache = data.skills;
-            }).catch(e => console.error("Error loading MCP abilities", e));
-        }
-
-        // Nueva función de filtrado
-        window.filterSkills = function (filterType) {
-            const container = document.getElementById('mcp_skills_container');
-            const search = document.getElementById('skill_search').value.toLowerCase();
-            const cards = container.querySelectorAll('.skill-card');
-
-            if (filterType) {
-                // Actualizar botones activos
-                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-                const targetBtn = Array.from(document.querySelectorAll('.filter-btn')).find(b => b.getAttribute('onclick').includes(filterType));
-                if (targetBtn) targetBtn.classList.add('active');
-                window.currentFilter = filterType;
-            }
-
-            const activeFilter = window.currentFilter || 'all';
-
-            cards.forEach(card => {
-                const title = card.querySelector('.skill-title').textContent.toLowerCase();
-                const id = card.id.replace('card_', '').toLowerCase();
-                const isEnabled = card.classList.contains('enabled');
-
-                let matchesSearch = title.includes(search) || id.includes(search);
-                let matchesFilter = true;
-
-                if (activeFilter === 'active') matchesFilter = isEnabled;
-                if (activeFilter === 'inactive') matchesFilter = !isEnabled;
-
-                card.style.display = (matchesSearch && matchesFilter) ? 'flex' : 'none';
-            });
-        };
-
-        // Nueva función para manejar el UI del toggle de skills
-        window.toggleSkillUI = function (skillId) {
-            const isEnabled = document.getElementById('skill_enabled_' + skillId).checked;
-            const card = document.getElementById('card_' + skillId);
-            const badge = card.querySelector('.skill-status-badge');
-
-            if (isEnabled) {
-                card.classList.add('enabled');
-                badge.className = 'skill-status-badge badge-active';
-                badge.textContent = 'Activa';
-            } else {
-                card.classList.remove('enabled');
-                badge.className = 'skill-status-badge badge-inactive';
-                badge.textContent = 'Desactivada';
-            }
-
-            // Mostrar config si existe
-            const configEl = document.getElementById('config_' + skillId);
-            if (configEl) configEl.style.display = isEnabled ? 'block' : 'none';
-
-            // Auto-guardar
-            saveSettings();
-        };
-        loadMCPSkills();
-
-        // Cargar Historial de Chat y aplicar Polling
-        let lastMessageCount = 0;
-        let chatBusySending = false; // Flag para evitar que el polling destruya el DOM durante el envío
 
         async function loadChatHistory() {
-            // Si estamos en medio de un envío, no tocar el DOM
             if (chatBusySending) return;
-
-            try {
-                const res = await fetch(`/api/chat-history?sessionId=${window.currentSessionId}`);
-                const data = await res.json();
-                const chat = document.getElementById('chat_history');
-
-                if (data.messages) {
-                    const newCount = data.messages.length;
-                    const currentDOMCount = chat.querySelectorAll('.chat-message-wrapper').length;
-
-                    if (newCount !== currentDOMCount) {
-                        chat.innerHTML = '';
-
-                        if (newCount === 0) {
-                            // Chat vacío: no mostramos nada, esperamos al usuario
-                        } else {
-                            data.messages.forEach(msg => {
-                                const wrapper = document.createElement('div');
-                                wrapper.className = `chat-message-wrapper ${msg.role === 'user' ? 'user' : 'assistant'}`;
-
-                                const avatar = document.createElement('div');
-                                avatar.className = `avatar ${msg.role === 'user' ? 'user' : 'assistant'}`;
-                                avatar.textContent = msg.role === 'user' ? window.userNameCache : window.agentNameCache;
-                                avatar.title = msg.role === 'user' ? window.fullUserNameCache : window.fullAgentNameCache;
-
-                                const contentWrapper = document.createElement('div');
-                                contentWrapper.className = 'message-content';
-
-                                const senderName = document.createElement('div');
-                                senderName.className = 'sender-name';
-                                senderName.textContent = msg.role === 'user' ? window.fullUserNameCache : window.fullAgentNameCache;
-
-                                const bubble = document.createElement('div');
-                                bubble.className = `chat-bubble ${msg.role === 'user' ? 'user' : 'assistant'}`;
-                                bubble.innerHTML = formatChatText(msg.content);
-
-                                contentWrapper.appendChild(senderName);
-                                contentWrapper.appendChild(bubble);
-
-                                wrapper.appendChild(avatar);
-                                wrapper.appendChild(contentWrapper);
-                                chat.appendChild(wrapper);
-                            });
-                        }
-                        setTimeout(() => chat.scrollTop = chat.scrollHeight, 100);
-                    }
-                }
-            } catch (e) {
-                console.error("Error al refrescar historial", e);
-            }
-        }
-
-        // Carga inicial y encuesta de nuevos mensajes cada 3s por si se chatea desde Telegram/WA
-        loadSessions();
-        loadChatHistory();
-        setInterval(() => {
-            // Solo hacer polling si la pestaña activa es 'chat'
-            if (document.getElementById('chat').classList.contains('active')) {
-                loadChatHistory();
-            }
-        }, 3000);
-
-        // Funciones para mostrar u ocultar la configuración según si están habilitados
-        function toggleTelegramConfig() {
-            const el = document.getElementById('bot_telegram_enabled');
-            const section = document.getElementById('telegram_config_section');
-            if (el && section) {
-                const isEnabled = el.checked;
-                section.style.display = isEnabled ? 'block' : 'none';
-            }
-            saveSettings();
-        }
-
-        function toggleVoiceMainConfig() {
-            const isEnabled = document.getElementById('voice_enabled').checked;
-            document.getElementById('voice_engine_section').style.display = isEnabled ? 'block' : 'none';
-            saveSettings();
-        }
-
-        function toggleWhatsappConfig() {
-            const el = document.getElementById('bot_whatsapp_enabled');
-            const section = document.getElementById('whatsapp_config_section');
-            if (el && section) {
-                section.style.display = el.checked ? 'block' : 'none';
-            }
-            saveSettings();
-        }
-
-        function updateVoiceEngineFields() {
-            const engine = document.getElementById('voice_engine').value;
-            document.getElementById('openai_voice_config_area').style.display = engine === 'openai' ? 'block' : 'none';
-            document.getElementById('elevenlabs_voice_config_area').style.display = engine === 'elevenlabs' ? 'block' : 'none';
-        }
-
-        async function saveSettings() {
-            // No guardar si la configuración aún no se ha cargado del servidor
-            if (!window.settingsLoaded) return;
-
-            const payload = {
-                model_provider: document.getElementById('model_provider')?.value || 'openai',
-                model_name: document.getElementById('model_name')?.value || 'gpt-4o',
-                llm_api_key: document.getElementById('llm_api_key')?.value || '',
-                telegram_bot_token: document.getElementById('telegram_bot_token')?.value || '',
-                telegram_whitelist: document.getElementById('telegram_whitelist')?.value || '',
-                tool_get_current_time: document.getElementById('tool_get_current_time')?.checked || false,
-                tool_read_file_local: document.getElementById('tool_read_file_local')?.checked || false,
-                tool_write_file_local: document.getElementById('tool_write_file_local')?.checked || false,
-                tool_list_dir_local: document.getElementById('tool_list_dir_local')?.checked || false,
-                tool_run_shell_local: document.getElementById('tool_run_shell_local')?.checked || false,
-                tool_run_ssh_command: document.getElementById('tool_run_ssh_command')?.checked || false,
-                bot_telegram_enabled: document.getElementById('bot_telegram_enabled')?.checked || false,
-                bot_whatsapp_enabled: document.getElementById('bot_whatsapp_enabled')?.checked || false,
-                voice_enabled: document.getElementById('voice_enabled')?.checked || false,
-                voice_engine: document.getElementById('voice_engine')?.value || 'openai',
-                openai_voice_id: document.getElementById('openai_voice_id')?.value || 'alloy',
-                elevenlabs_api_key: document.getElementById('elevenlabs_api_key')?.value || '',
-                elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || ''
-            };
-
-            const gogClientEl = document.getElementById('gog_client_secret');
-            if (gogClientEl) payload.gog_client_secret = gogClientEl.value;
-            const gogEmailEl = document.getElementById('gog_email');
-            if (gogEmailEl) payload.gog_email = gogEmailEl.value;
-
-            // Recolectar switches de MCP Skills dinámicos
-            document.querySelectorAll('input[id^="skill_enabled_"]').forEach(input => {
-                payload[input.id] = input.checked;
+            const r = await fetch(`/api/chat/history?sessionId=${window.currentSessionId}`);
+            const d = await r.json();
+            const h = document.getElementById('chat_history');
+            h.innerHTML = '';
+            d.messages.forEach(m => {
+                const isBot = m.role === 'assistant';
+                const html = `<div class="chat-message-wrapper ${isBot ? 'assistant' : 'user'}">
+                    <div class="avatar ${isBot ? 'assistant' : 'user'}">${isBot ? window.agentNameCache : window.userNameCache}</div>
+                    <div class="message-content">
+                        <div class="chat-bubble ${isBot ? 'assistant' : 'user'}">${formatChatText(m.content)}</div>
+                    </div>
+                </div>`;
+                h.insertAdjacentHTML('beforeend', html);
             });
-
-            const res = await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (res.ok) {
-                const msg = document.getElementById('successMsg');
-                msg.style.display = 'block';
-                // Scroll arriba para ver el asomo verde
-                document.querySelector('.main-content').scrollTop = 0;
-                setTimeout(() => msg.style.display = 'none', 5000);
-            }
+            h.scrollTop = h.scrollHeight;
         }
 
-        async function clearMemory() {
-            if (confirm("¿Estás súper seguro de que quieres borrar de forma irreversible la memoria de tu agente?")) {
-                await fetch('/api/clear-memory', { method: 'POST' });
-                alert("Memoria borrada. El agente empezará de cero su hilo de conversación.");
-                document.getElementById('chat_history').innerHTML = '<div class="chat-bubble assistant">Memoria borrada. ¡Hola de nuevo!</div>';
-            }
-        }
-
-        function handleChatEnter(e) {
-            if (e.key === 'Enter') sendChatMessage();
+        function formatChatText(t) {
+            if (!t) return '';
+            return t.replace(/\n/g, '<br>');
         }
 
         async function sendChatMessage() {
-            const input = document.getElementById('chat_input');
-            const text = input.value.trim();
-            if (!text) return;
-            console.log(`[Debug] sendChatMessage: sessionId=${window.currentSessionId}, messageLength=${text.length}`);
-
-            chatBusySending = true; // Evitar que el polling sobreescriba el DOM
-            const chat = document.getElementById('chat_history');
-
-            // Wrappers de chat
-            const userWrapper = document.createElement('div');
-            userWrapper.className = 'chat-message-wrapper user';
-
-            const userAvatar = document.createElement('div');
-            userAvatar.className = 'avatar user';
-            userAvatar.textContent = window.userNameCache;
-            userAvatar.title = window.fullUserNameCache;
-
-            const contentWrapper = document.createElement('div');
-            contentWrapper.className = 'message-content';
-
-            const senderName = document.createElement('div');
-            senderName.className = 'sender-name';
-            senderName.textContent = window.fullUserNameCache;
-
-            const userBubble = document.createElement('div');
-            userBubble.className = 'chat-bubble user';
-            userBubble.innerHTML = formatChatText(text);
-
-            contentWrapper.appendChild(senderName);
-            contentWrapper.appendChild(userBubble);
-
-            userWrapper.appendChild(userAvatar);
-            userWrapper.appendChild(contentWrapper);
-            chat.appendChild(userWrapper);
-
-            input.value = '';
-            chat.scrollTop = chat.scrollHeight;
-
-            // Indicación de carga estilo ChatGPT
-            const typingWrapper = document.createElement('div');
-            typingWrapper.className = 'chat-message-wrapper assistant';
-
-            const typingAvatar = document.createElement('div');
-            typingAvatar.className = 'avatar assistant';
-            typingAvatar.textContent = window.agentNameCache;
-            typingAvatar.title = window.fullAgentNameCache;
-
-            const typingContentWrapper = document.createElement('div');
-            typingContentWrapper.className = 'message-content';
-
-            const typingSenderName = document.createElement('div');
-            typingSenderName.className = 'sender-name';
-            typingSenderName.textContent = window.fullAgentNameCache;
-
-            const typingBubble = document.createElement('div');
-            typingBubble.className = 'chat-bubble assistant';
-            typingBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
-
-            typingContentWrapper.appendChild(typingSenderName);
-            typingContentWrapper.appendChild(typingBubble);
-
-            typingWrapper.appendChild(typingAvatar);
-            typingWrapper.appendChild(typingContentWrapper);
-            chat.appendChild(typingWrapper);
-            chat.scrollTop = chat.scrollHeight;
-
+            const i = document.getElementById('chat_input');
+            const t = i.value.trim();
+            if (!t) return;
+            chatBusySending = true;
+            i.value = '';
+            document.getElementById('chat_history').insertAdjacentHTML('beforeend', `<div class="chat-message-wrapper user"><div class="avatar user">${window.userNameCache}</div><div class="message-content"><div class="chat-bubble user">${t}</div></div></div>`);
             try {
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, sessionId: window.currentSessionId })
-                });
-
-                chat.removeChild(typingWrapper);
-
-                if (!res.ok) {
-                    const d = await res.json();
-                    throw new Error(d.error || 'Error del servidor');
-                }
-
-                const data = await res.json();
-
-                const botWrapper = document.createElement('div');
-                botWrapper.className = 'chat-message-wrapper assistant';
-
-                const botAvatar = document.createElement('div');
-                botAvatar.className = 'avatar assistant';
-                botAvatar.textContent = window.agentNameCache;
-                botAvatar.title = window.fullAgentNameCache;
-
-                const botContentWrapper = document.createElement('div');
-                botContentWrapper.className = 'message-content';
-
-                const botSenderName = document.createElement('div');
-                botSenderName.className = 'sender-name';
-                botSenderName.textContent = window.fullAgentNameCache;
-
-                const botBubble = document.createElement('div');
-                botBubble.className = 'chat-bubble assistant';
-                botBubble.innerHTML = formatChatText(data.reply);
-
-                botContentWrapper.appendChild(botSenderName);
-                botContentWrapper.appendChild(botBubble);
-
-                botWrapper.appendChild(botAvatar);
-                botWrapper.appendChild(botContentWrapper);
-                chat.appendChild(botWrapper);
-
-                chat.scrollTop = chat.scrollHeight;
-
-            } catch (e) {
-                chat.removeChild(typingWrapper);
-                const errWrapper = document.createElement('div');
-                errWrapper.className = 'chat-message-wrapper assistant';
-
-                const botAvatar = document.createElement('div');
-                botAvatar.className = 'avatar assistant';
-                botAvatar.textContent = window.agentNameCache;
-                botAvatar.title = window.fullAgentNameCache;
-
-                const errorContentWrapper = document.createElement('div');
-                errorContentWrapper.className = 'message-content';
-
-                const errorSenderName = document.createElement('div');
-                errorSenderName.className = 'sender-name';
-                errorSenderName.textContent = window.fullAgentNameCache;
-
-                const errorBubble = document.createElement('div');
-                errorBubble.className = 'chat-bubble assistant';
-                errorBubble.style.color = 'var(--danger)';
-                errorBubble.innerHTML = formatChatText("Error de red: " + e.message);
-
-                errorContentWrapper.appendChild(errorSenderName);
-                errorContentWrapper.appendChild(errorBubble);
-
-                errWrapper.appendChild(botAvatar);
-                errWrapper.appendChild(errorContentWrapper);
-                chat.appendChild(errWrapper);
-
-                chat.scrollTop = chat.scrollHeight;
-            }
-            chatBusySending = false; // Reanudar polling
+                await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: t, sessionId: window.currentSessionId }) });
+                loadChatHistory();
+            } finally { chatBusySending = false; }
         }
 
-        async function loadModels() {
-            const provider = document.getElementById('model_provider').value;
-            const apiKey = document.getElementById('llm_api_key').value;
-            const statusEl = document.getElementById('models_status');
-
-            statusEl.textContent = "Consultando proveedor, por favor espera...";
-            statusEl.style.color = "var(--primary)";
-
+        async function checkStatus() {
             try {
-                const res = await fetch('/api/models', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider, apiKey })
-                });
-
-                if (!res.ok) {
-                    const err = await res.json();
-                    statusEl.textContent = "Error: " + (err.error || "No se pudieron cargar los modelos");
-                    statusEl.style.color = "var(--danger)";
-                    return;
-                }
-
-                const data = await res.json();
-                const datalist = document.getElementById('model_list');
-                datalist.innerHTML = '';
-
-                if (data.models && data.models.length > 0) {
-                    data.models.forEach(m => {
-                        const opt = document.createElement('option');
-                        opt.value = m.id;
-                        opt.text = m.name;
-                        datalist.appendChild(opt);
-                    });
-
-                    document.getElementById('model_name').value = '';
-                    statusEl.textContent = `Éxito. Se han sincronizado ${data.models.length} modelos. Abajo abre el selector para usar la lista.`;
-                    statusEl.style.color = "var(--success)";
-                } else {
-                    statusEl.textContent = "No se encontraron modelos. Verifica tu API Key o proveedor.";
-                    statusEl.style.color = "var(--danger)";
-                }
-            } catch (e) {
-                statusEl.textContent = "Error de red interno consultando.";
-                statusEl.style.color = "var(--danger)";
-            }
-        }
-
-        // --- SISTEMA DE CEREBRO V4 (LOGIN) ---
-        let currentModalProvider = '';
-
-        function openLoginModal(provider) {
-            currentModalProvider = provider;
-            const names = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google Gemini', groq: 'Groq', openrouter: 'OpenRouter' };
-            document.getElementById('modal_provider_title').textContent = `Conectar con ${names[provider]}`;
-            document.getElementById('llm_modal').style.display = 'flex';
-            document.getElementById('modal_status_msg').textContent = '';
-            document.getElementById('modal_api_key').value = '';
-            document.getElementById('modal_model_name').value = '';
-        }
-
-        function closeLoginModal() {
-            document.getElementById('llm_modal').style.display = 'none';
-        }
-
-        function toggleConnMethod() {
-            const method = document.getElementById('conn_method').value;
-            document.getElementById('method_key_section').style.display = method === 'key' ? 'block' : 'none';
-            document.getElementById('method_web_section').style.display = method === 'web' ? 'block' : 'none';
-            document.getElementById('btn_test_conn').style.display = method === 'key' ? 'block' : 'none';
-        }
-
-        function openAuthProvider() {
-            // Abre la misma tab o una nueva para el proceso de login
-            const url = `http://localhost:3005/auth-provider?p=${currentModalProvider}`;
-            window.open(url, '_blank');
-            // Aquí podríamos iniciar un polling para ver si se ha logueado
-            const checkLogin = setInterval(async () => {
-                const r = await fetch('/api/settings');
+                const r = await fetch('/api/whatsapp/status');
                 const d = await r.json();
-                if (d.model_provider === currentModalProvider && d.llm_api_key) {
-                    clearInterval(checkLogin);
-                    closeLoginModal();
-                    updateProviderStatus(d.model_provider, d.llm_api_key);
-                    alert(`¡${currentModalProvider} conectado exitosamente vía Web!`);
-                }
-            }, 2000);
-            setTimeout(() => clearInterval(checkLogin), 60000); // 1 min timeout
-        }
-
-        async function testConnection() {
-            const apiKey = document.getElementById('modal_api_key').value;
-            const model = document.getElementById('modal_model_name').value;
-            const statusMsg = document.getElementById('modal_status_msg');
-            const btn = document.getElementById('btn_test_conn');
-
-            if (!apiKey) {
-                statusMsg.textContent = '❌ Introduce una API Key';
-                statusMsg.style.color = 'var(--danger)';
-                return;
-            }
-
-            btn.disabled = true;
-            statusMsg.textContent = '⌛ Verificando conexión...';
-            statusMsg.style.color = 'var(--primary)';
-
-            try {
-                const res = await fetch('/api/verify-llm', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider: currentModalProvider, apiKey, model })
-                });
-
-                if (res.ok) {
-                    statusMsg.textContent = '✅ ¡Conectado con éxito!';
-                    statusMsg.style.color = 'var(--success)';
-                    setTimeout(() => {
-                        closeLoginModal();
-                        updateProviderStatus(currentModalProvider, apiKey);
-                    }, 1500);
-                } else {
-                    const data = await res.json();
-                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Clave inválida');
-                    statusMsg.style.color = 'var(--danger)';
-                }
-            } catch (e) {
-                statusMsg.textContent = '❌ Error de red';
-                statusMsg.style.color = 'var(--danger)';
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        function updateProviderStatus(activeProvider, apiKey) {
-            // Resetear todos los badges y tarjetas
-            document.querySelectorAll('.provider-badge').forEach(b => {
-                b.textContent = b.id === 'badge_anthropic' ? 'Próximamente' : 'Desconectado';
-                b.className = b.id === 'badge_anthropic' ? 'provider-badge pending' : 'provider-badge disconnected';
-            });
-            document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--border)');
-
-            if (activeProvider && apiKey) {
-                const badge = document.getElementById(`badge_${activeProvider}`);
-                const card = document.getElementById(`card_${activeProvider}`);
-                if (badge) {
-                    badge.textContent = 'Conectado';
-                    badge.className = 'provider-badge connected';
-                }
-                if (card) {
-                    card.style.borderColor = 'var(--success)';
-                }
-            }
-        }
-
-        // --- SISTEMA DE UPDATES ---
-        let remoteVersion = '';
-        let currentVersion = '';
-
-        async function checkForUpdates() {
-            try {
-                const r = await fetch('/api/check-update');
-                const d = await r.json();
-                remoteVersion = d.remote;
-                currentVersion = d.current;
-                if (d.updateAvailable) {
-                    document.getElementById('update_notification').style.display = 'flex';
-                    document.getElementById('update_version_text').textContent = `v${d.remote} disponible`;
-                    document.getElementById('btn_search_updates').style.display = 'none';
-                }
+                const b = document.getElementById('wa_status_badge');
+                b.textContent = d.status === 'connected' ? 'WhatsApp: ON' : 'WhatsApp: OFF';
+                b.className = 'badge ' + (d.status === 'connected' ? 'connected' : 'disconnected');
             } catch (e) { }
         }
 
-        async function checkForUpdatesManually() {
-            const btn = document.getElementById('btn_search_updates');
-            const originalHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '⌛ Buscando...';
-
-            await checkForUpdates();
-
-            if (document.getElementById('update_notification').style.display === 'flex') {
-                openUpdateModal();
-            } else {
-                btn.innerHTML = '✅ Al día';
-                setTimeout(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHtml;
-                }, 3000);
-            }
-        }
-
-        function openUpdateModal() {
-            document.getElementById('current_version_badge').textContent = `v${currentVersion}`;
-            document.getElementById('new_version_badge').textContent = `v${remoteVersion}`;
-            document.getElementById('update_modal').style.display = 'flex';
-        }
-
-        function closeUpdateModal() {
-            if (document.getElementById('update_progress_area').style.display === 'block') return;
-            document.getElementById('update_modal').style.display = 'none';
-        }
-
-        async function startUpdateProcess() {
-            document.getElementById('update_actions_area').style.display = 'none';
-            document.getElementById('update_note').style.display = 'none';
-            document.getElementById('update_progress_area').style.display = 'block';
-
-            const bar = document.getElementById('update_progress_bar');
-            const txt = document.getElementById('update_status_text');
-
-            // Simulación de pasos para la barra de carga mientras el servidor trabaja en segundo plano
-            const steps = [
-                { p: 10, t: "Obteniendo cambios de GitHub..." },
-                { p: 30, t: "Sincronizando archivos del código..." },
-                { p: 50, t: "Iniciando compilación (npm install)..." },
-                { p: 75, t: "Construyendo interfaz (rebuild)..." },
-                { p: 90, t: "Reiniciando servidor de Horus..." }
-            ];
-
-            let stepIdx = 0;
-            const interval = setInterval(() => {
-                if (stepIdx < steps.length) {
-                    bar.style.width = steps[stepIdx].p + "%";
-                    txt.textContent = steps[stepIdx].t;
-                    stepIdx++;
-                } else {
-                    clearInterval(interval);
-                }
-            }, 3000);
-
-            try {
-                await fetch('/api/run-update', { method: 'POST' });
-                // Esperar un poco y recargar
-                setTimeout(() => location.reload(), 15000);
-            } catch (e) {
-                txt.textContent = "Error al actualizar. Inténtalo de nuevo.";
-                txt.style.color = "var(--danger)";
-            }
-        }
-        checkForUpdates();
-
-        // --- AUTH & LOGIN MODAL ---
-        let currentModalProvider = '';
-        function openLoginModal(provider) {
-            currentModalProvider = provider;
-            document.getElementById('modal_provider_title').textContent = 'Configurar ' + provider.charAt(0).toUpperCase() + provider.slice(1);
-
-            // Resetear UI del modal
-            document.getElementById('model_selection_area').style.display = 'none';
-            document.getElementById('manual_model_area').style.display = 'none';
-            document.getElementById('btn_test_conn').style.display = 'none';
-            document.getElementById('btn_verify_key').style.display = 'block';
-
-            // Re-etiquetar para Qwen
-            const label = document.getElementById('key_label');
-            label.textContent = (provider === 'qwen') ? 'DashScope API Key' : 'API Key';
-
-            // Mostrar OAuth si es OpenRouter
-            document.getElementById('oauth_container').style.display = (provider === 'openrouter') ? 'block' : 'none';
-
-            document.getElementById('llm_modal').style.display = 'flex';
-            document.getElementById('modal_status_msg').textContent = '';
-            document.getElementById('modal_api_key').value = '';
-        }
-
-        async function verifyKeyOnly() {
-            const apiKey = document.getElementById('modal_api_key').value;
-            const statusMsg = document.getElementById('modal_status_msg');
-            const btn = document.getElementById('btn_verify_key');
-
-            if (!apiKey) {
-                statusMsg.textContent = '❌ Introduce una API Key';
-                statusMsg.style.color = 'var(--danger)';
-                return;
-            }
-
-            btn.disabled = true;
-            statusMsg.textContent = '⌛ Verificando clave...';
-            statusMsg.style.color = 'var(--primary)';
-
-            try {
-                const res = await fetch('/api/models', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider: currentModalProvider, apiKey })
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    statusMsg.textContent = '✅ Clave válida. Elige un modelo.';
-                    statusMsg.style.color = 'var(--success)';
-
-                    // Llenar select de modelos
-                    const select = document.getElementById('modal_model_select');
-                    select.innerHTML = '';
-
-                    if (data.models && data.models.length > 0) {
-                        data.models.forEach(m => {
-                            const opt = document.createElement('option');
-                            opt.value = m.id;
-                            opt.textContent = m.name;
-                            select.appendChild(opt);
-                        });
-                        document.getElementById('model_selection_area').style.display = 'block';
-                    } else {
-                        document.getElementById('manual_model_area').style.display = 'block';
-                    }
-
-                    btn.style.display = 'none';
-                    document.getElementById('btn_test_conn').style.display = 'block';
-                } else {
-                    const data = await res.json();
-                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Clave inválida');
-                    statusMsg.style.color = 'var(--danger)';
-                }
-            } catch (e) {
-                statusMsg.textContent = '❌ Error de red';
-                statusMsg.style.color = 'var(--danger)';
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        function closeLoginModal() {
-            document.getElementById('llm_modal').style.display = 'none';
-        }
-
-        function toggleConnMethod() {
-            const method = document.getElementById('conn_method').value;
-            document.getElementById('method_key_section').style.display = (method === 'key') ? 'block' : 'none';
-            document.getElementById('method_web_section').style.display = (method === 'web') ? 'block' : 'none';
-        }
-
-        function openAuthProvider() {
-            // Puerto dinámico: necesitamos saber en qué puerto está el servidor
-            // Durante el setup es aleatorio, pero en el servidor normal es process.env.PORT
-            window.open(`/auth-provider?p=${activeProvider}`, '_blank', 'width=500,height=700');
-        }
-
-        function startOAuthLogin() {
-            // Ejemplo de login directo para OpenRouter (OpenClaw style)
-            // Esto redirigiría a la página de auth de OpenRouter con el callback de nuestra app
-            const callback = window.location.origin + '/auth-provider?p=openrouter&oauth=true';
-            window.open(`https://openrouter.ai/auth?callback_url=${encodeURIComponent(callback)}`, '_blank', 'width=500,height=700');
-        }
-
-
-
-        async function loadTokenUsage() {
-            try {
-                const r = await fetch('/api/tokens/today');
-                const data = await r.json();
-                const container = document.getElementById('token_usage_stats');
-                container.innerHTML = '';
-
-                if (data.length === 0) {
-                    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;">Sin consumo registrado hoy.</div>';
-                    return;
-                }
-
-                data.forEach(stat => {
-                    const box = document.createElement('div');
-                    box.style = 'text-align: center; padding: 15px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border); transition: transform 0.2s;';
-                    box.innerHTML = `
-                        <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">${stat.provider}</div>
-                        <div style="font-size: 18px; font-weight: 700; color: var(--primary);">${stat.total.toLocaleString()}</div>
-                        <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px;">Tokens</div>
-                    `;
-                    container.appendChild(box);
-                });
-            } catch (e) { }
-        }
-
-        async function saveMultiTierSettings() {
-            const p1 = document.getElementById('llm_primary_fallback').value;
-            const p2 = document.getElementById('llm_secondary_fallback').value;
-            const p3 = document.getElementById('llm_tertiary_fallback').value;
-
-            await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    llm_primary_provider: p1,
-                    llm_secondary_provider: p2,
-                    llm_tertiary_provider: p3
-                })
-            });
-            showSuccess();
-        }
-
-        async function loadElevenLabsVoices() {
-            const apiKey = document.getElementById('elevenlabs_api_key').value;
-            const statusEl = document.getElementById('voices_status');
-
-            if (!apiKey) {
-                statusEl.textContent = "Introduce primero tu API Key arriba.";
-                statusEl.style.color = "var(--danger)";
-                return;
-            }
-
-            statusEl.textContent = "Consultando voces, por favor espera...";
-            statusEl.style.color = "var(--primary)";
-
-            try {
-                const res = await fetch('https://api.elevenlabs.io/v1/voices', {
-                    headers: { 'xi-api-key': apiKey }
-                });
-
-                if (!res.ok) throw new Error('Error validando API Key');
-
-                const data = await res.json();
-                const select = document.getElementById('elevenlabs_voice_id');
-                select.innerHTML = '';
-
-                if (data.voices && data.voices.length > 0) {
-                    data.voices.forEach(v => {
-                        const opt = document.createElement('option');
-                        opt.value = v.voice_id;
-                        opt.text = v.name;
-                        select.appendChild(opt);
-                    });
-
-                    statusEl.textContent = `Éxito. Se cargaron ${data.voices.length} voces.`;
-                    statusEl.style.color = "var(--success)";
-                }
-            } catch (e) {
-                console.error(e);
-                statusEl.textContent = "Error consultando ElevenLabs. Revisa la clave o comprueba tu conexión de red.";
-                statusEl.style.color = "var(--danger)";
-            }
-        }
-
-        // WhatsApp QR Polling
-        let qrCodeInstance = null;
-        let lastQrString = '';
-
-        async function checkWhatsappStatus() {
-            try {
-                const res = await fetch('/api/whatsapp/status');
-                const data = await res.json();
-
-                const badge = document.getElementById('wa_status_badge');
-                const qrSection = document.getElementById('wa_qr_section');
-                const connectedMsg = document.getElementById('wa_connected_msg');
-
-                if (data.status === 'connected') {
-                    badge.className = 'badge connected';
-                    badge.textContent = 'En Línea';
-                    qrSection.style.display = 'none';
-                    connectedMsg.style.display = 'block';
-                } else if (data.status === 'qr_ready') {
-                    badge.className = 'badge pending';
-                    badge.textContent = 'Pendiente de Escaneo';
-                    qrSection.style.display = 'block';
-                    connectedMsg.style.display = 'none';
-
-                    if (data.qr !== lastQrString) {
-                        lastQrString = data.qr;
-                        const container = document.getElementById('qrcode_container');
-                        container.innerHTML = '';
-                        qrCodeInstance = new QRCode(container, {
-                            text: data.qr,
-                            width: 256,
-                            height: 256,
-                            colorDark: "#0f172a",
-                            colorLight: "#ffffff",
-                            correctLevel: QRCode.CorrectLevel.M
-                        });
-                    }
-                } else {
-                    badge.className = 'badge disconnected';
-                    badge.textContent = 'Desconectado / Iniciando Server...';
-                    qrSection.style.display = 'none';
-                    connectedMsg.style.display = 'none';
-                }
-            } catch (e) {
-                console.log("Servidor ocupado o apagado...");
-            }
-        }
-
-        setInterval(checkWhatsappStatus, 2500);
-        checkWhatsappStatus();
+        // Init
+        loadSettings();
+        loadSessions();
+        loadChatHistory();
+        setInterval(loadChatHistory, 3000);
+        setInterval(checkStatus, 5000);
     </script>
 </body>
 
