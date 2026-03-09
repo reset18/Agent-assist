@@ -1011,14 +1011,24 @@
                 </div>
                 <div id="tab_telegram" class="sub-tab-content active">
                     <div class="card">
-                        <h3>Telegram</h3>
-                        <div class="form-group">
-                            <label for="telegram_bot_token">Token</label>
-                            <input type="password" id="telegram_bot_token" onchange="saveSettings()" />
+                        <div
+                            style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
+                            <h3 style="margin: 0; border: none; padding: 0;">Telegram</h3>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="bot_telegram_enabled" onchange="toggleTelegramConfig()"
+                                    checked>
+                                <span class="slider"></span>
+                            </label>
                         </div>
-                        <div class="form-group">
-                            <label for="telegram_whitelist">Whitelisted IDs</label>
-                            <input type="text" id="telegram_whitelist" onchange="saveSettings()" />
+                        <div id="telegram_config_section">
+                            <div class="form-group">
+                                <label for="telegram_bot_token">Token</label>
+                                <input type="password" id="telegram_bot_token" onchange="saveSettings()" />
+                            </div>
+                            <div class="form-group">
+                                <label for="telegram_whitelist">Whitelisted IDs</label>
+                                <input type="text" id="telegram_whitelist" onchange="saveSettings()" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1730,28 +1740,40 @@
             }
 
             // Cargar estados de habilitación de canales y voz
-            document.getElementById('bot_telegram_enabled').checked = data.bot_telegram_enabled !== false;
-            document.getElementById('bot_whatsapp_enabled').checked = data.bot_whatsapp_enabled !== false;
-            document.getElementById('voice_enabled').checked = data.voice_enabled === true;
-            document.getElementById('voice_engine').value = data.voice_engine || 'openai';
-            document.getElementById('openai_voice_id').value = data.openai_voice_id || 'alloy';
-            document.getElementById('elevenlabs_api_key').value = data.elevenlabs_api_key || '';
+            const botTg = document.getElementById('bot_telegram_enabled');
+            if (botTg) botTg.checked = data.bot_telegram_enabled !== false;
 
-            if (data.elevenlabs_voice_id) {
+            const botWa = document.getElementById('bot_whatsapp_enabled');
+            if (botWa) botWa.checked = data.bot_whatsapp_enabled !== false;
+
+            const voiceEn = document.getElementById('voice_enabled');
+            if (voiceEn) voiceEn.checked = data.voice_enabled === true;
+
+            const voiceEng = document.getElementById('voice_engine');
+            if (voiceEng) voiceEng.value = data.voice_engine || 'openai';
+
+            const openaiVoice = document.getElementById('openai_voice_id');
+            if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
+
+            const elevenLabsKey = document.getElementById('elevenlabs_api_key');
+            if (elevenLabsKey) elevenLabsKey.value = data.elevenlabs_api_key || '';
+
+            if (data.elevenlabs_voice_id && document.getElementById('elevenlabs_voice_id')) {
+                const select = document.getElementById('elevenlabs_voice_id');
                 const opt = document.createElement('option');
                 opt.value = data.elevenlabs_voice_id;
                 opt.text = "Voz Actual Guardada (Carga voces para ver resto)";
-                document.getElementById('elevenlabs_voice_id').appendChild(opt);
-                document.getElementById('elevenlabs_voice_id').value = data.elevenlabs_voice_id;
+                select.appendChild(opt);
+                select.value = data.elevenlabs_voice_id;
             }
 
             window.gogSecretCache = data.gog_client_secret || '';
             window.gogEmailCache = data.gog_email || '';
 
-            toggleTelegramConfig();
-            toggleWhatsappConfig();
-            toggleVoiceMainConfig();
-            updateVoiceEngineFields();
+            if (typeof toggleTelegramConfig === 'function') toggleTelegramConfig();
+            if (typeof toggleWhatsappConfig === 'function') toggleWhatsappConfig();
+            if (typeof toggleVoiceMainConfig === 'function') toggleVoiceMainConfig();
+            if (typeof updateVoiceEngineFields === 'function') updateVoiceEngineFields();
 
             // Marcar que la carga ha terminado; a partir de ahora saveSettings() puede dispararse
             window.settingsLoaded = true;
@@ -1953,8 +1975,12 @@
 
         // Funciones para mostrar u ocultar la configuración según si están habilitados
         function toggleTelegramConfig() {
-            const isEnabled = document.getElementById('bot_telegram_enabled').checked;
-            document.getElementById('telegram_config_section').style.display = isEnabled ? 'block' : 'none';
+            const el = document.getElementById('bot_telegram_enabled');
+            const section = document.getElementById('telegram_config_section');
+            if (el && section) {
+                const isEnabled = el.checked;
+                section.style.display = isEnabled ? 'block' : 'none';
+            }
             saveSettings();
         }
 
@@ -1992,13 +2018,13 @@
                 tool_list_dir_local: document.getElementById('tool_list_dir_local').checked,
                 tool_run_shell_local: document.getElementById('tool_run_shell_local').checked,
                 tool_run_ssh_command: document.getElementById('tool_run_ssh_command').checked,
-                bot_telegram_enabled: document.getElementById('bot_telegram_enabled').checked,
-                bot_whatsapp_enabled: document.getElementById('bot_whatsapp_enabled').checked,
-                voice_enabled: document.getElementById('voice_enabled').checked,
-                voice_engine: document.getElementById('voice_engine').value,
-                openai_voice_id: document.getElementById('openai_voice_id').value,
-                elevenlabs_api_key: document.getElementById('elevenlabs_api_key').value,
-                elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id').value
+                bot_telegram_enabled: document.getElementById('bot_telegram_enabled')?.checked || false,
+                bot_whatsapp_enabled: document.getElementById('bot_whatsapp_enabled')?.checked || false,
+                voice_enabled: document.getElementById('voice_enabled')?.checked || false,
+                voice_engine: document.getElementById('voice_engine')?.value || 'openai',
+                openai_voice_id: document.getElementById('openai_voice_id')?.value || 'alloy',
+                elevenlabs_api_key: document.getElementById('elevenlabs_api_key')?.value || '',
+                elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || ''
             };
 
             const gogClientEl = document.getElementById('gog_client_secret');

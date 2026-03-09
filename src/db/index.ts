@@ -6,10 +6,17 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const dbPath = process.env.DB_PATH || './memory.db';
-const db = new Database(dbPath);
+const dbPath = process.env.DB_PATH || join(process.cwd(), 'data', 'memory.db');
 
 export function initDb() {
+    // Asegurar que el directorio de la base de datos existe
+    const dbDir = dirname(dbPath);
+    if (!fs.existsSync(dbDir)) {
+        console.log(`[DB] Creando directorio para la base de datos: ${dbDir}`);
+        fs.mkdirSync(dbDir, { recursive: true });
+    }
+
+    const db = new Database(dbPath);
     const schemaPath = join(__dirname, 'schema.sql');
     const schema = readFileSync(schemaPath, 'utf8');
     db.exec(schema);
@@ -90,4 +97,9 @@ export function setToolEnabled(toolName: string, enabled: boolean) {
     stmt.run(toolName, enabled ? 1 : 0);
 }
 
+export function getDbInstance() {
+    return new Database(dbPath);
+}
+
+const db = new Database(dbPath);
 export default db;
