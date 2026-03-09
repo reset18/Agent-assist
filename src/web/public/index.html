@@ -907,9 +907,9 @@
             </button>
         </div>
         <div class="sidebar-footer">
-            <button class="theme-toggle" onclick="toggleTheme()"
+            <button class="theme-toggle" id="theme_toggle_btn" onclick="toggleTheme()"
                 style="width: 100%; justify-content: center; margin-bottom: 12px; font-size: 14px;">
-                <span id="theme-icon">🌙</span> Oscuro
+                <span id="theme-icon">🌗 Auto</span>
             </button>
             <div style="font-size: 13px; color: var(--text-muted); text-align: center;">v1.0.0 Local</div>
         </div>
@@ -1517,19 +1517,35 @@
     </main>
 
     <script>
-        // Lógica del Tema
+        // Lógica del Tema (Auto / Claro / Oscuro)
+        function getSystemTheme() {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+
+        function applyTheme(mode) {
+            const actual = mode === 'auto' ? getSystemTheme() : mode;
+            document.documentElement.setAttribute('data-theme', actual);
+            const icon = document.getElementById('theme-icon');
+            if (mode === 'auto') icon.textContent = '🌗 Auto';
+            else if (mode === 'light') icon.textContent = '☀️ Claro';
+            else icon.textContent = '🌙 Oscuro';
+        }
+
         function initTheme() {
-            const savedTheme = localStorage.getItem('agentTheme') || 'dark';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            document.getElementById('theme-icon').textContent = savedTheme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
+            const saved = localStorage.getItem('agentTheme') || 'auto';
+            applyTheme(saved);
+            // Escuchar cambios del sistema en modo Auto
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                if ((localStorage.getItem('agentTheme') || 'auto') === 'auto') applyTheme('auto');
+            });
         }
 
         function toggleTheme() {
-            const current = document.documentElement.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
+            const modes = ['auto', 'light', 'dark'];
+            const current = localStorage.getItem('agentTheme') || 'auto';
+            const next = modes[(modes.indexOf(current) + 1) % modes.length];
             localStorage.setItem('agentTheme', next);
-            document.getElementById('theme-icon').textContent = next === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
+            applyTheme(next);
         }
 
         initTheme();
@@ -1864,34 +1880,26 @@
 
         // Cargar Historial de Chat y aplicar Polling
         let lastMessageCount = 0;
+        let chatBusySending = false; // Flag para evitar que el polling destruya el DOM durante el envío
 
         async function loadChatHistory() {
+            // Si estamos en medio de un envío, no tocar el DOM
+            if (chatBusySending) return;
+
             try {
                 const res = await fetch(`/api/chat-history?sessionId=${window.currentSessionId}`);
                 const data = await res.json();
                 const chat = document.getElementById('chat_history');
 
                 if (data.messages) {
-                    // Solo recargar visualmente si hay mensajes nuevos (evita parpadeos en scrolling)
                     const newCount = data.messages.length;
-
-                    // Pequeña optimización: si el contenido es idéntico al actual, no tocamos el DOM
                     const currentDOMCount = chat.querySelectorAll('.chat-message-wrapper').length;
 
-                    if (newCount !== currentDOMCount || newCount === 0) {
+                    if (newCount !== currentDOMCount) {
                         chat.innerHTML = '';
 
                         if (newCount === 0) {
-                            const welcome = document.createElement('div');
-                            welcome.className = 'chat-message-wrapper assistant';
-                            welcome.innerHTML = `
-                                <div class="avatar assistant">${window.agentNameCache}</div>
-                                <div class="message-content">
-                                    <div class="sender-name">${window.fullAgentNameCache}</div>
-                                    <div class="chat-bubble assistant">¡Hola! Este es un nuevo chat. ¿En qué puedo ayudarte?</div>
-                                </div>
-                            `;
-                            chat.appendChild(welcome);
+                            // Chat vacío: no mostramos nada, esperamos al usuario
                         } else {
                             data.messages.forEach(msg => {
                                 const wrapper = document.createElement('div');
@@ -2028,6 +2036,7 @@
             const text = input.value.trim();
             if (!text) return;
 
+            chatBusySending = true; // Evitar que el polling sobreescriba el DOM
             const chat = document.getElementById('chat_history');
 
             // Wrappers de chat
@@ -2163,6 +2172,7 @@
 
                 chat.scrollTop = chat.scrollHeight;
             }
+            chatBusySending = false; // Reanudar polling
         }
 
         async function loadModels() {

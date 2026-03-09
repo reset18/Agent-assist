@@ -15,7 +15,7 @@ app.use(express.static(join(__dirname, 'public')));
 
 // API Config
 app.get('/api/settings', (req, res) => {
-    const provider = getSetting('model_provider') || 'openrouter';
+    const provider = getSetting('model_provider') || process.env.LLM_PROVIDER || 'openrouter';
     let apiKey = getSetting('llm_api_key') || '';
 
     // Solo si no hay nada en la memoria persistente, intentamos cargar de los .env como fallback
@@ -35,7 +35,7 @@ app.get('/api/settings', (req, res) => {
         agent_personality: getSetting('agent_personality') || '',
         agent_function: getSetting('agent_function') || '',
         model_provider: provider,
-        model_name: getSetting('model_name') || 'openrouter/free',
+        model_name: getSetting('model_name') || process.env.MODEL_NAME || 'openrouter/free',
         llm_api_key: apiKey,
         telegram_bot_token: process.env.TELEGRAM_BOT_TOKEN === 'SUTITUYE POR EL TUYO' ? '' : (process.env.TELEGRAM_BOT_TOKEN || ''),
         telegram_whitelist: process.env.TELEGRAM_ALLOWED_USER_IDS === 'SUTITUYE POR EL TUYO' ? '' : (process.env.TELEGRAM_ALLOWED_USER_IDS || ''),
@@ -45,8 +45,8 @@ app.get('/api/settings', (req, res) => {
         tool_list_dir_local: isToolEnabled('list_dir_local'),
         tool_run_shell_local: isToolEnabled('run_shell_local'),
         tool_run_ssh_command: isToolEnabled('run_ssh_command'),
-        bot_telegram_enabled: getSetting('bot_telegram_enabled') !== '0',
-        bot_whatsapp_enabled: getSetting('bot_whatsapp_enabled') !== '0',
+        bot_telegram_enabled: getSetting('bot_telegram_enabled') === '1' || (getSetting('bot_telegram_enabled') == null && !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_BOT_TOKEN !== 'SUTITUYE POR EL TUYO')),
+        bot_whatsapp_enabled: getSetting('bot_whatsapp_enabled') === '1',
         gog_client_secret: getSetting('gog_client_secret') || '',
         gog_email: getSetting('gog_email') || '',
         elevenlabs_enabled: getSetting('elevenlabs_enabled') === '1', // Legacy check
