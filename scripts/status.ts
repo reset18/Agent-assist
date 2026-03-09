@@ -15,7 +15,7 @@ async function getStatus() {
 
         const tableData = [
             { service: 'Web Server', status: data.server.status === 'online' ? chalk.green('✅ ONLINE') : chalk.red('❌ OFFLINE'), detail: `Puerto: ${data.server.port}` },
-            { service: 'WhatsApp', status: data.whatsapp.enabled ? (data.whatsapp.status === 'READY' ? chalk.green('✅ CONECTADO') : chalk.yellow('⏳ ' + data.whatsapp.status)) : chalk.gray('⚪ DESHABILITADO'), detail: data.whatsapp.session || 'Sin sesión' },
+            { service: 'WhatsApp', status: data.whatsapp.enabled ? (data.whatsapp.status === 'connected' ? chalk.green('✅ CONECTADO') : chalk.yellow('⏳ ' + data.whatsapp.status.toUpperCase())) : chalk.gray('⚪ DESHABILITADO'), detail: data.whatsapp.status === 'qr_ready' ? 'Pendiente de QR' : 'Sin sesión activa' },
             { service: 'Telegram', status: data.telegram.enabled ? chalk.green('✅ ACTIVO') : chalk.gray('⚪ DESHABILITADO'), detail: data.telegram.status },
             { service: 'Cerebro (IA)', status: chalk.blue('🧠 ' + data.llm.provider.toUpperCase()), detail: data.llm.model }
         ];

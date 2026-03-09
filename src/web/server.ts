@@ -75,8 +75,7 @@ app.get('/api/status', (req, res) => {
         },
         whatsapp: {
             enabled: waEnabled,
-            status: whatsappGlobalState.status,
-            session: whatsappGlobalState.session
+            status: whatsappGlobalState.status
         },
         telegram: {
             enabled: tgEnabled,
