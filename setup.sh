@@ -65,6 +65,10 @@ case "\$1" in
     pm2 status agent-assist
     NODE_NO_WARNINGS=1 npx tsx $AGENT_DIR/scripts/status.ts 2>/dev/null || echo "Info extra no disponible (servidor offline)"
     ;;
+  update)
+    echo "Iniciando actualización inteligente..."
+    NODE_NO_WARNINGS=1 npx tsx $AGENT_DIR/scripts/updater.ts
+    ;;
   stop) pm2 stop agent-assist ;;
   doctor)
     echo "Ejecutando diagnóstico..."
@@ -76,7 +80,7 @@ case "\$1" in
     pm2 delete agent-assist && rm /usr/local/bin/agent-assist && echo "Hecho."
     ;;
   *)
-    echo "Uso: agent-assist {status|logs|restart|stop|doctor|uninstall}"
+    echo "Uso: agent-assist {status|logs|restart|stop|doctor|update|uninstall}"
     ;;
 esac
 EOF

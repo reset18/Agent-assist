@@ -24,8 +24,9 @@ async function runUpdate() {
         console.log(chalk.green('✅ Actualización completada con éxito.'));
         console.log(chalk.yellow('🔄 El servidor se reiniciará automáticamente vía PM2.'));
 
-        // 4. Restart (optional, if running under PM2 it might auto-restart on build changes)
-        // await execAsync('pm2 restart agent-assist');
+        // 4. Restart
+        console.log(chalk.gray('  - Reiniciando servicio (pm2 restart)...'));
+        await execAsync('pm2 restart agent-assist');
 
     } catch (error: any) {
         console.error(chalk.red('❌ Error durante la actualización:'), error.message);
