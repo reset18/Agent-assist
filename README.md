@@ -1,6 +1,6 @@
-# AgentAssist Core - Horus
+# Agent-Assist Core
 
-![AgentAssist Logo](https://via.placeholder.com/150x150.png?text=Horus)
+![Agent-Assist Logo](https://via.placeholder.com/150x150.png?text=Agent-Assist)
 
 Un Agente IA autónomo, premium y multi-plataforma diseñado para centralizar tus flujos de trabajo con capacidades de auto-aprendizaje, gestión de archivos y herramientas de automatización.
 
@@ -9,13 +9,13 @@ Un Agente IA autónomo, premium y multi-plataforma diseñado para centralizar tu
 - **Multi-plataforma**: Conexión nativa con Telegram, WhatsApp y Web.
 - **Identificación de Sesiones**: Identifica el origen de tus chats y continúa conversaciones cruzadas sin problemas.
 - **Habilidades Autónomas (MCP)**: Capacidad para ejecutar código, leer/escribir archivos locales, gestionar servidores Proxmox vía SSH, y más.
-- **Auto-aprendizaje**: Motor de autonomía Horus que permite al agente crear y documentar sus propias herramientas.
+- **Auto-aprendizaje**: Motor de autonomía que permite al agente crear y documentar sus propias herramientas.
 - **Interfaz Premium**: Diseño visual de alta fidelidad con soporte para temas claro/oscuro, centrado en la usabilidad.
-- **Voz NAtiva**: Integración con OpenAI TTS y ElevenLabs para interacciones audibles y transcripción de notas de voz.
+- **Voz Nativa**: Integración con OpenAI TTS y ElevenLabs para interacciones audibles y transcripción de notas de voz.
 
 ## 🛠️ Requisitos
 
-- **Node.js**: v18 o superior.
+- **Node.js**: v20 o superior.
 - **SQLite**: Incluido (usa `better-sqlite3`).
 - **API Keys**: Necesitarás al menos una de las siguientes: OpenRouter (recomendado), Groq, OpenAI, Anthropic o Google Gemini.
 
@@ -26,20 +26,20 @@ Para un despliegue rápido y profesional en Ubuntu/Debian, usa nuestro instalado
 ```bash
 wget -qO- https://raw.githubusercontent.com/reset18/Agent-assist/main/setup.sh | sudo bash
 ```
-*Este comando instalará Node.js, todas las dependencias de WhatsApp (Puppeteer), ejecutará un **asistente de configuración interactivo** y configurará Horus como un servicio persistente con PM2.*
+*Este comando instalará Node.js, todas las dependencias de WhatsApp (Puppeteer), ejecutará un **asistente de configuración interactivo** y configurará Agent-Assist como un servicio persistente con PM2.*
 
-#### 🛠️ Horus CLI (Gestión del Agente)
-Una vez instalado, puedes usar el comando `horus` para gestionar todo el sistema:
-- `horus status` - Ver el estado actual del agente.
-- `horus logs` - Ver logs en tiempo real.
-- `horus restart` - Reiniciar el servicio.
-- `horus doctor` - **Novedad**: Diagnostica automáticamente problemas de dependencias, Node.js o red, y ofrece autofix.
+#### 🛠️ Agent-Assist CLI (Gestión del Agente)
+Una vez instalado, puedes usar el comando `agent-assist` para gestionar todo el sistema:
+- `agent-assist status` - Ver el estado actual del agente.
+- `agent-assist logs` - Ver logs en tiempo real.
+- `agent-assist restart` - Reiniciar el servicio.
+- `agent-assist doctor` - **Novedad**: Diagnostica automáticamente problemas de dependencias, Node.js o red, y ofrece autofix.
 
 ### Método 2: Manual / Docker
 ...
 1. **Clonar el repositorio**:
    ```bash
-   git clone https://github.com/TU_USUARIO/Agent-assist.git
+   git clone https://github.com/reset18/Agent-assist.git
    cd Agent-assist
    ```
 2. **Docker**:
