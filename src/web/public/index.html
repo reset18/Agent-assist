@@ -1633,6 +1633,7 @@
         window.agentNameCache = 'IA';
         window.userNameCache = 'TU';
         window.currentSessionId = 'default';
+        window.settingsLoaded = false; // Guard para evitar que saveSettings() se dispare antes de que la config se cargue
 
         async function createNewChatSession() {
             const name = prompt("Nombre del nuevo chat:", `Nuevo Chat ${new Date().toLocaleTimeString()}`);
@@ -1751,6 +1752,9 @@
             toggleWhatsappConfig();
             toggleVoiceMainConfig();
             updateVoiceEngineFields();
+
+            // Marcar que la carga ha terminado; a partir de ahora saveSettings() puede dispararse
+            window.settingsLoaded = true;
         });
 
         // Cargar MCP Skills
@@ -1973,6 +1977,9 @@
         }
 
         async function saveSettings() {
+            // No guardar si la configuración aún no se ha cargado del servidor
+            if (!window.settingsLoaded) return;
+
             const payload = {
                 model_provider: document.getElementById('model_provider').value,
                 model_name: document.getElementById('model_name').value,
