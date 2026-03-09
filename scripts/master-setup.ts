@@ -94,10 +94,9 @@ async function startSetup() {
 
     const security = await inquirer.prompt([
         {
-            type: 'list',
+            type: 'rawlist',
             name: 'confirm',
             message: chalk.red('⚠️  ADVERTENCIA: Esta instalación tomará el CONTROL TOTAL de este sistema y modificará archivos críticos. ¿Estás seguro de continuar?'),
-            pageSize: 5,
             choices: [
                 { name: '✅ Sí, acepto el CONTROL TOTAL y deseo continuar', value: true },
                 { name: '❌ No, cancelar instalación', value: false }
@@ -113,10 +112,9 @@ async function startSetup() {
     // IA Setup
     const aiConfig = await inquirer.prompt([
         {
-            type: 'list',
+            type: 'rawlist',
             name: 'provider',
-            message: 'Selecciona tu cerebro (IA):',
-            pageSize: 10,
+            message: 'Selecciona tu cerebro (IA) [Escribe el número y pulsa Enter]:',
             choices: [
                 { name: 'OpenRouter (Recomendado)', value: 'openrouter' },
                 { name: 'OpenAI (ChatGPT)', value: 'openai' },
@@ -141,10 +139,9 @@ async function startSetup() {
 
     const modelSelect = await inquirer.prompt([
         {
-            type: 'list',
+            type: 'rawlist',
             name: 'model',
-            message: 'Selecciona el modelo que deseas usar:',
-            pageSize: 15,
+            message: 'Selecciona el modelo que deseas usar [Escribe el número y pulsa Enter]:',
             choices: models
         }
     ]);
@@ -152,9 +149,9 @@ async function startSetup() {
     // Puerto Setup
     const portConfig = await inquirer.prompt([
         {
-            type: 'list',
+            type: 'rawlist',
             name: 'useDefault',
-            message: '¿Quieres usar el puerto predeterminado (3005)?',
+            message: '¿Quieres usar el puerto predeterminado (3005)? [Escribe el número y pulsa Enter]:',
             choices: [
                 { name: 'Sí (3005)', value: true },
                 { name: 'No, quiero otro', value: false }
@@ -188,9 +185,9 @@ async function startSetup() {
     // Plataforma Setup
     const platformConfig = await inquirer.prompt([
         {
-            type: 'list',
+            type: 'rawlist',
             name: 'platform',
-            message: 'Selecciona la plataforma de red social para tu agente:',
+            message: 'Selecciona la plataforma de red social [Escribe el número y pulsa Enter]:',
             choices: [
                 { name: 'WhatsApp (Login vía QR)', value: 'whatsapp' },
                 { name: 'Telegram (Token + ID)', value: 'telegram' }
