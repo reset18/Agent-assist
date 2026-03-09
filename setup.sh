@@ -57,7 +57,7 @@ npm install --no-audit
 
 # 6. Lanzar Configurador Maestro v2.0 (Interactivo)
 echo -e "\033[0-32m[4/5] Iniciando Asistente de Configuración Inteligente v2.0...\033[0m"
-npx tsx scripts/master-setup.ts
+NODE_NO_WARNINGS=1 npx tsx scripts/master-setup.ts
 
 # 7. CLI Setup
 echo -e "\033[0-32m[5/5] Instalando comandos globales 'agent-assist'...\033[0m"
