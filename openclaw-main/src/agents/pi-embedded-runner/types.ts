@@ -1,67 +1,105 @@
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import type { Api, AssistantMessage, Model } from "@mariozechner/pi-ai";
-import type { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
-import type { ThinkLevel } from "../../../auto-reply/thinking.js";
-import type { SessionSystemPromptReport } from "../../../config/sessions/types.js";
-import type { ContextEngine } from "../../../context-engine/types.js";
-import type { PluginHookBeforeAgentStartResult } from "../../../plugins/types.js";
-import type { MessagingToolSend } from "../../pi-embedded-messaging.js";
-import type { NormalizedUsage } from "../../usage.js";
-import type { RunEmbeddedPiAgentParams } from "./params.js";
+import type { SessionSystemPromptReport } from "../../config/sessions/types.js";
+import type { MessagingToolSend } from "../pi-embedded-messaging.js";
 
-type EmbeddedRunAttemptBase = Omit<
-  RunEmbeddedPiAgentParams,
-  "provider" | "model" | "authProfileId" | "authProfileIdSource" | "thinkLevel" | "lane" | "enqueue"
->;
-
-export type EmbeddedRunAttemptParams = EmbeddedRunAttemptBase & {
-  /** Pluggable context engine for ingest/assemble/compact lifecycle. */
-  contextEngine?: ContextEngine;
-  /** Resolved model context window in tokens for assemble/compact budgeting. */
-  contextTokenBudget?: number;
-  /** Auth profile resolved for this attempt's provider/model call. */
-  authProfileId?: string;
-  /** Source for the resolved auth profile (user-locked or automatic). */
-  authProfileIdSource?: "auto" | "user";
+export type EmbeddedPiAgentMeta = {
+  sessionId: string;
   provider: string;
-  modelId: string;
-  model: Model<Api>;
-  authStorage: AuthStorage;
-  modelRegistry: ModelRegistry;
-  thinkLevel: ThinkLevel;
-  legacyBeforeAgentStartResult?: PluginHookBeforeAgentStartResult;
+  model: string;
+  compactionCount?: number;
+  promptTokens?: number;
+  usage?: {
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+    total?: number;
+  };
+  /**
+   * Usage from the last individual API call (not accumulated across tool-use
+   * loops or compaction retries). Used for context-window utilization display
+   * (`totalTokens` in sessions.json) because the accumulated `usage.input`
+   * sums input tokens from every API call in the run, which overstates the
+   * actual context size.
+   */
+  lastCallUsage?: {
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+    total?: number;
+  };
 };
 
-export type EmbeddedRunAttemptResult = {
-  aborted: boolean;
-  timedOut: boolean;
-  /** True if the timeout occurred while compaction was in progress or pending. */
-  timedOutDuringCompaction: boolean;
-  promptError: unknown;
-  sessionIdUsed: string;
-  bootstrapPromptWarningSignaturesSeen?: string[];
-  bootstrapPromptWarningSignature?: string;
+export type EmbeddedPiRunMeta = {
+  durationMs: number;
+  agentMeta?: EmbeddedPiAgentMeta;
+  aborted?: boolean;
   systemPromptReport?: SessionSystemPromptReport;
-  messagesSnapshot: AgentMessage[];
-  assistantTexts: string[];
-  toolMetas: Array<{ toolName: string; meta?: string }>;
-  lastAssistant: AssistantMessage | undefined;
-  lastToolError?: {
-    toolName: string;
-    meta?: string;
-    error?: string;
-    mutatingAction?: boolean;
-    actionFingerprint?: string;
+  error?: {
+    kind:
+      | "context_overflow"
+      | "compaction_failure"
+      | "role_ordering"
+      | "image_size"
+      | "retry_limit";
+    message: string;
   };
-  didSendViaMessagingTool: boolean;
-  didSendDeterministicApprovalPrompt?: boolean;
-  messagingToolSentTexts: string[];
-  messagingToolSentMediaUrls: string[];
-  messagingToolSentTargets: MessagingToolSend[];
+  /** Stop reason for the agent run (e.g., "completed", "tool_calls"). */
+  stopReason?: string;
+  /** Pending tool calls when stopReason is "tool_calls". */
+  pendingToolCalls?: Array<{
+    id: string;
+    name: string;
+    arguments: string;
+  }>;
+};
+
+export type EmbeddedPiRunResult = {
+  payloads?: Array<{
+    text?: string;
+    mediaUrl?: string;
+    mediaUrls?: string[];
+    replyToId?: string;
+    isError?: boolean;
+  }>;
+  meta: EmbeddedPiRunMeta;
+  // True if a messaging tool (telegram, whatsapp, discord, slack, sessions_send)
+  // successfully sent a message. Used to suppress agent's confirmation text.
+  didSendViaMessagingTool?: boolean;
+  // Texts successfully sent via messaging tools during the run.
+  messagingToolSentTexts?: string[];
+  // Media URLs successfully sent via messaging tools during the run.
+  messagingToolSentMediaUrls?: string[];
+  // Messaging tool targets that successfully sent a message during the run.
+  messagingToolSentTargets?: MessagingToolSend[];
+  // Count of successful cron.add tool calls in this run.
   successfulCronAdds?: number;
-  cloudCodeAssistFormatError: boolean;
-  attemptUsage?: NormalizedUsage;
-  compactionCount?: number;
-  /** Client tool call detected (OpenResponses hosted tools). */
-  clientToolCall?: { name: string; params: Record<string, unknown> };
+};
+
+export type EmbeddedPiCompactResult = {
+  ok: boolean;
+  compacted: boolean;
+  reason?: string;
+  result?: {
+    summary: string;
+    firstKeptEntryId: string;
+    tokensBefore: number;
+    tokensAfter?: number;
+    details?: unknown;
+  };
+};
+
+export type EmbeddedSandboxInfo = {
+  enabled: boolean;
+  workspaceDir?: string;
+  containerWorkspaceDir?: string;
+  workspaceAccess?: "none" | "ro" | "rw";
+  agentWorkspaceMount?: string;
+  browserBridgeUrl?: string;
+  browserNoVncUrl?: string;
+  hostBrowserAllowed?: boolean;
+  elevated?: {
+    allowed: boolean;
+    defaultLevel: "on" | "off" | "ask" | "full";
+  };
 };

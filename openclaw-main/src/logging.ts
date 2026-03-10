@@ -1,33 +1,69 @@
-export type LogFn = (message: string) => void;
+import type { ConsoleLoggerSettings, ConsoleStyle } from "./logging/console.js";
+import {
+  enableConsoleCapture,
+  getConsoleSettings,
+  getResolvedConsoleSettings,
+  routeLogsToStderr,
+  setConsoleSubsystemFilter,
+  setConsoleConfigLoaderForTests,
+  setConsoleTimestampPrefix,
+  shouldLogSubsystemToConsole,
+} from "./logging/console.js";
+import type { LogLevel } from "./logging/levels.js";
+import { ALLOWED_LOG_LEVELS, levelToMinLevel, normalizeLogLevel } from "./logging/levels.js";
+import type { LoggerResolvedSettings, LoggerSettings, PinoLikeLogger } from "./logging/logger.js";
+import {
+  DEFAULT_LOG_DIR,
+  DEFAULT_LOG_FILE,
+  getChildLogger,
+  getLogger,
+  getResolvedLoggerSettings,
+  isFileLogLevelEnabled,
+  resetLogger,
+  setLoggerOverride,
+  toPinoLikeLogger,
+} from "./logging/logger.js";
+import type { SubsystemLogger } from "./logging/subsystem.js";
+import {
+  createSubsystemLogger,
+  createSubsystemRuntime,
+  runtimeForLogger,
+  stripRedundantSubsystemPrefixForConsole,
+} from "./logging/subsystem.js";
 
-export function logInboundDrop(params: {
-  log: LogFn;
-  channel: string;
-  reason: string;
-  target?: string;
-}): void {
-  const target = params.target ? ` target=${params.target}` : "";
-  params.log(`${params.channel}: drop ${params.reason}${target}`);
-}
+export {
+  enableConsoleCapture,
+  getConsoleSettings,
+  getResolvedConsoleSettings,
+  routeLogsToStderr,
+  setConsoleSubsystemFilter,
+  setConsoleConfigLoaderForTests,
+  setConsoleTimestampPrefix,
+  shouldLogSubsystemToConsole,
+  ALLOWED_LOG_LEVELS,
+  levelToMinLevel,
+  normalizeLogLevel,
+  DEFAULT_LOG_DIR,
+  DEFAULT_LOG_FILE,
+  getChildLogger,
+  getLogger,
+  getResolvedLoggerSettings,
+  isFileLogLevelEnabled,
+  resetLogger,
+  setLoggerOverride,
+  toPinoLikeLogger,
+  createSubsystemLogger,
+  createSubsystemRuntime,
+  runtimeForLogger,
+  stripRedundantSubsystemPrefixForConsole,
+};
 
-export function logTypingFailure(params: {
-  log: LogFn;
-  channel: string;
-  target?: string;
-  action?: "start" | "stop";
-  error: unknown;
-}): void {
-  const target = params.target ? ` target=${params.target}` : "";
-  const action = params.action ? ` action=${params.action}` : "";
-  params.log(`${params.channel} typing${action} failed${target}: ${String(params.error)}`);
-}
-
-export function logAckFailure(params: {
-  log: LogFn;
-  channel: string;
-  target?: string;
-  error: unknown;
-}): void {
-  const target = params.target ? ` target=${params.target}` : "";
-  params.log(`${params.channel} ack cleanup failed${target}: ${String(params.error)}`);
-}
+export type {
+  ConsoleLoggerSettings,
+  ConsoleStyle,
+  LogLevel,
+  LoggerResolvedSettings,
+  LoggerSettings,
+  PinoLikeLogger,
+  SubsystemLogger,
+};

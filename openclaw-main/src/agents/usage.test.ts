@@ -1,677 +1,209 @@
-import { describe, expect, it, vi } from "vitest";
-import type { AuthProfileStore, ProfileUsageStats } from "./types.js";
+import { describe, expect, it } from "vitest";
 import {
-  clearAuthProfileCooldown,
-  clearExpiredCooldowns,
-  isProfileInCooldown,
-  markAuthProfileFailure,
-  resolveProfilesUnavailableReason,
-  resolveProfileUnusableUntil,
-  resolveProfileUnusableUntilForDisplay,
+  normalizeUsage,
+  hasNonzeroUsage,
+  derivePromptTokens,
+  deriveSessionTotalTokens,
 } from "./usage.js";
 
-vi.mock("./store.js", async (importOriginal) => {
-  const original = await importOriginal<typeof import("./store.js")>();
-  return {
-    ...original,
-    updateAuthProfileStoreWithLock: vi.fn().mockResolvedValue(null),
-    saveAuthProfileStore: vi.fn(),
-  };
-});
-
-function makeStore(usageStats: AuthProfileStore["usageStats"]): AuthProfileStore {
-  return {
-    version: 1,
-    profiles: {
-      "anthropic:default": { type: "api_key", provider: "anthropic", key: "sk-test" },
-      "openai:default": { type: "api_key", provider: "openai", key: "sk-test-2" },
-      "openrouter:default": { type: "api_key", provider: "openrouter", key: "sk-or-test" },
-      "kilocode:default": { type: "api_key", provider: "kilocode", key: "sk-kc-test" },
-    },
-    usageStats,
-  };
-}
-
-function expectProfileErrorStateCleared(
-  stats: NonNullable<AuthProfileStore["usageStats"]>[string] | undefined,
-) {
-  expect(stats?.cooldownUntil).toBeUndefined();
-  expect(stats?.disabledUntil).toBeUndefined();
-  expect(stats?.disabledReason).toBeUndefined();
-  expect(stats?.errorCount).toBe(0);
-  expect(stats?.failureCounts).toBeUndefined();
-}
-
-describe("resolveProfileUnusableUntil", () => {
-  it("returns null when both values are missing or invalid", () => {
-    expect(resolveProfileUnusableUntil({})).toBeNull();
-    expect(resolveProfileUnusableUntil({ cooldownUntil: 0, disabledUntil: Number.NaN })).toBeNull();
-  });
-
-  it("returns the latest active timestamp", () => {
-    expect(resolveProfileUnusableUntil({ cooldownUntil: 100, disabledUntil: 200 })).toBe(200);
-    expect(resolveProfileUnusableUntil({ cooldownUntil: 300 })).toBe(300);
-  });
-});
-
-describe("resolveProfileUnusableUntilForDisplay", () => {
-  it("hides cooldown markers for OpenRouter profiles", () => {
-    const store = makeStore({
-      "openrouter:default": {
-        cooldownUntil: Date.now() + 60_000,
-      },
+describe("normalizeUsage", () => {
+  it("normalizes cache fields from provider response", () => {
+    const usage = normalizeUsage({
+      input: 1000,
+      output: 500,
+      cacheRead: 2000,
+      cacheWrite: 300,
     });
-
-    expect(resolveProfileUnusableUntilForDisplay(store, "openrouter:default")).toBeNull();
-  });
-
-  it("keeps cooldown markers visible for other providers", () => {
-    const until = Date.now() + 60_000;
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: until,
-      },
+    expect(usage).toEqual({
+      input: 1000,
+      output: 500,
+      cacheRead: 2000,
+      cacheWrite: 300,
+      total: undefined,
     });
-
-    expect(resolveProfileUnusableUntilForDisplay(store, "anthropic:default")).toBe(until);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// isProfileInCooldown
-// ---------------------------------------------------------------------------
-
-describe("isProfileInCooldown", () => {
-  it("returns false when profile has no usage stats", () => {
-    const store = makeStore(undefined);
-    expect(isProfileInCooldown(store, "anthropic:default")).toBe(false);
   });
 
-  it("returns true when cooldownUntil is in the future", () => {
-    const store = makeStore({
-      "anthropic:default": { cooldownUntil: Date.now() + 60_000 },
+  it("normalizes cache fields from alternate naming", () => {
+    const usage = normalizeUsage({
+      input_tokens: 1000,
+      output_tokens: 500,
+      cache_read_input_tokens: 2000,
+      cache_creation_input_tokens: 300,
     });
-    expect(isProfileInCooldown(store, "anthropic:default")).toBe(true);
+    expect(usage).toEqual({
+      input: 1000,
+      output: 500,
+      cacheRead: 2000,
+      cacheWrite: 300,
+      total: undefined,
+    });
   });
 
-  it("returns false when cooldownUntil has passed", () => {
-    const store = makeStore({
-      "anthropic:default": { cooldownUntil: Date.now() - 1_000 },
+  it("handles cache_read and cache_write naming variants", () => {
+    const usage = normalizeUsage({
+      input: 1000,
+      cache_read: 1500,
+      cache_write: 200,
     });
-    expect(isProfileInCooldown(store, "anthropic:default")).toBe(false);
+    expect(usage).toEqual({
+      input: 1000,
+      output: undefined,
+      cacheRead: 1500,
+      cacheWrite: 200,
+      total: undefined,
+    });
   });
 
-  it("returns true when disabledUntil is in the future (even if cooldownUntil expired)", () => {
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: Date.now() - 1_000,
-        disabledUntil: Date.now() + 60_000,
-      },
+  it("handles Moonshot/Kimi cached_tokens field", () => {
+    // Moonshot v1 returns cached_tokens instead of cache_read_input_tokens
+    const usage = normalizeUsage({
+      prompt_tokens: 30,
+      completion_tokens: 9,
+      total_tokens: 39,
+      cached_tokens: 19,
     });
-    expect(isProfileInCooldown(store, "anthropic:default")).toBe(true);
+    expect(usage).toEqual({
+      input: 30,
+      output: 9,
+      cacheRead: 19,
+      cacheWrite: undefined,
+      total: 39,
+    });
   });
 
-  it("returns false for OpenRouter even when cooldown fields exist", () => {
-    const store = makeStore({
-      "openrouter:default": {
-        cooldownUntil: Date.now() + 60_000,
-        disabledUntil: Date.now() + 60_000,
-        disabledReason: "billing",
-      },
+  it("handles Kimi K2 prompt_tokens_details.cached_tokens field", () => {
+    // Kimi K2 uses automatic prefix caching and returns cached_tokens in prompt_tokens_details
+    const usage = normalizeUsage({
+      prompt_tokens: 1113,
+      completion_tokens: 5,
+      total_tokens: 1118,
+      prompt_tokens_details: { cached_tokens: 1024 },
     });
-    expect(isProfileInCooldown(store, "openrouter:default")).toBe(false);
+    expect(usage).toEqual({
+      input: 1113,
+      output: 5,
+      cacheRead: 1024,
+      cacheWrite: undefined,
+      total: 1118,
+    });
   });
 
-  it("returns false for Kilocode even when cooldown fields exist", () => {
-    const store = makeStore({
-      "kilocode:default": {
-        cooldownUntil: Date.now() + 60_000,
-        disabledUntil: Date.now() + 60_000,
-        disabledReason: "billing",
-      },
+  it("clamps negative input to zero (pre-subtracted cached_tokens > prompt_tokens)", () => {
+    // pi-ai OpenAI-format providers subtract cached_tokens from prompt_tokens
+    // upstream.  When cached_tokens exceeds prompt_tokens the result is negative.
+    const usage = normalizeUsage({
+      input: -4900,
+      output: 200,
+      cacheRead: 5000,
     });
-    expect(isProfileInCooldown(store, "kilocode:default")).toBe(false);
-  });
-});
-
-describe("resolveProfilesUnavailableReason", () => {
-  it("prefers active disabledReason when profiles are disabled", () => {
-    const now = Date.now();
-    const store = makeStore({
-      "anthropic:default": {
-        disabledUntil: now + 60_000,
-        disabledReason: "billing",
-      },
+    expect(usage).toEqual({
+      input: 0,
+      output: 200,
+      cacheRead: 5000,
+      cacheWrite: undefined,
+      total: undefined,
     });
-
-    expect(
-      resolveProfilesUnavailableReason({
-        store,
-        profileIds: ["anthropic:default"],
-        now,
-      }),
-    ).toBe("billing");
   });
 
-  it("returns auth_permanent for active permanent auth disables", () => {
-    const now = Date.now();
-    const store = makeStore({
-      "anthropic:default": {
-        disabledUntil: now + 60_000,
-        disabledReason: "auth_permanent",
-      },
+  it("clamps negative prompt_tokens alias to zero", () => {
+    const usage = normalizeUsage({
+      prompt_tokens: -12,
+      completion_tokens: 4,
     });
-
-    expect(
-      resolveProfilesUnavailableReason({
-        store,
-        profileIds: ["anthropic:default"],
-        now,
-      }),
-    ).toBe("auth_permanent");
+    expect(usage).toEqual({
+      input: 0,
+      output: 4,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+      total: undefined,
+    });
   });
 
-  it("uses recorded non-rate-limit failure counts for active cooldown windows", () => {
-    const now = Date.now();
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: now + 60_000,
-        failureCounts: { auth: 3, rate_limit: 1 },
-      },
-    });
-
-    expect(
-      resolveProfilesUnavailableReason({
-        store,
-        profileIds: ["anthropic:default"],
-        now,
-      }),
-    ).toBe("auth");
+  it("returns undefined when no valid fields are provided", () => {
+    const usage = normalizeUsage(null);
+    expect(usage).toBeUndefined();
   });
 
-  it("returns overloaded for active overloaded cooldown windows", () => {
-    const now = Date.now();
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: now + 60_000,
-        failureCounts: { overloaded: 2, rate_limit: 1 },
-      },
-    });
-
-    expect(
-      resolveProfilesUnavailableReason({
-        store,
-        profileIds: ["anthropic:default"],
-        now,
-      }),
-    ).toBe("overloaded");
-  });
-
-  it("falls back to rate_limit when active cooldown has no reason history", () => {
-    const now = Date.now();
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: now + 60_000,
-      },
-    });
-
-    expect(
-      resolveProfilesUnavailableReason({
-        store,
-        profileIds: ["anthropic:default"],
-        now,
-      }),
-    ).toBe("rate_limit");
-  });
-
-  it("ignores expired windows and returns null when no profile is actively unavailable", () => {
-    const now = Date.now();
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: now - 1_000,
-        failureCounts: { auth: 5 },
-      },
-      "anthropic:backup": {
-        disabledUntil: now - 500,
-        disabledReason: "billing",
-      },
-    });
-
-    expect(
-      resolveProfilesUnavailableReason({
-        store,
-        profileIds: ["anthropic:default", "anthropic:backup"],
-        now,
-      }),
-    ).toBeNull();
-  });
-
-  it("breaks ties by reason priority for equal active failure counts", () => {
-    const now = Date.now();
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: now + 60_000,
-        failureCounts: { timeout: 2, auth: 2 },
-      },
-    });
-
-    expect(
-      resolveProfilesUnavailableReason({
-        store,
-        profileIds: ["anthropic:default"],
-        now,
-      }),
-    ).toBe("auth");
+  it("handles undefined input", () => {
+    const usage = normalizeUsage(undefined);
+    expect(usage).toBeUndefined();
   });
 });
 
-// ---------------------------------------------------------------------------
-// clearExpiredCooldowns
-// ---------------------------------------------------------------------------
-
-describe("clearExpiredCooldowns", () => {
-  it("returns false on empty usageStats", () => {
-    const store = makeStore(undefined);
-    expect(clearExpiredCooldowns(store)).toBe(false);
+describe("hasNonzeroUsage", () => {
+  it("returns true when cache read is nonzero", () => {
+    const usage = { cacheRead: 100 };
+    expect(hasNonzeroUsage(usage)).toBe(true);
   });
 
-  it("returns false when no profiles have cooldowns", () => {
-    const store = makeStore({
-      "anthropic:default": { lastUsed: Date.now() },
-    });
-    expect(clearExpiredCooldowns(store)).toBe(false);
+  it("returns true when cache write is nonzero", () => {
+    const usage = { cacheWrite: 50 };
+    expect(hasNonzeroUsage(usage)).toBe(true);
   });
 
-  it("returns false when cooldown is still active", () => {
-    const future = Date.now() + 300_000;
-    const store = makeStore({
-      "anthropic:default": { cooldownUntil: future, errorCount: 3 },
-    });
-
-    expect(clearExpiredCooldowns(store)).toBe(false);
-    expect(store.usageStats?.["anthropic:default"]?.cooldownUntil).toBe(future);
-    expect(store.usageStats?.["anthropic:default"]?.errorCount).toBe(3);
+  it("returns true when both cache fields are nonzero", () => {
+    const usage = { cacheRead: 100, cacheWrite: 50 };
+    expect(hasNonzeroUsage(usage)).toBe(true);
   });
 
-  it("clears expired cooldownUntil and resets errorCount", () => {
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: Date.now() - 1_000,
-        errorCount: 4,
-        failureCounts: { rate_limit: 3, timeout: 1 },
-        lastFailureAt: Date.now() - 120_000,
-      },
-    });
-
-    expect(clearExpiredCooldowns(store)).toBe(true);
-
-    const stats = store.usageStats?.["anthropic:default"];
-    expect(stats?.cooldownUntil).toBeUndefined();
-    expect(stats?.errorCount).toBe(0);
-    expect(stats?.failureCounts).toBeUndefined();
-    // lastFailureAt preserved for failureWindowMs decay
-    expect(stats?.lastFailureAt).toBeDefined();
+  it("returns false when cache fields are zero", () => {
+    const usage = { cacheRead: 0, cacheWrite: 0 };
+    expect(hasNonzeroUsage(usage)).toBe(false);
   });
 
-  it("clears expired disabledUntil and disabledReason", () => {
-    const store = makeStore({
-      "anthropic:default": {
-        disabledUntil: Date.now() - 1_000,
-        disabledReason: "billing",
-        errorCount: 2,
-        failureCounts: { billing: 2 },
-      },
-    });
-
-    expect(clearExpiredCooldowns(store)).toBe(true);
-
-    const stats = store.usageStats?.["anthropic:default"];
-    expect(stats?.disabledUntil).toBeUndefined();
-    expect(stats?.disabledReason).toBeUndefined();
-    expect(stats?.errorCount).toBe(0);
-    expect(stats?.failureCounts).toBeUndefined();
-  });
-
-  it("handles independent expiry: cooldown expired but disabled still active", () => {
-    const future = Date.now() + 3_600_000;
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: Date.now() - 1_000,
-        disabledUntil: future,
-        disabledReason: "billing",
-        errorCount: 5,
-        failureCounts: { rate_limit: 3, billing: 2 },
-      },
-    });
-
-    expect(clearExpiredCooldowns(store)).toBe(true);
-
-    const stats = store.usageStats?.["anthropic:default"];
-    // cooldownUntil cleared
-    expect(stats?.cooldownUntil).toBeUndefined();
-    // disabledUntil still active — not touched
-    expect(stats?.disabledUntil).toBe(future);
-    expect(stats?.disabledReason).toBe("billing");
-    // errorCount NOT reset because profile still has an active unusable window
-    expect(stats?.errorCount).toBe(5);
-    expect(stats?.failureCounts).toEqual({ rate_limit: 3, billing: 2 });
-  });
-
-  it("handles independent expiry: disabled expired but cooldown still active", () => {
-    const future = Date.now() + 300_000;
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: future,
-        disabledUntil: Date.now() - 1_000,
-        disabledReason: "billing",
-        errorCount: 3,
-      },
-    });
-
-    expect(clearExpiredCooldowns(store)).toBe(true);
-
-    const stats = store.usageStats?.["anthropic:default"];
-    expect(stats?.cooldownUntil).toBe(future);
-    expect(stats?.disabledUntil).toBeUndefined();
-    expect(stats?.disabledReason).toBeUndefined();
-    // errorCount NOT reset because cooldown is still active
-    expect(stats?.errorCount).toBe(3);
-  });
-
-  it("resets errorCount only when both cooldown and disabled have expired", () => {
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: Date.now() - 2_000,
-        disabledUntil: Date.now() - 1_000,
-        disabledReason: "billing",
-        errorCount: 4,
-        failureCounts: { rate_limit: 2, billing: 2 },
-      },
-    });
-
-    expect(clearExpiredCooldowns(store)).toBe(true);
-
-    const stats = store.usageStats?.["anthropic:default"];
-    expectProfileErrorStateCleared(stats);
-  });
-
-  it("processes multiple profiles independently", () => {
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: Date.now() - 1_000,
-        errorCount: 3,
-      },
-      "openai:default": {
-        cooldownUntil: Date.now() + 300_000,
-        errorCount: 2,
-      },
-    });
-
-    expect(clearExpiredCooldowns(store)).toBe(true);
-
-    // Anthropic: expired → cleared
-    expect(store.usageStats?.["anthropic:default"]?.cooldownUntil).toBeUndefined();
-    expect(store.usageStats?.["anthropic:default"]?.errorCount).toBe(0);
-
-    // OpenAI: still active → untouched
-    expect(store.usageStats?.["openai:default"]?.cooldownUntil).toBeGreaterThan(Date.now());
-    expect(store.usageStats?.["openai:default"]?.errorCount).toBe(2);
-  });
-
-  it("accepts an explicit `now` timestamp for deterministic testing", () => {
-    const fixedNow = 1_700_000_000_000;
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: fixedNow - 1,
-        errorCount: 2,
-      },
-    });
-
-    expect(clearExpiredCooldowns(store, fixedNow)).toBe(true);
-    expect(store.usageStats?.["anthropic:default"]?.cooldownUntil).toBeUndefined();
-    expect(store.usageStats?.["anthropic:default"]?.errorCount).toBe(0);
-  });
-
-  it("clears cooldownUntil that equals exactly `now`", () => {
-    const fixedNow = 1_700_000_000_000;
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: fixedNow,
-        errorCount: 2,
-      },
-    });
-
-    // ts >= cooldownUntil → should clear (cooldown "until" means the instant
-    // at cooldownUntil the profile becomes available again).
-    expect(clearExpiredCooldowns(store, fixedNow)).toBe(true);
-    expect(store.usageStats?.["anthropic:default"]?.cooldownUntil).toBeUndefined();
-    expect(store.usageStats?.["anthropic:default"]?.errorCount).toBe(0);
-  });
-
-  it("ignores NaN and Infinity cooldown values", () => {
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: NaN,
-        errorCount: 2,
-      },
-      "openai:default": {
-        cooldownUntil: Infinity,
-        errorCount: 3,
-      },
-    });
-
-    expect(clearExpiredCooldowns(store)).toBe(false);
-    expect(store.usageStats?.["anthropic:default"]?.errorCount).toBe(2);
-    expect(store.usageStats?.["openai:default"]?.errorCount).toBe(3);
-  });
-
-  it("ignores zero and negative cooldown values", () => {
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: 0,
-        errorCount: 1,
-      },
-      "openai:default": {
-        cooldownUntil: -1,
-        errorCount: 1,
-      },
-    });
-
-    expect(clearExpiredCooldowns(store)).toBe(false);
+  it("returns false for undefined usage", () => {
+    expect(hasNonzeroUsage(undefined)).toBe(false);
   });
 });
 
-// ---------------------------------------------------------------------------
-// clearAuthProfileCooldown
-// ---------------------------------------------------------------------------
-
-describe("clearAuthProfileCooldown", () => {
-  it("clears all error state fields including disabledUntil and failureCounts", async () => {
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: Date.now() + 60_000,
-        disabledUntil: Date.now() + 3_600_000,
-        disabledReason: "billing",
-        errorCount: 5,
-        failureCounts: { billing: 3, rate_limit: 2 },
-      },
-    });
-
-    await clearAuthProfileCooldown({ store, profileId: "anthropic:default" });
-
-    const stats = store.usageStats?.["anthropic:default"];
-    expectProfileErrorStateCleared(stats);
+describe("derivePromptTokens", () => {
+  it("includes cache tokens in prompt total", () => {
+    const usage = {
+      input: 1000,
+      cacheRead: 500,
+      cacheWrite: 200,
+    };
+    const promptTokens = derivePromptTokens(usage);
+    expect(promptTokens).toBe(1700); // 1000 + 500 + 200
   });
 
-  it("preserves lastUsed and lastFailureAt timestamps", async () => {
-    const lastUsed = Date.now() - 10_000;
-    const lastFailureAt = Date.now() - 5_000;
-    const store = makeStore({
-      "anthropic:default": {
-        cooldownUntil: Date.now() + 60_000,
-        errorCount: 3,
-        lastUsed,
-        lastFailureAt,
-      },
-    });
-
-    await clearAuthProfileCooldown({ store, profileId: "anthropic:default" });
-
-    const stats = store.usageStats?.["anthropic:default"];
-    expect(stats?.lastUsed).toBe(lastUsed);
-    expect(stats?.lastFailureAt).toBe(lastFailureAt);
+  it("handles missing cache fields", () => {
+    const usage = {
+      input: 1000,
+    };
+    const promptTokens = derivePromptTokens(usage);
+    expect(promptTokens).toBe(1000);
   });
 
-  it("no-ops for unknown profile id", async () => {
-    const store = makeStore(undefined);
-    await clearAuthProfileCooldown({ store, profileId: "nonexistent" });
-    expect(store.usageStats).toBeUndefined();
+  it("returns undefined for empty usage", () => {
+    const promptTokens = derivePromptTokens({});
+    expect(promptTokens).toBeUndefined();
   });
 });
 
-describe("markAuthProfileFailure — active windows do not extend on retry", () => {
-  // Regression for https://github.com/openclaw/openclaw/issues/23516
-  // When all providers are at saturation backoff (60 min) and retries fire every 30 min,
-  // each retry was resetting cooldownUntil to now+60m, preventing recovery.
-  type WindowStats = ProfileUsageStats;
-
-  async function markFailureAt(params: {
-    store: ReturnType<typeof makeStore>;
-    now: number;
-    reason: "rate_limit" | "billing" | "auth_permanent";
-  }): Promise<void> {
-    vi.useFakeTimers();
-    vi.setSystemTime(params.now);
-    try {
-      await markAuthProfileFailure({
-        store: params.store,
-        profileId: "anthropic:default",
-        reason: params.reason,
-      });
-    } finally {
-      vi.useRealTimers();
-    }
-  }
-
-  const activeWindowCases = [
-    {
-      label: "cooldownUntil",
-      reason: "rate_limit" as const,
-      buildUsageStats: (now: number): WindowStats => ({
-        cooldownUntil: now + 50 * 60 * 1000,
-        errorCount: 3,
-        lastFailureAt: now - 10 * 60 * 1000,
-      }),
-      readUntil: (stats: WindowStats | undefined) => stats?.cooldownUntil,
-    },
-    {
-      label: "disabledUntil",
-      reason: "billing" as const,
-      buildUsageStats: (now: number): WindowStats => ({
-        disabledUntil: now + 20 * 60 * 60 * 1000,
-        disabledReason: "billing",
-        errorCount: 5,
-        failureCounts: { billing: 5 },
-        lastFailureAt: now - 60_000,
-      }),
-      readUntil: (stats: WindowStats | undefined) => stats?.disabledUntil,
-    },
-    {
-      label: "disabledUntil(auth_permanent)",
-      reason: "auth_permanent" as const,
-      buildUsageStats: (now: number): WindowStats => ({
-        disabledUntil: now + 20 * 60 * 60 * 1000,
-        disabledReason: "auth_permanent",
-        errorCount: 5,
-        failureCounts: { auth_permanent: 5 },
-        lastFailureAt: now - 60_000,
-      }),
-      readUntil: (stats: WindowStats | undefined) => stats?.disabledUntil,
-    },
-  ];
-
-  for (const testCase of activeWindowCases) {
-    it(`keeps active ${testCase.label} unchanged on retry`, async () => {
-      const now = 1_000_000;
-      const existingStats = testCase.buildUsageStats(now);
-      const existingUntil = testCase.readUntil(existingStats);
-      const store = makeStore({ "anthropic:default": existingStats });
-
-      await markFailureAt({
-        store,
-        now,
-        reason: testCase.reason,
-      });
-
-      const stats = store.usageStats?.["anthropic:default"];
-      expect(testCase.readUntil(stats)).toBe(existingUntil);
+describe("deriveSessionTotalTokens", () => {
+  it("includes cache tokens in total calculation", () => {
+    const totalTokens = deriveSessionTotalTokens({
+      usage: {
+        input: 1000,
+        cacheRead: 500,
+        cacheWrite: 200,
+      },
+      contextTokens: 4000,
     });
-  }
+    expect(totalTokens).toBe(1700); // 1000 + 500 + 200
+  });
 
-  // When a cooldown/disabled window expires, the error count resets to prevent
-  // stale counters from escalating the next cooldown (the root cause of
-  // infinite cooldown loops — see #40989). The next failure should compute
-  // backoff from errorCount=1, not from the accumulated stale count.
-  const expiredWindowCases = [
-    {
-      label: "cooldownUntil",
-      reason: "rate_limit" as const,
-      buildUsageStats: (now: number): WindowStats => ({
-        cooldownUntil: now - 60_000,
-        errorCount: 3,
-        lastFailureAt: now - 60_000,
-      }),
-      // errorCount resets → calculateAuthProfileCooldownMs(1) = 60_000
-      expectedUntil: (now: number) => now + 60_000,
-      readUntil: (stats: WindowStats | undefined) => stats?.cooldownUntil,
-    },
-    {
-      label: "disabledUntil",
-      reason: "billing" as const,
-      buildUsageStats: (now: number): WindowStats => ({
-        disabledUntil: now - 60_000,
-        disabledReason: "billing",
-        errorCount: 5,
-        failureCounts: { billing: 2 },
-        lastFailureAt: now - 60_000,
-      }),
-      // errorCount resets, billing count resets to 1 →
-      // calculateAuthProfileBillingDisableMsWithConfig(1, 5h, 24h) = 5h
-      expectedUntil: (now: number) => now + 5 * 60 * 60 * 1000,
-      readUntil: (stats: WindowStats | undefined) => stats?.disabledUntil,
-    },
-    {
-      label: "disabledUntil(auth_permanent)",
-      reason: "auth_permanent" as const,
-      buildUsageStats: (now: number): WindowStats => ({
-        disabledUntil: now - 60_000,
-        disabledReason: "auth_permanent",
-        errorCount: 5,
-        failureCounts: { auth_permanent: 2 },
-        lastFailureAt: now - 60_000,
-      }),
-      // errorCount resets, auth_permanent count resets to 1 →
-      // calculateAuthProfileBillingDisableMsWithConfig(1, 5h, 24h) = 5h
-      expectedUntil: (now: number) => now + 5 * 60 * 60 * 1000,
-      readUntil: (stats: WindowStats | undefined) => stats?.disabledUntil,
-    },
-  ];
-
-  for (const testCase of expiredWindowCases) {
-    it(`recomputes ${testCase.label} after the previous window expires`, async () => {
-      const now = 1_000_000;
-      const store = makeStore({
-        "anthropic:default": testCase.buildUsageStats(now),
-      });
-
-      await markFailureAt({
-        store,
-        now,
-        reason: testCase.reason,
-      });
-
-      const stats = store.usageStats?.["anthropic:default"];
-      expect(testCase.readUntil(stats)).toBe(testCase.expectedUntil(now));
+  it("prefers promptTokens override over derived total", () => {
+    const totalTokens = deriveSessionTotalTokens({
+      usage: {
+        input: 1000,
+        cacheRead: 500,
+        cacheWrite: 200,
+      },
+      contextTokens: 4000,
+      promptTokens: 2500, // Override
     });
-  }
+    expect(totalTokens).toBe(2500);
+  });
 });

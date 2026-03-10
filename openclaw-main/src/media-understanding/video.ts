@@ -1,21 +1,10 @@
-import type { VideoDescriptionRequest, VideoDescriptionResult } from "../../types.js";
-import { generateGeminiInlineDataText } from "./inline-data.js";
+import { DEFAULT_VIDEO_MAX_BASE64_BYTES } from "./defaults.js";
 
-export const DEFAULT_GOOGLE_VIDEO_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-const DEFAULT_GOOGLE_VIDEO_MODEL = "gemini-3-flash-preview";
-const DEFAULT_GOOGLE_VIDEO_PROMPT = "Describe the video.";
+export function estimateBase64Size(bytes: number): number {
+  return Math.ceil(bytes / 3) * 4;
+}
 
-export async function describeGeminiVideo(
-  params: VideoDescriptionRequest,
-): Promise<VideoDescriptionResult> {
-  const { text, model } = await generateGeminiInlineDataText({
-    ...params,
-    defaultBaseUrl: DEFAULT_GOOGLE_VIDEO_BASE_URL,
-    defaultModel: DEFAULT_GOOGLE_VIDEO_MODEL,
-    defaultPrompt: DEFAULT_GOOGLE_VIDEO_PROMPT,
-    defaultMime: "video/mp4",
-    httpErrorLabel: "Video description failed",
-    missingTextError: "Video description response missing text",
-  });
-  return { text, model };
+export function resolveVideoMaxBase64Bytes(maxBytes: number): number {
+  const expanded = Math.floor(maxBytes * (4 / 3));
+  return Math.min(expanded, DEFAULT_VIDEO_MAX_BASE64_BYTES);
 }

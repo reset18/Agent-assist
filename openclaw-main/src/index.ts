@@ -1,11 +1,25 @@
-import type { BrowserRouteContext } from "../server-context.js";
-import { registerBrowserAgentRoutes } from "./agent.js";
-import { registerBrowserBasicRoutes } from "./basic.js";
-import { registerBrowserTabRoutes } from "./tabs.js";
-import type { BrowserRouteRegistrar } from "./types.js";
-
-export function registerBrowserRoutes(app: BrowserRouteRegistrar, ctx: BrowserRouteContext) {
-  registerBrowserBasicRoutes(app, ctx);
-  registerBrowserTabRoutes(app, ctx);
-  registerBrowserAgentRoutes(app, ctx);
-}
+export {
+  listEnabledSlackAccounts,
+  listSlackAccountIds,
+  resolveDefaultSlackAccountId,
+  resolveSlackAccount,
+} from "./accounts.js";
+export {
+  deleteSlackMessage,
+  editSlackMessage,
+  getSlackMemberInfo,
+  listSlackEmojis,
+  listSlackPins,
+  listSlackReactions,
+  pinSlackMessage,
+  reactSlackMessage,
+  readSlackMessages,
+  removeOwnSlackReactions,
+  removeSlackReaction,
+  sendSlackMessage,
+  unpinSlackMessage,
+} from "./actions.js";
+export { monitorSlackProvider } from "./monitor.js";
+export { probeSlack } from "./probe.js";
+export { sendMessageSlack } from "./send.js";
+export { resolveSlackAppToken, resolveSlackBotToken } from "./token.js";

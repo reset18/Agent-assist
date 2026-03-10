@@ -1,32 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { looksLikeIMessageTargetId, normalizeIMessageMessagingTarget } from "./imessage.js";
-import { looksLikeWhatsAppTargetId, normalizeWhatsAppMessagingTarget } from "./whatsapp.js";
+import { buildMessagingTarget, ensureTargetId, requireTargetKind } from "./targets.js";
 
-describe("normalize target helpers", () => {
-  describe("iMessage", () => {
-    it("normalizes blank inputs to undefined", () => {
-      expect(normalizeIMessageMessagingTarget("   ")).toBeUndefined();
-    });
-
-    it("detects common iMessage target forms", () => {
-      expect(looksLikeIMessageTargetId("sms:+15555550123")).toBe(true);
-      expect(looksLikeIMessageTargetId("chat_id:123")).toBe(true);
-      expect(looksLikeIMessageTargetId("user@example.com")).toBe(true);
-      expect(looksLikeIMessageTargetId("+15555550123")).toBe(true);
-      expect(looksLikeIMessageTargetId("")).toBe(false);
-    });
+describe("channel targets", () => {
+  it("ensureTargetId returns the candidate when it matches", () => {
+    expect(
+      ensureTargetId({
+        candidate: "U123",
+        pattern: /^[A-Z0-9]+$/i,
+        errorMessage: "bad",
+      }),
+    ).toBe("U123");
   });
 
-  describe("WhatsApp", () => {
-    it("normalizes blank inputs to undefined", () => {
-      expect(normalizeWhatsAppMessagingTarget("   ")).toBeUndefined();
-    });
+  it("ensureTargetId throws with the provided message on mismatch", () => {
+    expect(() =>
+      ensureTargetId({
+        candidate: "not-ok",
+        pattern: /^[A-Z0-9]+$/i,
+        errorMessage: "Bad target",
+      }),
+    ).toThrow(/Bad target/);
+  });
 
-    it("detects common WhatsApp target forms", () => {
-      expect(looksLikeWhatsAppTargetId("whatsapp:+15555550123")).toBe(true);
-      expect(looksLikeWhatsAppTargetId("15555550123@c.us")).toBe(true);
-      expect(looksLikeWhatsAppTargetId("+15555550123")).toBe(true);
-      expect(looksLikeWhatsAppTargetId("")).toBe(false);
-    });
+  it("requireTargetKind returns the target id when the kind matches", () => {
+    const target = buildMessagingTarget("channel", "C123", "C123");
+    expect(requireTargetKind({ platform: "Slack", target, kind: "channel" })).toBe("C123");
+  });
+
+  it("requireTargetKind throws when the kind is missing or mismatched", () => {
+    expect(() =>
+      requireTargetKind({ platform: "Slack", target: undefined, kind: "channel" }),
+    ).toThrow(/Slack channel id is required/);
+    const target = buildMessagingTarget("user", "U123", "U123");
+    expect(() => requireTargetKind({ platform: "Slack", target, kind: "channel" })).toThrow(
+      /Slack channel id is required/,
+    );
   });
 });
