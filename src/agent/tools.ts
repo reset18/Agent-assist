@@ -54,7 +54,8 @@ export function getActiveTools() {
     const tools = [];
     for (const [key, tool] of Object.entries(AVAILABLE_TOOLS)) {
         if (key === 'speak_message') {
-            if (getSetting('elevenlabs_enabled') === '1') {
+            const enabled = getSetting('voice_enabled') === '1' || getSetting('elevenlabs_enabled') === '1';
+            if (enabled) {
                 tools.push(tool.def);
             }
             continue;
