@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
 import { getSetting, addTokenUsage } from '../db/index.js';
 
-async function _internalCompletion(model: string, provider: string, messages: any[], tools: any[] = []) {
-    let apiKey = getSetting(`llm_key_${provider}`) || getSetting('llm_api_key') || '';
+async function _internalCompletion(model: string, provider: string, messages: any[], tools: any[] = [], testApiKey?: string) {
+    let apiKey = testApiKey || getSetting(`llm_key_${provider}`) || getSetting('llm_api_key') || '';
     let baseURL = '';
 
     // Fallback to env vars if not in DB
@@ -71,13 +71,20 @@ async function _internalCompletion(model: string, provider: string, messages: an
     return response.choices[0].message;
 }
 
-export async function chatCompletion(model: string, provider: string, messages: any[], tools: any[] = []) {
+export async function chatCompletion(model: string, provider: string, messages: any[], tools: any[] = [], testApiKey?: string) {
     // Sistema Multi-tier (v5.0)
     const tiers = ([
         { p: getSetting('llm_primary_provider') || provider, m: getSetting('llm_primary_model') || model },
         { p: getSetting('llm_secondary_provider'), m: getSetting('llm_secondary_model') },
         { p: getSetting('llm_tertiary_provider'), m: getSetting('llm_tertiary_model') }
     ].filter(t => t.p && t.m) as { p: string, m: string }[]);
+
+    // Si se envía una clave de prueba explícita (desde la UI modal de validación), 
+    // forzamos a probar SÓLO esa combinación inicial sin caer en tiers de backup.
+    if (testApiKey) {
+        console.log(`[LLM] Intento validación directa (${provider}) -> ${model}`);
+        return await _internalCompletion(model, provider, messages, tools, testApiKey);
+    }
 
     let lastError: any = null;
 

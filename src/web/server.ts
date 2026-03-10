@@ -59,6 +59,7 @@ app.get('/api/settings', (req, res) => {
         voice_enabled: getSetting('voice_enabled') === '1',
         voice_engine: getSetting('voice_engine') || 'openai',
         openai_voice_id: getSetting('openai_voice_id') || 'alloy',
+        openai_api_key_audio: getSetting('openai_api_key_audio') || process.env.OPENAI_API_KEY || '',
         elevenlabs_api_key: getSetting('elevenlabs_api_key') || '',
         elevenlabs_voice_id: getSetting('elevenlabs_voice_id') || ''
     });
@@ -86,7 +87,7 @@ app.post('/api/verify-llm', async (req, res) => {
 
     try {
         const { chatCompletion } = await import('../agent/llm.js');
-        await chatCompletion(model || 'gpt-4o-mini', provider, [{ role: 'user', content: 'verify login' }]);
+        await chatCompletion(model || 'gpt-4o-mini', provider, [{ role: 'user', content: 'verify login' }], [], apiKey);
 
         // Guardar en DB
         setSetting('model_provider', provider);
@@ -232,7 +233,7 @@ app.post('/api/settings', (req, res) => {
         tool_get_current_time, tool_read_file_local, tool_write_file_local, tool_list_dir_local, tool_run_shell_local, tool_run_ssh_command,
         bot_telegram_enabled, bot_whatsapp_enabled,
         gog_client_secret, gog_email,
-        voice_enabled, voice_engine, openai_voice_id,
+        voice_enabled, voice_engine, openai_voice_id, openai_api_key_audio,
         elevenlabs_api_key, elevenlabs_voice_id,
         llm_primary_provider, llm_secondary_provider, llm_tertiary_provider
     } = req.body;
@@ -289,6 +290,7 @@ app.post('/api/settings', (req, res) => {
     if (voice_enabled !== undefined) setSetting('voice_enabled', voice_enabled ? '1' : '0');
     if (voice_engine !== undefined) setSetting('voice_engine', voice_engine);
     if (openai_voice_id !== undefined) setSetting('openai_voice_id', openai_voice_id);
+    if (openai_api_key_audio !== undefined) setSetting('openai_api_key_audio', openai_api_key_audio);
     if (elevenlabs_api_key !== undefined) setSetting('elevenlabs_api_key', elevenlabs_api_key);
     if (elevenlabs_voice_id !== undefined) setSetting('elevenlabs_voice_id', elevenlabs_voice_id);
 

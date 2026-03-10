@@ -25,23 +25,33 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
     }
 
     const provider = getSetting('model_provider') || 'openrouter';
-    const dbApiKey = getSetting('llm_api_key') || '';
+    const mainApiKey = getSetting('llm_api_key') || '';
+    const audioApiKey = getSetting('openai_api_key_audio') || '';
 
     let transcriptionUrl = '';
     let apiKey = '';
     let model = '';
 
-    // Intentamos usar Groq o OpenAI preferentemente para audio
-    if (provider === 'groq') {
-        transcriptionUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
-        apiKey = dbApiKey || process.env.GROQ_API_KEY || '';
-        model = 'whisper-large-v3';
-    } else if (provider === 'openai') {
+    // Nueva prioridad: 1. Clave específica de audio (si existe, usamos OpenAI Whisper por defecto)
+    if (audioApiKey) {
         transcriptionUrl = 'https://api.openai.com/v1/audio/transcriptions';
-        apiKey = dbApiKey || process.env.OPENAI_API_KEY || '';
+        apiKey = audioApiKey;
         model = 'whisper-1';
-    } else {
-        // Fallback automático
+    }
+    // 2. Si usamos groq como proveedor principal
+    else if (provider === 'groq') {
+        transcriptionUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
+        apiKey = mainApiKey || process.env.GROQ_API_KEY || '';
+        model = 'whisper-large-v3';
+    }
+    // 3. Si usamos openai como proveedor principal
+    else if (provider === 'openai') {
+        transcriptionUrl = 'https://api.openai.com/v1/audio/transcriptions';
+        apiKey = mainApiKey || process.env.OPENAI_API_KEY || '';
+        model = 'whisper-1';
+    }
+    // 4. Fallback automático a variables de entorno para transcribir sí o sí
+    else {
         if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'SUTITUYE POR EL TUYO') {
             transcriptionUrl = 'https://api.openai.com/v1/audio/transcriptions';
             apiKey = process.env.OPENAI_API_KEY;
@@ -51,7 +61,7 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
             apiKey = process.env.GROQ_API_KEY;
             model = 'whisper-large-v3';
         } else {
-            throw new Error('No hay una configuración válida para transcribir audio (OpenAI/Groq).');
+            throw new Error('Configura una "OpenAI API Key (Voz)" en ajustes o usa OpenAI/Groq como motor para poder transcribir audios.');
         }
     }
 

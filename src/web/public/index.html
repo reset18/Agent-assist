@@ -1914,6 +1914,12 @@
                             <div id="openai_voice_config_area"
                                 style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
                                 <div class="form-group">
+                                    <label for="openai_api_key_audio">OpenAI API Key (Voz / Audios)</label>
+                                    <input type="password" id="openai_api_key_audio"
+                                        placeholder="Opcional. Para usar voz si tu LLM no es OpenAI." autocomplete="off"
+                                        onchange="saveSettings()" />
+                                </div>
+                                <div class="form-group" style="margin-top: 15px;">
                                     <label for="openai_voice_id">Identidad Vocal de OpenAI</label>
                                     <select id="openai_voice_id">
                                         <option value="alloy">Alloy (Neutral, equilibrada)</option>
@@ -1923,8 +1929,8 @@
                                         <option value="nova">Nova (Femenina, enérgica)</option>
                                         <option value="shimmer">Shimmer (Femenina, suave)</option>
                                     </select>
-                                    <span class="helper-text">Usará tu API Key principal de
-                                        OpenAI.</span>
+                                    <span class="helper-text">Usará la clave de arriba. Si está vacía, usará la clave
+                                        LLM principal.</span>
                                 </div>
                             </div>
 
@@ -2529,6 +2535,9 @@
                 if (voiceEng) voiceEng.value = data.voice_engine || 'openai';
                 const openaiVoice = document.getElementById('openai_voice_id');
                 if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
+                const openaiKey = document.getElementById('openai_api_key_audio');
+                if (openaiKey) openaiKey.value = data.openai_api_key_audio || '';
+
                 const elevenLabsKey = document.getElementById('elevenlabs_api_key');
                 if (elevenLabsKey) elevenLabsKey.value = data.elevenlabs_api_key || '';
 
@@ -2812,6 +2821,7 @@
                 bot_whatsapp_enabled: document.getElementById('bot_whatsapp_enabled')?.checked || false,
                 voice_enabled: document.getElementById('voice_enabled')?.checked || false,
                 voice_engine: document.getElementById('voice_engine')?.value || 'openai',
+                openai_api_key_audio: document.getElementById('openai_api_key_audio')?.value || '',
                 openai_voice_id: document.getElementById('openai_voice_id')?.value || 'alloy',
                 elevenlabs_api_key: document.getElementById('elevenlabs_api_key')?.value || '',
                 elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || ''

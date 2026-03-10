@@ -87,10 +87,21 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
             audioBuffer = Buffer.from(arrayBuffer);
         } else {
             // OpenAI TTS
-            const apiKey = process.env.OPENAI_API_KEY;
+            let apiKey = getSetting('openai_api_key_audio');
+
+            // Si no hay clave específica de audio, usar la principal SOLO si estamos en modo OpenAI
+            if (!apiKey && getSetting('model_provider') === 'openai') {
+                apiKey = getSetting('llm_api_key');
+            }
+
+            // Fallback final a la variable de entorno
+            if (!apiKey || apiKey === 'SUTITUYE POR EL TUYO') {
+                apiKey = process.env.OPENAI_API_KEY;
+            }
+
             const voiceId = getSetting('openai_voice_id') || 'alloy';
             if (!apiKey || apiKey === 'SUTITUYE POR EL TUYO') {
-                throw new Error("No hay una API Key de OpenAI válida configurada para usar el motor de voz de OpenAI.");
+                throw new Error("No hay una API Key de OpenAI válida configurada. Por favor configúrala en Habilidades > Voz.");
             }
 
             const response = await fetch('https://api.openai.com/v1/audio/speech', {
