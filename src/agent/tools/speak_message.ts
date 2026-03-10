@@ -96,7 +96,7 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
 
             // Fallback final a la variable de entorno
             if (!apiKey || apiKey === 'SUTITUYE POR EL TUYO') {
-                apiKey = process.env.OPENAI_API_KEY;
+                apiKey = process.env.OPENAI_API_KEY || null;
             }
 
             const voiceId = getSetting('openai_voice_id') || 'alloy';
