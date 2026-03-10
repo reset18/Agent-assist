@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
     <style>
         :root[data-theme="dark"] {
             --bg: #0f172a;
@@ -1068,7 +1068,7 @@
             <button class="nav-item" onclick="navigate('skills')">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.638.319a4 4 0 01-2.573.345l-1.921-.384a2 2 0 01-1.603-1.603l-.384-1.921a4 4 0 01.345-2.573l.319-.638a6 6 0 00.517-3.86l-.477-2.387a2 2 0 00-2.547-1.022l-2.387.477a2 2 0 00-1.022 2.547l.477 2.387a6 6 0 01-.517 3.86l-.319.638a4 4 0 00-.345 2.573l.384 1.921a2 2 0 001.603 1.603l1.921.384a4 4 0 002.573-.345l.638-.319a6 6 0 013.86-.517l2.387.477a2 2 0 002.547-1.022l.477-2.387a2 2 0 00-2.547-1.022z" />
                 </svg>
                 Habilidades (Skills)
             </button>
@@ -1179,6 +1179,7 @@
                         onclick="switchLLMTab('tab_llm_providers', this)">Proveedores</button>
                     <button class="sub-tab-btn" onclick="switchLLMTab('tab_llm_fallbacks', this)">Configuración de
                         Relevos</button>
+                    <button class="sub-tab-btn" onclick="switchLLMTab('tab_llm_identity', this)">Identidad</button>
                 </div>
 
                 <div id="tab_llm_providers" class="sub-tab-content active">
@@ -1336,6 +1337,36 @@
                                     <option value="qwen">Qwen</option>
                                 </select>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab_llm_identity" class="sub-tab-content">
+                    <div class="card" style="margin-top: 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                            <div
+                                style="width: 40px; height: 40px; background: rgba(139, 92, 246, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                <svg style="width: 24px; height: 24px; color: #8b5cf6;" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 style="margin: 0; border: none; padding: 0;">Identidad del Agente</h3>
+                                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Configura el nombre de
+                                    tu agente y cómo te llamará a ti.</p>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="agent_name">Nombre del Agente</label>
+                            <input type="text" id="agent_name" onchange="saveSettings()" placeholder="Ej: Horus">
+                            <span class="helper-text">Este es el nombre con el que se presentará tu agente.</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="user_name">Tu Nombre</label>
+                            <input type="text" id="user_name" onchange="saveSettings()" placeholder="Ej: Kevin">
+                            <span class="helper-text">Cómo te llamará el agente al responderte.</span>
                         </div>
                     </div>
                 </div>
@@ -2171,8 +2202,10 @@
         const lastPage = localStorage.getItem('agentLastPage') || 'chat';
         navigate(lastPage);
 
-        window.agentNameCache = 'IA';
-        window.userNameCache = 'TU';
+        window.agentNameCache = 'AG';
+        window.userNameCache = 'YO';
+        window.fullAgentNameCache = 'Agente';
+        window.fullUserNameCache = 'Usuario';
         window.currentSessionId = 'default';
         window.settingsLoaded = false;
 
@@ -2185,6 +2218,8 @@
             if (!ctx) return;
 
             if (usageChart) usageChart.destroy();
+
+            console.log("[Consumos] Init Chart with data:", data);
 
             // Procesar datos para agruparlos por fecha
             const dates = Array.from(new Set(data.map(d => d.date))).sort();
@@ -2222,8 +2257,10 @@
 
         async function loadUsageHistory() {
             try {
+                console.log('[Consumos] Cargando historial de tokens...');
                 const r = await fetch('/api/tokens/history');
                 const d = await r.json();
+                console.log('[Consumos] Respuesta API:', d);
                 if (d.history) {
                     initUsageChart(d.history);
 
@@ -2430,6 +2467,9 @@
                 if (document.getElementById('model_provider')) document.getElementById('model_provider').value = data.model_provider || 'openai';
                 if (document.getElementById('model_name')) document.getElementById('model_name').value = data.model_name || 'gpt-4o';
                 if (document.getElementById('llm_api_key')) document.getElementById('llm_api_key').value = data.llm_api_key || '';
+
+                if (document.getElementById('agent_name')) document.getElementById('agent_name').value = data.agent_name || '';
+                if (document.getElementById('user_name')) document.getElementById('user_name').value = data.user_name || '';
 
                 // Herramientas
                 const tools = ['get_current_time', 'read_file_local', 'write_file_local', 'list_dir_local', 'run_shell_local', 'run_ssh_command'];
@@ -2731,6 +2771,8 @@
                 model_provider: document.getElementById('model_provider')?.value || 'openai',
                 model_name: document.getElementById('model_name')?.value || 'gpt-4o',
                 llm_api_key: document.getElementById('llm_api_key')?.value || '',
+                agent_name: document.getElementById('agent_name')?.value || '',
+                user_name: document.getElementById('user_name')?.value || '',
                 telegram_bot_token: document.getElementById('telegram_bot_token')?.value || '',
                 telegram_whitelist: document.getElementById('telegram_whitelist')?.value || '',
                 tool_get_current_time: document.getElementById('tool_get_current_time')?.checked || false,
