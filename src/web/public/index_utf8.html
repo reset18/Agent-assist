@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgentAssist - Configuración</title>
+    <title>AgentAssist - Configuraci├│n</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -1075,7 +1075,7 @@
         <div class="sidebar-footer">
             <div id="update_notification" class="update-box" style="display: none;">
                 <div style="flex: 1;">
-                    <div style="font-weight: 700; font-size: 13px;">Nueva Versión</div>
+                    <div style="font-weight: 700; font-size: 13px;">Nueva Versi├│n</div>
                     <div id="update_version_text" style="font-size: 11px; color: var(--text-muted);">v2.2.0 disponible
                     </div>
                 </div>
@@ -1135,7 +1135,7 @@
                 </button>
                 <div id="sessions_nav" class="sessions-dropdown-container" style="display: none;">
                     <select id="sessions_select" class="sessions-select" onchange="switchSession(this.value)">
-                        <!-- Sesiones cargadas dinámicamente -->
+                        <!-- Sesiones cargadas din├ímicamente -->
                     </select>
                 </div>
             </div>
@@ -1147,11 +1147,11 @@
             <div class="chat-container">
                 <div class="chat-main">
                     <div class="chat-history" id="chat_history">
-                        <!-- Mensajes de la sesión activa -->
+                        <!-- Mensajes de la sesi├│n activa -->
                     </div>
                     <div class="chat-input-area">
                         <div class="chat-input-container">
-                            <input type="text" id="chat_input" placeholder="Pregúntale algo a Horus..."
+                            <input type="text" id="chat_input" placeholder="Preg├║ntale algo a Horus..."
                                 onkeypress="handleChatEnter(event)" autocomplete="off" />
                             <button class="send-btn-inside" onclick="sendChatMessage()">
                                 <svg style="width: 18px; height: 18px; transform: rotate(90deg) translateX(1px);"
@@ -1167,194 +1167,177 @@
         </div>
 
         <div class="page-container" id="settings_container" style="display: none;">
-            <div id="successMsg" class="success-msg">✅ Configuración guardada correctamente.</div>
+            <div id="successMsg" class="success-msg">Ô£ô Configuraci├│n guardada correctamente.</div>
 
             <!-- Inteligencia Artificial -->
             <div id="llm" class="page-content">
                 <h2 class="page-title">Cerebro e Inteligencia</h2>
                 <p class="page-subtitle">Conecta tu agente con los mejores modelos de lenguaje del mundo.</p>
 
-                <div class="sub-tabs" style="margin-bottom: 24px;">
-                    <button class="sub-tab-btn active"
-                        onclick="switchLLMTab('tab_llm_providers', this)">Proveedores</button>
-                    <button class="sub-tab-btn" onclick="switchLLMTab('tab_llm_fallbacks', this)">Configuración de
-                        Relevos</button>
-                </div>
+                <!-- Hidden inputs for compatibility with saveSettings() logic -->
+                <input type="hidden" id="model_provider">
+                <input type="hidden" id="model_name">
+                <input type="hidden" id="llm_api_key">
 
-                <div id="tab_llm_providers" class="sub-tab-content active">
-                    <!-- Hidden inputs for compatibility with saveSettings() logic -->
-                    <input type="hidden" id="model_provider">
-                    <input type="hidden" id="model_name">
-                    <input type="hidden" id="llm_api_key">
-
-                    <div id="provider_marketplace"
-                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 16px;">
-                        <!-- OpenAI -->
-                        <div class="card provider-card" id="card_openai">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
-                                    style="height: 24px;">
-                                <span class="provider-badge disconnected" id="badge_openai">Desconectado</span>
-                            </div>
-                            <h3>OpenAI</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">GPT-4o,
-                                GPT-4o-mini y
-                                más. El estándar de la industria.</p>
-                            <button class="secondary-btn" style="width: 100%;"
-                                onclick="openLoginModal('openai')">Configurar</button>
-                        </div>
-                        <!-- Anthropic -->
-                        <div class="card provider-card" id="card_anthropic">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/7/75/Anthropic_logo.svg"
-                                    style="height: 20px;">
-                                <span class="provider-badge pending" id="badge_anthropic">Próximamente</span>
-                            </div>
-                            <h3>Anthropic</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Claude 3.5
-                                Sonnet.
-                                Razonamiento superior y escritura humana.</p>
-                            <button class="secondary-btn" style="width: 100%; opacity: 0.5;" disabled>Bloqueado</button>
-                        </div>
-
-                        <!-- Gemini -->
-                        <div class="card provider-card" id="card_google">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg?20240210200543"
-                                    style="height: 24px;">
-                                <span class="provider-badge disconnected" id="badge_google">Desconectado</span>
-                            </div>
-                            <h3>Google Gemini</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Gemini 1.5 Pro.
-                                Ventana de contexto masiva y multimodality.</p>
-                            <button class="secondary-btn" style="width: 100%;"
-                                onclick="openLoginModal('google')">Configurar</button>
-                        </div>
-
-                        <!-- Groq -->
-                        <div class="card provider-card" id="card_groq">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <div style="font-weight: 900; font-size: 20px; color: var(--fg);">GROQ</div>
-                                <span class="provider-badge disconnected" id="badge_groq">Desconectado</span>
-                            </div>
-                            <h3>Groq</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Inferencia ultra
-                                rápida con Llama 3 y Mixtral.</p>
-                            <button class="secondary-btn" style="width: 100%;"
-                                onclick="openLoginModal('groq')">Configurar</button>
-                        </div>
-
-                        <!-- OpenRouter -->
-                        <div class="card provider-card" id="card_openrouter">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <img src="https://openrouter.ai/favicon.ico" style="height: 24px;">
-                                <span class="provider-badge disconnected" id="badge_openrouter">Desconectado</span>
-                            </div>
-                            <h3>OpenRouter</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Acceso a todos
-                                los
-                                modelos (DeepSeek, Llama, Qwen) vía API unificada.</p>
-                            <button class="secondary-btn" style="width: 100%;"
-                                onclick="openLoginModal('openrouter')">Configurar</button>
-                        </div>
-
-                        <!-- Qwen -->
-                        <div class="card provider-card" id="card_qwen">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <div style="font-weight: 800; font-size: 18px; color: var(--primary);">Qwen AI</div>
-                                <span class="provider-badge disconnected" id="badge_qwen">Desconectado</span>
-                            </div>
-                            <h3>Alibaba Qwen</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Modelos SoTA de
-                                código abierto optimizados para razonamiento complejo.</p>
-                            <button class="secondary-btn" style="width: 100%;"
-                                onclick="openLoginModal('qwen')">Configurar</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="tab_llm_fallbacks" class="sub-tab-content">
-                    <!-- SECCIÓN MULTI-TIER (Fallbacks) -->
-                    <div class="card" style="margin-top: 16px;">
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-                            <div
-                                style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                <svg style="width: 24px; height: 24px; color: var(--primary);" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 style="margin: 0; border: none; padding: 0;">Configuración de Relevos (Fallbacks)
-                                </h3>
-                                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Si falla tu IA
-                                    principal,
-                                    Horus saltará automáticamente a la siguiente.</p>
-                            </div>
-                        </div>
-
+                <div id="provider_marketplace"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 32px;">
+                    <!-- OpenAI -->
+                    <div class="card provider-card" id="card_openai">
                         <div
-                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                            <div class="form-group">
-                                <label>1. Cerebro Principal</label>
-                                <select id="llm_primary_fallback" onchange="saveMultiTierSettings()">
-                                    <option value="">(Usar predeterminado)</option>
-                                    <option value="openai">OpenAI</option>
-                                    <option value="anthropic">Anthropic</option>
-                                    <option value="google">Gemini</option>
-                                    <option value="groq">Groq</option>
-                                    <option value="openrouter">OpenRouter</option>
-                                    <option value="qwen">Qwen</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>2. Cerebro de Respaldo</label>
-                                <select id="llm_secondary_fallback" onchange="saveMultiTierSettings()">
-                                    <option value="">Ninguno</option>
-                                    <option value="openai">OpenAI</option>
-                                    <option value="anthropic">Anthropic</option>
-                                    <option value="google">Gemini</option>
-                                    <option value="groq">Groq</option>
-                                    <option value="qwen">Qwen</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>3. Última Opción</label>
-                                <select id="llm_tertiary_fallback" onchange="saveMultiTierSettings()">
-                                    <option value="">Ninguno</option>
-                                    <option value="openai">OpenAI</option>
-                                    <option value="google">Gemini</option>
-                                    <option value="groq">Groq</option>
-                                    <option value="qwen">Qwen</option>
-                                </select>
-                            </div>
+                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
+                                style="height: 24px;">
+                            <span class="provider-badge disconnected" id="badge_openai">Desconectado</span>
                         </div>
+                        <h3>OpenAI</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">GPT-4o, GPT-4o-mini y
+                            m├ís. El est├índar de la industria.</p>
+                        <button class="secondary-btn" style="width: 100%;"
+                            onclick="openLoginModal('openai')">Configurar</button>
+                    </div>
+                    <!-- Anthropic -->
+                    <div class="card provider-card" id="card_anthropic">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/7/75/Anthropic_logo.svg"
+                                style="height: 20px;">
+                            <span class="provider-badge pending" id="badge_anthropic">Pr├│ximamente</span>
+                        </div>
+                        <h3>Anthropic</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Claude 3.5 Sonnet.
+                            Razonamiento superior y escritura humana.</p>
+                        <button class="secondary-btn" style="width: 100%; opacity: 0.5;" disabled>Bloqueado</button>
+                    </div>
+
+                    <!-- Gemini -->
+                    <div class="card provider-card" id="card_google">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg?20240210200543"
+                                style="height: 24px;">
+                            <span class="provider-badge disconnected" id="badge_google">Desconectado</span>
+                        </div>
+                        <h3>Google Gemini</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Gemini 1.5 Pro.
+                            Ventana de contexto masiva y multimodality.</p>
+                        <button class="secondary-btn" style="width: 100%;"
+                            onclick="openLoginModal('google')">Configurar</button>
+                    </div>
+
+                    <!-- Groq -->
+                    <div class="card provider-card" id="card_groq">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                            <div style="font-weight: 900; font-size: 20px; color: var(--fg);">GROQ</div>
+                            <span class="provider-badge disconnected" id="badge_groq">Desconectado</span>
+                        </div>
+                        <h3>Groq</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Inferencia ultra
+                            r├ípida con Llama 3 y Mixtral.</p>
+                        <button class="secondary-btn" style="width: 100%;"
+                            onclick="openLoginModal('groq')">Configurar</button>
+                    </div>
+
+                    <!-- OpenRouter -->
+                    <div class="card provider-card" id="card_openrouter">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                            <img src="https://openrouter.ai/favicon.ico" style="height: 24px;">
+                            <span class="provider-badge disconnected" id="badge_openrouter">Desconectado</span>
+                        </div>
+                        <h3>OpenRouter</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Acceso a todos los
+                            modelos (DeepSeek, Llama, Qwen) v├¡a API unificada.</p>
+                        <button class="secondary-btn" style="width: 100%;"
+                            onclick="openLoginModal('openrouter')">Configurar</button>
+                    </div>
+
+                    <!-- Qwen -->
+                    <div class="card provider-card" id="card_qwen">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                            <div style="font-weight: 800; font-size: 18px; color: var(--primary);">Qwen AI</div>
+                            <span class="provider-badge disconnected" id="badge_qwen">Desconectado</span>
+                        </div>
+                        <h3>Alibaba Qwen</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Modelos SoTA de
+                            c├│digo abierto optimizados para razonamiento complejo.</p>
+                        <button class="secondary-btn" style="width: 100%;"
+                            onclick="openLoginModal('qwen')">Configurar</button>
                     </div>
                 </div>
+            </div>
 
-                <!-- DASHBOARD DE TOKENS (Shared across tabs) -->
-                <div class="card" style="margin-top: 24px;">
+            <!-- SECCI├ôN MULTI-TIER (v5.0) -->
+            <div class="card" style="margin-top: 32px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
                     <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3 style="margin: 0; border: none; padding: 0;">Consumo de Tokens (Hoy)</h3>
-                        <button class="secondary-btn" style="padding: 6px 12px; font-size: 12px;"
-                            onclick="loadTokenUsage()">Actualizar</button>
+                        style="width: 40px; height: 40px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <svg style="width: 24px; height: 24px; color: var(--primary);" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
                     </div>
-                    <div id="token_usage_stats"
-                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
-                        <!-- Aquí se cargarán las estadísticas -->
-                        <div
-                            style="text-align: center; padding: 15px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border);">
-                            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">
-                                Cargando...
-                            </div>
+                    <div>
+                        <h3 style="margin: 0; border: none; padding: 0;">Configuraci├│n de Relevos (Fallbacks)</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Si falla tu IA principal,
+                            Horus
+                            saltar├í autom├íticamente a la siguiente.</p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div class="form-group">
+                        <label>1. Cerebro Principal</label>
+                        <select id="llm_primary_fallback" onchange="saveMultiTierSettings()">
+                            <option value="">(Usar predeterminado)</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="google">Gemini</option>
+                            <option value="groq">Groq</option>
+                            <option value="openrouter">OpenRouter</option>
+                            <option value="qwen">Qwen</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>2. Cerebro de Respaldo</label>
+                        <select id="llm_secondary_fallback" onchange="saveMultiTierSettings()">
+                            <option value="">Ninguno</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="google">Gemini</option>
+                            <option value="groq">Groq</option>
+                            <option value="qwen">Qwen</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>3. ├Ültima Opci├│n</label>
+                        <select id="llm_tertiary_fallback" onchange="saveMultiTierSettings()">
+                            <option value="">Ninguno</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="google">Gemini</option>
+                            <option value="groq">Groq</option>
+                            <option value="qwen">Qwen</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DASHBOARD DE TOKENS (v5.0) -->
+            <div class="card" style="margin-top: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; border: none; padding: 0;">Consumo de Tokens (Hoy)</h3>
+                    <button class="secondary-btn" style="padding: 6px 12px; font-size: 12px;"
+                        onclick="loadTokenUsage()">Actualizar</button>
+                </div>
+                <div id="token_usage_stats"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
+                    <!-- Aqu├¡ se cargar├ín las estad├¡sticas -->
+                    <div
+                        style="text-align: center; padding: 15px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border);">
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">
+                            Cargando...
                         </div>
                     </div>
                 </div>
@@ -1416,7 +1399,7 @@
 
                         <div class="whatsapp-status-box" id="whatsapp_status_box_container">
                             <div style="margin-bottom: 20px; font-size: 15px; color: var(--fg); font-weight: 500;">
-                                Estado de conexión de la sesión: <span id="wa_status_badge"
+                                Estado de conexi├│n de la sesi├│n: <span id="wa_status_badge"
                                     class="badge disconnected">Sin
                                     Inicializar</span>
                             </div>
@@ -1427,7 +1410,7 @@
                                         dispositivo</b> y
                                     enfoca
                                     este
-                                    código QR para dar acceso al agente.
+                                    c├│digo QR para dar acceso al agente.
                                 </p>
                                 <div id="qrcode_container"></div>
                             </div>
@@ -1452,8 +1435,8 @@
 
         <!-- Habilidades -->
         <div id="skills" class="page-content">
-            <h2 class="page-title">Habilidades Autónomas (Tools)</h2>
-            <p class="page-subtitle">Las habilidades activas permiten al Agente ejecutar código
+            <h2 class="page-title">Habilidades Aut├│nomas (Tools)</h2>
+            <p class="page-subtitle">Las habilidades activas permiten al Agente ejecutar c├│digo
                 de forma aut├│noma
                 durante el razonamiento.</p>
 
@@ -1470,7 +1453,7 @@
                 <div class="card">
                     <h3>Herramientas Nativas</h3>
                     <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
-                        Puedes añadir más desarrollando archivos en `src/agent/tools`. Estas son
+                        Puedes a├▒adir m├ís desarrollando archivos en `src/agent/tools`. Estas son
                         las detectadas
                         actualmente:
                     </p>
@@ -1481,8 +1464,8 @@
                                 <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
                                     Obtener Hora Local (get_current_time)</div>
                                 <span class="helper-text" style="margin-top: 0;">Otorga
-                                    percepción temporal al LLM
-                                    nativamente para programar o saber qué día es.</span>
+                                    percepci├│n temporal al LLM
+                                    nativamente para programar o saber qu├® d├¡a es.</span>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="tool_get_current_time" onchange="saveSettings()">
@@ -1499,7 +1482,7 @@
                                     Leer Archivo (read_file_local)</div>
                                 <span class="helper-text" style="margin-top: 0;">Lectura de
                                     archivos alojados en el
-                                    mismo contenedor donde está este Agente.</span>
+                                    mismo contenedor donde est├í este Agente.</span>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="tool_read_file_local" onchange="saveSettings()">
@@ -1514,7 +1497,7 @@
                                 <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
                                     Escribir Archivo (write_file_local)</div>
                                 <span class="helper-text" style="margin-top: 0;">Escritura o
-                                    alteración del c├│digo y
+                                    alteraci├│n del c├│digo y
                                     contenido de archivos locales.</span>
                             </div>
                             <label class="toggle-switch">
@@ -1530,7 +1513,7 @@
                                 <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
                                     Listar Directorio (list_dir_local)</div>
                                 <span class="helper-text" style="margin-top: 0;">Inspecci├│n del
-                                    árbol de archivos en
+                                    ├írbol de archivos en
                                     base a una ruta local dada.</span>
                             </div>
                             <label class="toggle-switch">
@@ -1547,7 +1530,7 @@
                                     Ejecutar Shell/Bash Local (run_shell_local)</div>
                                 <span class="helper-text" style="margin-top: 0;">Permite al
                                     Agente lanzar scripts
-                                    npm, bash_commands o comandos locales autónomos.</span>
+                                    npm, bash_commands o comandos locales aut├│nomos.</span>
                             </div>
                             <label class="toggle-switch">
                                 <input type="checkbox" id="tool_run_shell_local" onchange="saveSettings()">
@@ -1561,9 +1544,9 @@
                         <div class="toggle-container">
                             <div>
                                 <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                    Túnel SSH Remoto (run_ssh_command)</div>
+                                    T├║nel SSH Remoto (run_ssh_command)</div>
                                 <span class="helper-text" style="margin-top: 0;">Conexi├│n y
-                                    ejecución de comandos
+                                    ejecuci├│n de comandos
                                     SSH en Host externos usando sus credenciales seguras.</span>
                             </div>
                             <label class="toggle-switch">
@@ -1585,7 +1568,7 @@
                     <input type="text" id="skill_search" placeholder="Buscar habilidad..." oninput="filterSkills()">
                 </div>
                 <div id="mcp_skills_container" class="skills-grid">
-                    <!-- Carga dinámica desde js -->
+                    <!-- Carga din├ímica desde js -->
                 </div>
             </div>
 
@@ -1798,7 +1781,7 @@
                 <div class="card">
                     <div
                         style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px;">
-                        <h3 style="margin: 0; border: none; padding: 0;">Configuración de Voz
+                        <h3 style="margin: 0; border: none; padding: 0;">Configuraci├│n de Voz
                             (TTS)</h3>
                         <label class="toggle-switch">
                             <input type="checkbox" id="voice_enabled" onchange="toggleVoiceMainConfig()">
@@ -1829,13 +1812,13 @@
                                 <label for="openai_voice_id">Identidad Vocal de OpenAI</label>
                                 <select id="openai_voice_id">
                                     <option value="alloy">Alloy (Neutral, equilibrada)</option>
-                                    <option value="echo">Echo (Masculina, cálida)</option>
-                                    <option value="fable">Fable (Narrativa, británica)</option>
+                                    <option value="echo">Echo (Masculina, c├ílida)</option>
+                                    <option value="fable">Fable (Narrativa, brit├ínica)</option>
                                     <option value="onyx">Onyx (Masculina, profunda)</option>
-                                    <option value="nova">Nova (Femenina, enérgica)</option>
+                                    <option value="nova">Nova (Femenina, en├®rgica)</option>
                                     <option value="shimmer">Shimmer (Femenina, suave)</option>
                                 </select>
-                                <span class="helper-text">Usará tu API Key principal de
+                                <span class="helper-text">Usar├í tu API Key principal de
                                     OpenAI.</span>
                             </div>
                         </div>
@@ -1875,12 +1858,11 @@
         </div> <!-- End of settings_container -->
     </main>
 
-    <!-- Modal de Login/Configuración LLM -->
+    <!-- Modal de Login/Configuraci├│n LLM -->
     <div class="modal-overlay" id="llm_modal">
         <div class="modal">
             <h3 id="modal_provider_title" style="border:none; margin-bottom: 10px;">Configurar OpenAI</h3>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom:24px;">Configura tu conexi├│n para
-                empezar
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom:24px;">Configura tu conexi├│n para empezar
                 a usar este cerebro.</p>
 
             <div class="form-group" id="oauth_container" style="display: none; margin-bottom: 20px;">
@@ -1892,7 +1874,7 @@
                 </button>
                 <div
                     style="text-align: center; margin: 15px 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
-                    o usa el método manual</div>
+                    o usa el m├®todo manual</div>
             </div>
 
             <div class="form-group">
@@ -1952,9 +1934,8 @@
                     </path>
                 </svg>
             </div>
-            <h3 style="border:none; margin-bottom: 8px; text-align: center; width: 100%;">Actualizaci├│n del Sistema
-            </h3>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">Hay una nueva versión de
+            <h3 style="border:none; margin-bottom: 8px; text-align: center; width: 100%;">Actualizaci├│n del Sistema</h3>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">Hay una nueva versi├│n de
                 AgentAssist disponible.</p>
 
             <div
@@ -2022,7 +2003,7 @@
             console.error("CRITICAL JS ERROR:", msg, "at", line);
             const errBox = document.createElement('div');
             errBox.style = "position:fixed; top:0; left:0; width:100%; background:red; color:white; padding:10px; z-index:9999; text-align:center; font-weight:bold; font-size:12px;";
-            errBox.textContent = "Error en la Web: " + msg + " (Línea " + line + ").";
+            errBox.textContent = "Error en la Web: " + msg + " (L├¡nea " + line + ").";
             document.body.appendChild(errBox);
             setTimeout(() => errBox.remove(), 8000);
         };
@@ -2036,9 +2017,9 @@
             const actual = mode === 'auto' ? getSystemTheme() : mode;
             document.documentElement.setAttribute('data-theme', actual);
             const icon = document.getElementById('theme-icon');
-            if (mode === 'auto') icon.textContent = '🌗 Auto';
-            else if (mode === 'light') icon.textContent = '☀️ Claro';
-            else icon.textContent = '🌙 Oscuro';
+            if (mode === 'auto') icon.textContent = '­ƒîù Auto';
+            else if (mode === 'light') icon.textContent = 'ÔÿÇ´©Å Claro';
+            else icon.textContent = '­ƒîÖ Oscuro';
         }
 
         function initTheme() {
@@ -2074,7 +2055,7 @@
         function navigate(pageId) {
             logDebug(`Navigating to: ${pageId}`);
             try {
-                // Ocultar todas las páginas
+                // Ocultar todas las p├íginas
                 document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
                 // Quitar clase activa del sidebar
                 document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -2099,7 +2080,7 @@
                     if (chatContainer) chatContainer.style.display = 'none';
                 }
 
-                // Activar el botón del sidebar correspondiente (ahora usando data-page)
+                // Activar el bot├│n del sidebar correspondiente (ahora usando data-page)
                 document.querySelectorAll('.nav-item').forEach(btn => {
                     const onclickStr = btn.getAttribute('onclick') || '';
                     if (onclickStr.includes(`'${pageId}'`)) {
@@ -2133,16 +2114,6 @@
             btnContext.classList.add('active');
         }
 
-        function switchLLMTab(tabId, btnContext) {
-            // Ocultar todos los sub-tabs de LLM
-            document.querySelectorAll('#llm .sub-tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('#llm .sub-tab-btn').forEach(el => el.classList.remove('active'));
-
-            // Mostrar el activo
-            document.getElementById(tabId).classList.add('active');
-            btnContext.classList.add('active');
-        }
-
         function switchSkillTab(tabId, btnContext) {
             // Ocultar todos los sub-tabs de skills
             document.querySelectorAll('#skills .sub-tab-content').forEach(el => el.classList.remove('active'));
@@ -2153,7 +2124,7 @@
             btnContext.classList.add('active');
         }
 
-        // Ejecutar estado inicial (restaura la última web visitada o 'chat' por defecto)
+        // Ejecutar estado inicial (restaura la ├║ltima web visitada o 'chat' por defecto)
         const lastPage = localStorage.getItem('agentLastPage') || 'chat';
         navigate(lastPage);
 
@@ -2191,19 +2162,19 @@
                     const opt = document.createElement('option');
                     opt.value = s.id;
 
-                    let emoji = '🌐';
-                    if (s.platform === 'whatsapp' || s.id === 'whatsapp_default') emoji = '💬';
-                    if (s.platform === 'telegram' || s.id === 'telegram_default') emoji = '✈️';
+                    let emoji = '­ƒîÉ';
+                    if (s.platform === 'whatsapp' || s.id === 'whatsapp_default') emoji = '­ƒÆ¼';
+                    if (s.platform === 'telegram' || s.id === 'telegram_default') emoji = 'Ô£ê´©Å';
 
                     opt.textContent = `${emoji} ${s.name}`;
                     if (s.id === window.currentSessionId) opt.selected = true;
                     select.appendChild(opt);
                 });
 
-                // Sincronizar versi├│n dinámicamente
+                // Sincronizar versi├│n din├ímicamente
                 fetch('/api/check-update').then(r => r.json()).then(v => {
                     const label = document.getElementById('ui_version_label');
-                    if (label) label.textContent = v.current || 'v0.2.10-beta';
+                    if (label) label.textContent = v.current || 'v0.2.7-beta';
                 }).catch(() => { });
 
             } catch (e) {
@@ -2818,21 +2789,7 @@
         function openLoginModal(provider) {
             currentModalProvider = provider;
             const names = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google Gemini', groq: 'Groq', openrouter: 'OpenRouter' };
-            document.getElementById('modal_provider_title').textContent = `Conectar con ${names[provider] || provider}`;
-
-            // Reset UI
-            document.getElementById('model_selection_area').style.display = 'none';
-            document.getElementById('manual_model_area').style.display = 'none';
-            document.getElementById('btn_test_conn').style.display = 'none';
-            document.getElementById('btn_verify_key').style.display = 'block';
-
-            // Re-etiquetar para Qwen
-            const label = document.getElementById('key_label');
-            if (label) label.textContent = (provider === 'qwen') ? 'DashScope API Key' : 'API Key';
-
-            // Mostrar OAuth si es OpenRouter
-            document.getElementById('oauth_container').style.display = (provider === 'openrouter') ? 'block' : 'none';
-
+            document.getElementById('modal_provider_title').textContent = `Conectar con ${names[provider]}`;
             document.getElementById('llm_modal').style.display = 'flex';
             document.getElementById('modal_status_msg').textContent = '';
             document.getElementById('modal_api_key').value = '';
@@ -2851,10 +2808,10 @@
         }
 
         function openAuthProvider() {
-            const url = `/auth-provider?p=${currentModalProvider}`;
-            window.open(url, '_blank', 'width=500,height=700');
-
-            // Polling para detectar login exitoso
+            // Abre la misma tab o una nueva para el proceso de login
+            const url = `http://localhost:3005/auth-provider?p=${currentModalProvider}`;
+            window.open(url, '_blank');
+            // Aqu├¡ podr├¡amos iniciar un polling para ver si se ha logueado
             const checkLogin = setInterval(async () => {
                 const r = await fetch('/api/settings');
                 const d = await r.json();
@@ -2862,9 +2819,185 @@
                     clearInterval(checkLogin);
                     closeLoginModal();
                     updateProviderStatus(d.model_provider, d.llm_api_key);
+                    alert(`┬í${currentModalProvider} conectado exitosamente v├¡a Web!`);
                 }
             }, 2000);
-            setTimeout(() => clearInterval(checkLogin), 60000);
+            setTimeout(() => clearInterval(checkLogin), 60000); // 1 min timeout
+        }
+
+        async function testConnection() {
+            const apiKey = document.getElementById('modal_api_key').value;
+            const model = document.getElementById('modal_model_name').value;
+            const statusMsg = document.getElementById('modal_status_msg');
+            const btn = document.getElementById('btn_test_conn');
+
+            if (!apiKey) {
+                statusMsg.textContent = 'ÔØî Introduce una API Key';
+                statusMsg.style.color = 'var(--danger)';
+                return;
+            }
+
+            btn.disabled = true;
+            statusMsg.textContent = 'Ôîø Verificando conexi├│n...';
+            statusMsg.style.color = 'var(--primary)';
+
+            try {
+                const res = await fetch('/api/verify-llm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider: currentModalProvider, apiKey, model })
+                });
+
+                if (res.ok) {
+                    statusMsg.textContent = 'Ô£à ┬íConectado con ├®xito!';
+                    statusMsg.style.color = 'var(--success)';
+                    setTimeout(() => {
+                        closeLoginModal();
+                        updateProviderStatus(currentModalProvider, apiKey);
+                    }, 1500);
+                } else {
+                    const data = await res.json();
+                    statusMsg.textContent = 'ÔØî Error: ' + (data.error || 'Clave inv├ílida');
+                    statusMsg.style.color = 'var(--danger)';
+                }
+            } catch (e) {
+                statusMsg.textContent = 'ÔØî Error de red';
+                statusMsg.style.color = 'var(--danger)';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function updateProviderStatus(activeProvider, apiKey) {
+            // Resetear todos los badges y tarjetas
+            document.querySelectorAll('.provider-badge').forEach(b => {
+                b.textContent = b.id === 'badge_anthropic' ? 'Pr├│ximamente' : 'Desconectado';
+                b.className = b.id === 'badge_anthropic' ? 'provider-badge pending' : 'provider-badge disconnected';
+            });
+            document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--border)');
+
+            if (activeProvider && apiKey) {
+                const badge = document.getElementById(`badge_${activeProvider}`);
+                const card = document.getElementById(`card_${activeProvider}`);
+                if (badge) {
+                    badge.textContent = 'Conectado';
+                    badge.className = 'provider-badge connected';
+                }
+                if (card) {
+                    card.style.borderColor = 'var(--success)';
+                }
+            }
+        }
+
+        // --- SISTEMA DE UPDATES ---
+        let remoteVersion = '';
+        let currentVersion = '';
+
+        async function checkForUpdates() {
+            try {
+                const r = await fetch('/api/check-update');
+                const d = await r.json();
+                remoteVersion = d.remote;
+                currentVersion = d.current;
+                if (d.updateAvailable) {
+                    document.getElementById('update_notification').style.display = 'flex';
+                    document.getElementById('update_version_text').textContent = `v${d.remote} disponible`;
+                    document.getElementById('btn_search_updates').style.display = 'none';
+                }
+            } catch (e) { }
+        }
+
+        async function checkForUpdatesManually() {
+            const btn = document.getElementById('btn_search_updates');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Ôîø Buscando...';
+
+            await checkForUpdates();
+
+            if (document.getElementById('update_notification').style.display === 'flex') {
+                openUpdateModal();
+            } else {
+                btn.innerHTML = 'Ô£à Al d├¡a';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }, 3000);
+            }
+        }
+
+        function openUpdateModal() {
+            document.getElementById('current_version_badge').textContent = `v${currentVersion}`;
+            document.getElementById('new_version_badge').textContent = `v${remoteVersion}`;
+            document.getElementById('update_modal').style.display = 'flex';
+        }
+
+        function closeUpdateModal() {
+            if (document.getElementById('update_progress_area').style.display === 'block') return;
+            document.getElementById('update_modal').style.display = 'none';
+        }
+
+        async function startUpdateProcess() {
+            document.getElementById('update_actions_area').style.display = 'none';
+            document.getElementById('update_note').style.display = 'none';
+            document.getElementById('update_progress_area').style.display = 'block';
+
+            const bar = document.getElementById('update_progress_bar');
+            const txt = document.getElementById('update_status_text');
+
+            // Simulaci├│n de pasos para la barra de carga mientras el servidor trabaja en segundo plano
+            const steps = [
+                { p: 10, t: "Obteniendo cambios de GitHub..." },
+                { p: 30, t: "Sincronizando archivos del c├│digo..." },
+                { p: 50, t: "Iniciando compilaci├│n (npm install)..." },
+                { p: 75, t: "Construyendo interfaz (rebuild)..." },
+                { p: 90, t: "Reiniciando servidor de Horus..." }
+            ];
+
+            let stepIdx = 0;
+            const interval = setInterval(() => {
+                if (stepIdx < steps.length) {
+                    bar.style.width = steps[stepIdx].p + "%";
+                    txt.textContent = steps[stepIdx].t;
+                    stepIdx++;
+                } else {
+                    clearInterval(interval);
+                }
+            }, 3000);
+
+            try {
+                await fetch('/api/run-update', { method: 'POST' });
+                // Esperar un poco y recargar
+                setTimeout(() => location.reload(), 15000);
+            } catch (e) {
+                txt.textContent = "Error al actualizar. Int├®ntalo de nuevo.";
+                txt.style.color = "var(--danger)";
+            }
+        }
+        checkForUpdates();
+
+        // --- AUTH & LOGIN MODAL ---
+        let currentModalProvider = '';
+        function openLoginModal(provider) {
+            currentModalProvider = provider;
+            document.getElementById('modal_provider_title').textContent = 'Configurar ' + provider.charAt(0).toUpperCase() + provider.slice(1);
+
+            // Resetear UI del modal
+            document.getElementById('model_selection_area').style.display = 'none';
+            document.getElementById('manual_model_area').style.display = 'none';
+            document.getElementById('btn_test_conn').style.display = 'none';
+            document.getElementById('btn_verify_key').style.display = 'block';
+
+            // Re-etiquetar para Qwen
+            const label = document.getElementById('key_label');
+            label.textContent = (provider === 'qwen') ? 'DashScope API Key' : 'API Key';
+
+            // Mostrar OAuth si es OpenRouter
+            document.getElementById('oauth_container').style.display = (provider === 'openrouter') ? 'block' : 'none';
+
+            document.getElementById('llm_modal').style.display = 'flex';
+            document.getElementById('modal_status_msg').textContent = '';
+            document.getElementById('modal_api_key').value = '';
         }
 
         async function verifyKeyOnly() {
@@ -2873,13 +3006,13 @@
             const btn = document.getElementById('btn_verify_key');
 
             if (!apiKey) {
-                statusMsg.textContent = '❌ Introduce una API Key';
+                statusMsg.textContent = 'ÔØî Introduce una API Key';
                 statusMsg.style.color = 'var(--danger)';
                 return;
             }
 
             btn.disabled = true;
-            statusMsg.textContent = '⌛ Verificando clave...';
+            statusMsg.textContent = 'Ôîø Verificando clave...';
             statusMsg.style.color = 'var(--primary)';
 
             try {
@@ -2891,9 +3024,10 @@
 
                 if (res.ok) {
                     const data = await res.json();
-                    statusMsg.textContent = '✅ Clave válida. Elige un modelo.';
+                    statusMsg.textContent = 'Ô£à Clave v├ílida. Elige un modelo.';
                     statusMsg.style.color = 'var(--success)';
 
+                    // Llenar select de modelos
                     const select = document.getElementById('modal_model_select');
                     select.innerHTML = '';
 
@@ -2913,77 +3047,36 @@
                     document.getElementById('btn_test_conn').style.display = 'block';
                 } else {
                     const data = await res.json();
-                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Clave inválida');
+                    statusMsg.textContent = 'ÔØî Error: ' + (data.error || 'Clave inv├ílida');
                     statusMsg.style.color = 'var(--danger)';
                 }
             } catch (e) {
-                statusMsg.textContent = '❌ Error de red';
+                statusMsg.textContent = 'ÔØî Error de red';
                 statusMsg.style.color = 'var(--danger)';
             } finally {
                 btn.disabled = false;
             }
         }
 
-        async function testConnection() {
-            const apiKey = document.getElementById('modal_api_key').value;
-            const modelSelect = document.getElementById('modal_model_select');
-            const modelManual = document.getElementById('modal_model_name');
-            const model = (modelSelect && modelSelect.value) || (modelManual && modelManual.value);
-
-            const statusMsg = document.getElementById('modal_status_msg');
-            const btn = document.getElementById('btn_test_conn');
-
-            btn.disabled = true;
-            statusMsg.textContent = '⌛ Guardando configuración...';
-
-            try {
-                const res = await fetch('/api/verify-llm', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider: currentModalProvider, apiKey, model })
-                });
-
-                if (res.ok) {
-                    statusMsg.textContent = '✅ ¡Conectado con éxito!';
-                    statusMsg.style.color = 'var(--success)';
-                    setTimeout(() => {
-                        closeLoginModal();
-                        updateProviderStatus(currentModalProvider, apiKey);
-                    }, 1500);
-                } else {
-                    const data = await res.json();
-                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Fallo al verificar');
-                    statusMsg.style.color = 'var(--danger)';
-                }
-            } catch (e) {
-                statusMsg.textContent = '❌ Error de red';
-                statusMsg.style.color = 'var(--danger)';
-            } finally {
-                btn.disabled = false;
-            }
+        function closeLoginModal() {
+            document.getElementById('llm_modal').style.display = 'none';
         }
 
-        function updateProviderStatus(activeProvider, apiKey) {
-            document.querySelectorAll('.provider-badge').forEach(b => {
-                b.textContent = b.id === 'badge_anthropic' ? 'Próximamente' : 'Desconectado';
-                b.className = b.id === 'badge_anthropic' ? 'provider-badge pending' : 'provider-badge disconnected';
-            });
-            document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--border)');
+        function toggleConnMethod() {
+            const method = document.getElementById('conn_method').value;
+            document.getElementById('method_key_section').style.display = (method === 'key') ? 'block' : 'none';
+            document.getElementById('method_web_section').style.display = (method === 'web') ? 'block' : 'none';
+        }
 
-            if (activeProvider && apiKey) {
-                const badge = document.getElementById(`badge_${activeProvider}`);
-                const card = document.getElementById(`card_${activeProvider}`);
-                if (badge) {
-                    badge.textContent = 'Conectado';
-                    badge.className = 'provider-badge connected';
-                }
-                if (card) {
-                    card.style.borderColor = 'var(--success)';
-                }
-            }
+        function openAuthProvider() {
+            // Puerto din├ímico: necesitamos saber en qu├® puerto est├í el servidor
+            // Durante el setup es aleatorio, pero en el servidor normal es process.env.PORT
+            window.open(`/auth-provider?p=${activeProvider}`, '_blank', 'width=500,height=700');
         }
 
         function startOAuthLogin() {
+            // Ejemplo de login directo para OpenRouter (OpenClaw style)
+            // Esto redirigir├¡a a la p├ígina de auth de OpenRouter con el callback de nuestra app
             const callback = window.location.origin + '/auth-provider?p=openrouter&oauth=true';
             window.open(`https://openrouter.ai/auth?callback_url=${encodeURIComponent(callback)}`, '_blank', 'width=500,height=700');
         }
