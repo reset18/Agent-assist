@@ -142,7 +142,6 @@ app.get('/api/auth/chatgpt/start', (req, res) => {
         const authUrl = `https://auth.openai.com/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid+profile+email+offline_access&code_challenge=${challenge}&code_challenge_method=S256&state=${stateStr}&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=pi`;
 
         // Levantar interceptor en puerto 1455
-        const express = require('express');
         const interceptor = express();
 
         interceptor.get('/auth/callback', async (cbReq: any, cbRes: any) => {
