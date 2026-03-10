@@ -124,4 +124,44 @@ export function getDbInstance() {
     return db;
 }
 
+// ==========================
+// MÚLTIPLES CUENTAS (Fase 11)
+// ==========================
+
+export interface LLMAccount {
+    id: string;
+    provider: string;
+    name: string;
+    apiKey: string;
+    isOauth: boolean;
+    refreshToken: string | null;
+}
+
+export function getLLMAccounts(): LLMAccount[] {
+    const data = getSetting('llm_accounts');
+    if (!data) return [];
+    try {
+        return JSON.parse(data);
+    } catch {
+        return [];
+    }
+}
+
+export function saveLLMAccount(account: LLMAccount) {
+    const accounts = getLLMAccounts();
+    const idx = accounts.findIndex((a: LLMAccount) => a.id === account.id);
+    if (idx !== -1) {
+        accounts[idx] = account;
+    } else {
+        accounts.push(account);
+    }
+    setSetting('llm_accounts', JSON.stringify(accounts));
+}
+
+export function removeLLMAccount(accountId: string) {
+    const accounts = getLLMAccounts().filter((a: LLMAccount) => a.id !== accountId);
+    setSetting('llm_accounts', JSON.stringify(accounts));
+}
+
 export default db;
+

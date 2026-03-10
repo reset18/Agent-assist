@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
 import AdmZip from 'adm-zip';
-import { getSetting, setSetting, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, getTokenUsageHistory } from '../db/index.js';
+import { getSetting, setSetting, getLLMAccounts, saveLLMAccount, removeLLMAccount, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, getTokenUsageHistory } from '../db/index.js';
 import { whatsappGlobalState } from '../bots/whatsapp.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -61,8 +61,54 @@ app.get('/api/settings', (req, res) => {
         openai_voice_id: getSetting('openai_voice_id') || 'alloy',
         openai_api_key_audio: getSetting('openai_api_key_audio') || process.env.OPENAI_API_KEY || '',
         elevenlabs_api_key: getSetting('elevenlabs_api_key') || '',
-        elevenlabs_voice_id: getSetting('elevenlabs_voice_id') || ''
+        elevenlabs_voice_id: getSetting('elevenlabs_voice_id') || '',
+
+        // Multi-tier & Multi-account
+        llm_accounts: getLLMAccounts(),
+        llm_primary_account_id: getSetting('llm_primary_account_id') || '',
+        llm_secondary_account_id: getSetting('llm_secondary_account_id') || '',
+        llm_tertiary_account_id: getSetting('llm_tertiary_account_id') || '',
+        llm_primary_model: getSetting('llm_primary_model') || '',
+        llm_secondary_model: getSetting('llm_secondary_model') || '',
+        llm_tertiary_model: getSetting('llm_tertiary_model') || '',
     });
+});
+
+app.post('/api/accounts/add', (req, res) => {
+    try {
+        const { provider, name, apiKey } = req.body;
+        if (!provider || !name || !apiKey) {
+            return res.status(400).json({ success: false, error: 'Faltan campos' });
+        }
+
+        // Generate a random ID for the account
+        import('crypto').then(crypto => {
+            const id = 'acc_' + crypto.randomBytes(6).toString('hex');
+            saveLLMAccount({
+                id,
+                provider,
+                name,
+                apiKey,
+                isOauth: false,
+                refreshToken: null
+            });
+            res.json({ success: true, id });
+        });
+    } catch (err: any) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/accounts/remove', (req, res) => {
+    try {
+        const { id } = req.body;
+        if (!id) return res.status(400).json({ success: false, error: 'Falta ID' });
+
+        removeLLMAccount(id);
+        res.json({ success: true });
+    } catch (err: any) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 // Endpoint para probar una API Key antes de guardarla
@@ -188,7 +234,23 @@ app.get('/api/auth/chatgpt/start', (req, res) => {
                 console.log("[OAuth] Tokens recibidos correctamente!");
                 console.log("[OAuth] Access Token length:", accessToken ? accessToken.length : 0);
 
-                // Guardar en Agent-assist memory DB
+                // Guardar como una cuenta dentro de llm_accounts
+                const accountId = 'oa_' + crypto.randomBytes(6).toString('hex');
+                saveLLMAccount({
+                    id: accountId,
+                    provider: 'openai',
+                    name: 'ChatGPT Web (' + new Date().toLocaleDateString() + ')',
+                    apiKey: accessToken,
+                    isOauth: true,
+                    refreshToken: refreshToken || null
+                });
+
+                // Si no hay primaria asignada, la asignamos por defecto
+                if (!getSetting('llm_primary_account_id')) {
+                    setSetting('llm_primary_account_id', accountId);
+                }
+
+                // Legado (opcional mantener por compatibilidad de otras funciones temporales)
                 setSetting('model_provider', 'openai');
                 setSetting('llm_api_key', accessToken);
                 if (refreshToken) setSetting('chatgpt_refresh_token', refreshToken);

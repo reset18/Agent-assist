@@ -1195,96 +1195,20 @@
                     <input type="hidden" id="model_name">
                     <input type="hidden" id="llm_api_key">
 
-                    <div id="provider_marketplace"
-                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-top: 16px;">
-                        <!-- OpenAI -->
-                        <div class="card provider-card" id="card_openai">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
-                                    style="height: 24px;">
-                                <span class="provider-badge disconnected" id="badge_openai">Desconectado</span>
-                            </div>
-                            <h3>OpenAI</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">GPT-4o,
-                                GPT-4o-mini y
-                                más. El estándar de la industria.</p>
-                            <button class="secondary-btn" style="width: 100%;"
-                                onclick="openLoginModal('openai')">Configurar</button>
+                    <!-- Nueva Vista Dinámica de Cuentas (Fase 11) -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; margin-bottom: 20px;">
+                        <div>
+                            <h3 style="margin: 0; font-size: 18px;">Cuentas Vinculadas</h3>
+                            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Añade tus cuentas de
+                                OpenAI, Gemini, Anthropic u OpenRouter para usarlas en los relevos.</p>
                         </div>
-                        <!-- Anthropic -->
-                        <div class="card provider-card" id="card_anthropic">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <img src="https://anthropic.com/images/icons/apple-touch-icon.png"
-                                    style="height: 24px; border-radius: 4px;">
-                                <span class="provider-badge disconnected" id="badge_anthropic">Desconectado</span>
-                            </div>
-                            <h3>Anthropic</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Claude 3.5
-                                Sonnet.
-                                Razonamiento superior y escritura humana.</p>
-                            <button class="secondary-btn" style="width: 100%;"
-                                onclick="openLoginModal('anthropic')">Configurar</button>
-                        </div>
+                        <button class="primary-btn" onclick="openAddAccountModal()">+ Añadir Cuenta</button>
+                    </div>
 
-                        <!-- Gemini -->
-                        <div class="card provider-card" id="card_google">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg?20240210200543"
-                                    style="height: 24px;">
-                                <span class="provider-badge disconnected" id="badge_google">Desconectado</span>
-                            </div>
-                            <h3>Google Gemini</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Gemini 1.5 Pro.
-                                Ventana de contexto masiva y multimodality.</p>
-                            <button class="secondary-btn" style="width: 100%;"
-                                onclick="openLoginModal('google')">Configurar</button>
-                        </div>
-
-                        <!-- Groq -->
-                        <div class="card provider-card" id="card_groq">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <div style="font-weight: 900; font-size: 20px; color: var(--fg);">GROQ</div>
-                                <span class="provider-badge disconnected" id="badge_groq">Desconectado</span>
-                            </div>
-                            <h3>Groq</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Inferencia ultra
-                                rápida con Llama 3 y Mixtral.</p>
-                            <button class="secondary-btn" style="width: 100%;"
-                                onclick="openLoginModal('groq')">Configurar</button>
-                        </div>
-
-                        <!-- OpenRouter -->
-                        <div class="card provider-card" id="card_openrouter">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <img src="https://openrouter.ai/favicon.ico" style="height: 24px;">
-                                <span class="provider-badge disconnected" id="badge_openrouter">Desconectado</span>
-                            </div>
-                            <h3>OpenRouter</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Acceso a todos
-                                los
-                                modelos (DeepSeek, Llama, Qwen) vía API unificada.</p>
-                            <button class="secondary-btn" style="width: 100%;"
-                                onclick="openLoginModal('openrouter')">Configurar</button>
-                        </div>
-
-                        <!-- Qwen -->
-                        <div class="card provider-card" id="card_qwen">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <div style="font-weight: 800; font-size: 18px; color: var(--primary);">Qwen AI</div>
-                                <span class="provider-badge disconnected" id="badge_qwen">Desconectado</span>
-                            </div>
-                            <h3>Alibaba Qwen</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Modelos SoTA de
-                                código abierto optimizados para razonamiento complejo.</p>
-                            <button class="secondary-btn" style="width: 100%;"
-                                onclick="openLoginModal('qwen')">Configurar</button>
-                        </div>
+                    <div id="accounts_list_container"
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+                        <!-- Se renderizarán las tarjetas aquí dinámicamente -->
                     </div>
                 </div>
 
@@ -1312,34 +1236,27 @@
                         <div
                             style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
                             <div class="form-group">
-                                <label>1. Cerebro Principal</label>
-                                <select id="llm_primary_fallback" disabled>
-                                    <option value="">(Se usa el de la pestaña Identidad)</option>
+                                <label>1. Cuenta Principal</label>
+                                <select id="llm_primary_account_id" onchange="saveSettings()">
+                                    <option value="">-- Seleccionar --</option>
                                 </select>
-                            </div>
-                            <div class="form-group">
-                                <label>2. Cerebro de Respaldo</label>
-                                <select id="llm_secondary_provider" onchange="saveSettings()">
-                                    <option value="">Ninguno</option>
-                                    <option value="openai">OpenAI</option>
-                                    <option value="anthropic">Anthropic</option>
-                                    <option value="google">Gemini</option>
-                                    <option value="groq">Groq</option>
-                                    <option value="qwen">Qwen</option>
-                                </select>
-                                <input type="text" id="llm_secondary_model" placeholder="Ej: gpt-4o-mini"
+                                <input type="text" id="llm_primary_model" placeholder="Modelo (ej: gpt-4o-mini)"
                                     style="margin-top: 5px;" onchange="saveSettings()" />
                             </div>
                             <div class="form-group">
-                                <label>3. Última Opción</label>
-                                <select id="llm_tertiary_provider" onchange="saveSettings()">
-                                    <option value="">Ninguno</option>
-                                    <option value="openai">OpenAI</option>
-                                    <option value="google">Gemini</option>
-                                    <option value="groq">Groq</option>
-                                    <option value="qwen">Qwen</option>
+                                <label>2. Primer Respaldo</label>
+                                <select id="llm_secondary_account_id" onchange="saveSettings()">
+                                    <option value="">-- Seleccionar --</option>
                                 </select>
-                                <input type="text" id="llm_tertiary_model" placeholder="Ej: gemini-1.5-flash"
+                                <input type="text" id="llm_secondary_model" placeholder="Modelo (ej: claude-3-haiku)"
+                                    style="margin-top: 5px;" onchange="saveSettings()" />
+                            </div>
+                            <div class="form-group">
+                                <label>3. Red de Seguridad Final</label>
+                                <select id="llm_tertiary_account_id" onchange="saveSettings()">
+                                    <option value="">-- Seleccionar --</option>
+                                </select>
+                                <input type="text" id="llm_tertiary_model" placeholder="Modelo (ej: gemini-1.5-flash)"
                                     style="margin-top: 5px;" onchange="saveSettings()" />
                             </div>
                         </div>
@@ -1967,66 +1884,54 @@
         </div> <!-- End of settings_container -->
     </main>
 
-    <!-- Modal de Login/Configuración LLM -->
+    <!-- Modal de Cuentas (Fase 11) -->
     <div class="modal-overlay" id="llm_modal">
         <div class="modal">
-            <h3 id="modal_provider_title" style="border:none; margin-bottom: 10px;">Configurar OpenAI</h3>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom:24px;">Configura tu conexión para
-                empezar
-                a usar este cerebro.</p>
+            <h3 style="border:none; margin-bottom: 10px;">Añadir Cuenta de IA</h3>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom:24px;">Selecciona el proveedor y asigna
+                un nombre para identificar esta cuenta (Ej: "OpenAI Personal").</p>
 
-            <div class="form-group" id="oauth_container" style="display: none; margin-bottom: 20px;">
-                <button class="primary-btn" id="btn_oauth_openrouter"
-                    style="width: 100%; background: #000; border-color: #333; display: none;"
-                    onclick="openAuthProvider()">
-                    <img src="https://openrouter.ai/favicon.ico"
-                        style="width: 16px; margin-right: 8px; vertical-align: middle;">
-                    Hacer Login Directo (OpenRouter)
-                </button>
+            <div class="form-group">
+                <label>Proveedor</label>
+                <select id="modal_provider_select" onchange="updateAccountModalUI()">
+                    <option value="openai">OpenAI (ChatGPT)</option>
+                    <option value="anthropic">Anthropic (Claude)</option>
+                    <option value="google">Google (Gemini)</option>
+                    <option value="openrouter">OpenRouter</option>
+                    <option value="groq">Groq</option>
+                    <option value="qwen">Alibaba Qwen</option>
+                    <option value="xai">xAI</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Nombre Identificativo</label>
+                <input type="text" id="modal_account_name" placeholder="Ej: Mi cuenta de Anthropic Trabajo" />
+            </div>
+
+            <div class="form-group" id="oauth_container" style="margin-bottom: 20px;">
                 <button class="primary-btn" id="btn_oauth_chatgpt"
-                    style="width: 100%; background: #10a37f; border-color: #10a37f; display: none;"
-                    onclick="startChatGPTWebLogin()">
+                    style="width: 100%; background: #10a37f; border-color: #10a37f;" onclick="startChatGPTWebLogin()">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
                         style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">
-                    Vincular ChatGPT (Gratis / Plus)
+                    Vincular ChatGPT (Sesión Web Gratuita/Plus)
                 </button>
-                <div
+                <div id="or_separator"
                     style="text-align: center; margin: 15px 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
-                    o usa el método manual</div>
+                    O USA EL MÉTODO DE API KEY MANUAL</div>
             </div>
 
             <div id="method_key_section">
                 <div class="form-group">
-                    <label id="key_label">API Key</label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="password" id="modal_api_key" placeholder="Pega tu clave aqu&iacute;..."
-                            style="flex: 1;" />
-                        <button class="secondary-btn" id="btn_verify_key" onclick="verifyKeyOnly()"
-                            style="padding: 0 15px;">Verificar</button>
-                    </div>
-                </div>
-                <!-- Link de ayuda para obtener API Key -->
-                <div id="help_link_container" style="margin-top: -10px; margin-bottom: 20px;">
-                    <a id="provider_help_link" href="#" target="_blank"
-                        style="font-size: 12px; color: var(--primary); text-decoration: none;">&iquest;No tienes una
-                        clave? Cons&iacute;guela aqu&iacute; &rarr;</a>
-                </div>
-
-                <div class="form-group" id="model_selection_area" style="display: none;">
-                    <label>Modelo del Cerebro</label>
-                    <select id="modal_model_select"></select>
-                </div>
-                <!-- Fallback opcional para modelos manuales -->
-                <div class="form-group" id="manual_model_area" style="display: none;">
-                    <label>Modelo (Manual)</label>
-                    <input type="text" id="modal_model_name" placeholder="Ej: gpt-4o-mini" />
+                    <label>API Key Pura</label>
+                    <input type="password" id="modal_api_key" placeholder="Pega tu clave (sk_...) aquí..." />
                 </div>
             </div>
 
             <div style="display: flex; gap: 12px; margin-top:32px;">
                 <button class="secondary-btn" style="flex:1" onclick="closeLoginModal()">Cancelar</button>
-                <button class="primary-btn" style="flex:1" id="btn_test_conn" onclick="testConnection()">Guardar
-                    Cambios</button>
+                <button class="primary-btn" style="flex:1" id="btn_test_conn" onclick="testAndSaveAccount()">Añadir
+                    Cuenta</button>
             </div>
             <div id="modal_status_msg" style="margin-top: 15px; font-size: 13px; text-align: center;"></div>
         </div>
@@ -2539,15 +2444,24 @@
                 if (voiceEn) voiceEn.checked = data.voice_enabled === true;
                 const voiceEng = document.getElementById('voice_engine');
                 if (voiceEng) voiceEng.value = data.voice_engine || 'openai';
-                const primaryProvider = data.llm_primary_provider || data.model_provider || 'openai';
+                // === Multi-Account (Fase 11) ===
+                window._llmAccounts = data.llm_accounts || [];
+                renderAccountCards(window._llmAccounts);
+                populateFallbackSelects(window._llmAccounts);
 
-                const secProv = document.getElementById('llm_secondary_provider');
-                if (secProv) secProv.value = data.llm_secondary_provider || '';
+                // Hidratar fallback selects con valores guardados
+                const priAccSel = document.getElementById('llm_primary_account_id');
+                if (priAccSel) priAccSel.value = data.llm_primary_account_id || '';
+                const priMod = document.getElementById('llm_primary_model');
+                if (priMod) priMod.value = data.llm_primary_model || '';
+
+                const secAccSel = document.getElementById('llm_secondary_account_id');
+                if (secAccSel) secAccSel.value = data.llm_secondary_account_id || '';
                 const secMod = document.getElementById('llm_secondary_model');
                 if (secMod) secMod.value = data.llm_secondary_model || '';
 
-                const terProv = document.getElementById('llm_tertiary_provider');
-                if (terProv) terProv.value = data.llm_tertiary_provider || '';
+                const terAccSel = document.getElementById('llm_tertiary_account_id');
+                if (terAccSel) terAccSel.value = data.llm_tertiary_account_id || '';
                 const terMod = document.getElementById('llm_tertiary_model');
                 if (terMod) terMod.value = data.llm_tertiary_model || '';
 
@@ -2569,9 +2483,6 @@
                     }
                     select.value = data.elevenlabs_voice_id;
                 }
-
-                // Actualizar estados de los cerebros (Cards)
-                updateProviderStatus(data.model_provider, data.llm_api_key);
 
                 window.settingsLoaded = true;
 
@@ -2843,9 +2754,11 @@
                 openai_voice_id: document.getElementById('openai_voice_id')?.value || 'alloy',
                 elevenlabs_api_key: document.getElementById('elevenlabs_api_key')?.value || '',
                 elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || '',
-                llm_secondary_provider: document.getElementById('llm_secondary_provider')?.value || '',
+                llm_primary_account_id: document.getElementById('llm_primary_account_id')?.value || '',
+                llm_primary_model: document.getElementById('llm_primary_model')?.value || '',
+                llm_secondary_account_id: document.getElementById('llm_secondary_account_id')?.value || '',
                 llm_secondary_model: document.getElementById('llm_secondary_model')?.value || '',
-                llm_tertiary_provider: document.getElementById('llm_tertiary_provider')?.value || '',
+                llm_tertiary_account_id: document.getElementById('llm_tertiary_account_id')?.value || '',
                 llm_tertiary_model: document.getElementById('llm_tertiary_model')?.value || ''
             };
 
@@ -3078,74 +2991,168 @@
             }
         }
 
-        // --- SISTEMA DE CEREBRO V4 (LOGIN) ---
-        let currentModalProvider = '';
+        // --- SISTEMA MULTI-CUENTA (FASE 11) ---
 
-        function openLoginModal(provider) {
-            currentModalProvider = provider;
-            const names = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google Gemini', groq: 'Groq', openrouter: 'OpenRouter' };
-            const helpLinks = {
-                openai: 'https://platform.openai.com/api-keys',
-                anthropic: 'https://console.anthropic.com/settings/keys',
-                google: 'https://aistudio.google.com/app/apikey',
-                groq: 'https://console.groq.com/keys',
-                openrouter: 'https://openrouter.ai/keys'
-            };
+        // Logos por proveedor
+        const providerLogos = {
+            openai: 'https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg',
+            anthropic: 'https://anthropic.com/images/icons/apple-touch-icon.png',
+            google: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg',
+            openrouter: 'https://openrouter.ai/favicon.ico',
+            groq: null,
+            qwen: null,
+            xai: null
+        };
+        const providerNames = {
+            openai: 'OpenAI', anthropic: 'Anthropic', google: 'Gemini',
+            groq: 'Groq', openrouter: 'OpenRouter', qwen: 'Qwen', xai: 'xAI'
+        };
 
-            document.getElementById('modal_provider_title').textContent = `Conectar con ${names[provider] || provider}`;
+        function renderAccountCards(accounts) {
+            const container = document.getElementById('accounts_list_container');
+            if (!container) return;
+            container.innerHTML = '';
 
-            const helpLink = document.getElementById('provider_help_link');
-            if (helpLink) helpLink.href = helpLinks[provider] || '#';
+            if (!accounts || accounts.length === 0) {
+                container.innerHTML = `<div class="card" style="text-align: center; padding: 40px; grid-column: 1/-1; color: var(--text-muted);">
+                    <svg style="width:48px;height:48px;margin-bottom:12px;opacity:.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" /></svg>
+                    <p style="margin:0;font-size:14px;">No tienes ninguna cuenta vinculada aún.</p>
+                    <p style="margin:6px 0 0;font-size:12px;">Pulsa <b>+ Añadir Cuenta</b> para empezar.</p>
+                </div>`;
+                return;
+            }
 
-            // Reset UI
-            document.getElementById('model_selection_area').style.display = 'none';
-            document.getElementById('manual_model_area').style.display = 'none';
-            document.getElementById('btn_test_conn').style.display = 'none';
-            document.getElementById('btn_verify_key').style.display = 'block';
+            accounts.forEach(acc => {
+                const logo = providerLogos[acc.provider];
+                const logoHtml = logo
+                    ? `<img src="${logo}" style="height:24px;${acc.provider === 'anthropic' ? 'border-radius:4px' : ''}">`
+                    : `<div style="font-weight:900;font-size:18px;color:var(--primary)">${(providerNames[acc.provider] || acc.provider).toUpperCase()}</div>`;
 
-            // Re-etiquetar para Qwen
-            const label = document.getElementById('key_label');
-            if (label) label.textContent = (provider === 'qwen') ? 'DashScope API Key' : 'API Key';
+                const card = document.createElement('div');
+                card.className = 'card provider-card';
+                card.style.borderColor = 'var(--success)';
+                card.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+                        ${logoHtml}
+                        <span class="provider-badge connected">Vinculada</span>
+                    </div>
+                    <h3 style="margin:0 0 4px">${acc.name}</h3>
+                    <p style="font-size:12px;color:var(--text-muted);margin:0 0 4px">${providerNames[acc.provider] || acc.provider}${acc.isOauth ? ' (OAuth)' : ' (API Key)'}</p>
+                    <p style="font-size:11px;color:var(--text-muted);margin:0 0 16px;font-family:monospace">ID: ${acc.id}</p>
+                    <button class="secondary-btn" style="width:100%;color:var(--danger);border-color:var(--danger)" onclick="removeAccount('${acc.id}')">Desvincular</button>
+                `;
+                container.appendChild(card);
+            });
+        }
 
-            // Mostrar botones OAuth correspondientes
-            document.getElementById('oauth_container').style.display = (provider === 'openrouter' || provider === 'openai') ? 'block' : 'none';
-            const btnOpenRouter = document.getElementById('btn_oauth_openrouter');
-            const btnChatGPT = document.getElementById('btn_oauth_chatgpt');
-            if (btnOpenRouter) btnOpenRouter.style.display = (provider === 'openrouter') ? 'block' : 'none';
-            if (btnChatGPT) btnChatGPT.style.display = (provider === 'openai') ? 'block' : 'none';
+        function populateFallbackSelects(accounts) {
+            ['llm_primary_account_id', 'llm_secondary_account_id', 'llm_tertiary_account_id'].forEach(selectId => {
+                const sel = document.getElementById(selectId);
+                if (!sel) return;
+                const currentVal = sel.value;
+                sel.innerHTML = '<option value="">-- Seleccionar --</option>';
+                (accounts || []).forEach(acc => {
+                    const opt = document.createElement('option');
+                    opt.value = acc.id;
+                    opt.textContent = `${acc.name} (${providerNames[acc.provider] || acc.provider})`;
+                    sel.appendChild(opt);
+                });
+                sel.value = currentVal;
+            });
+        }
 
+        async function removeAccount(accountId) {
+            if (!confirm('¿Seguro que quieres desvincular esta cuenta?')) return;
+            try {
+                await fetch('/api/accounts/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: accountId })
+                });
+                await loadSettings();
+            } catch (e) {
+                alert('Error eliminando cuenta: ' + e.message);
+            }
+        }
+
+        function openAddAccountModal() {
             document.getElementById('llm_modal').style.display = 'flex';
             document.getElementById('modal_status_msg').textContent = '';
             document.getElementById('modal_api_key').value = '';
-            document.getElementById('modal_model_name').value = '';
+            document.getElementById('modal_account_name').value = '';
+            document.getElementById('modal_provider_select').value = 'openai';
+            updateAccountModalUI();
+        }
+        // Alias para compatibilidad
+        function openLoginModal() { openAddAccountModal(); }
+
+        function updateAccountModalUI() {
+            const provider = document.getElementById('modal_provider_select').value;
+            const oauthContainer = document.getElementById('oauth_container');
+            const btnChatGPT = document.getElementById('btn_oauth_chatgpt');
+            const orSep = document.getElementById('or_separator');
+
+            // Solo mostrar OAuth para OpenAI
+            if (provider === 'openai') {
+                if (oauthContainer) oauthContainer.style.display = 'block';
+                if (btnChatGPT) btnChatGPT.style.display = 'block';
+                if (orSep) orSep.style.display = 'block';
+            } else {
+                if (oauthContainer) oauthContainer.style.display = 'none';
+            }
         }
 
         function closeLoginModal() {
             document.getElementById('llm_modal').style.display = 'none';
         }
 
-        function toggleConnMethod() {
-            const method = document.getElementById('conn_method').value;
-            document.getElementById('method_key_section').style.display = method === 'key' ? 'block' : 'none';
-            document.getElementById('method_web_section').style.display = method === 'web' ? 'block' : 'none';
-            document.getElementById('btn_test_conn').style.display = method === 'key' ? 'block' : 'none';
-        }
+        async function testAndSaveAccount() {
+            const provider = document.getElementById('modal_provider_select').value;
+            const apiKey = document.getElementById('modal_api_key').value;
+            const name = document.getElementById('modal_account_name').value.trim();
+            const statusMsg = document.getElementById('modal_status_msg');
+            const btn = document.getElementById('btn_test_conn');
 
-        function openAuthProvider() {
-            const url = `/auth-provider?p=${currentModalProvider}`;
-            window.open(url, '_blank', 'width=500,height=700');
+            if (!apiKey) {
+                statusMsg.textContent = '❌ Introduce una API Key';
+                statusMsg.style.color = 'var(--danger)';
+                return;
+            }
+            if (!name) {
+                statusMsg.textContent = '❌ Ponle un nombre identificador a esta cuenta';
+                statusMsg.style.color = 'var(--danger)';
+                return;
+            }
 
-            // Polling para detectar login exitoso
-            const checkLogin = setInterval(async () => {
-                const r = await fetch('/api/settings');
-                const d = await r.json();
-                if (d.model_provider === currentModalProvider && d.llm_api_key) {
-                    clearInterval(checkLogin);
-                    closeLoginModal();
-                    updateProviderStatus(d.model_provider, d.llm_api_key);
+            btn.disabled = true;
+            statusMsg.textContent = '⌛ Guardando cuenta...';
+            statusMsg.style.color = 'var(--primary)';
+
+            try {
+                const res = await fetch('/api/accounts/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, name, apiKey })
+                });
+
+                if (res.ok) {
+                    statusMsg.textContent = '✅ ¡Cuenta añadida correctamente!';
+                    statusMsg.style.color = 'var(--success)';
+                    setTimeout(async () => {
+                        closeLoginModal();
+                        await loadSettings();
+                    }, 1000);
+                } else {
+                    const data = await res.json();
+                    statusMsg.textContent = '❌ Error: ' + (data.error || 'No se pudo guardar');
+                    statusMsg.style.color = 'var(--danger)';
                 }
-            }, 2000);
-            setTimeout(() => clearInterval(checkLogin), 60000);
+            } catch (e) {
+                statusMsg.textContent = '❌ Error de red';
+                statusMsg.style.color = 'var(--danger)';
+            } finally {
+                btn.disabled = false;
+            }
         }
 
         async function startChatGPTWebLogin() {
@@ -3162,14 +3169,15 @@
                     window.open(data.url, '_blank', 'width=500,height=700');
                     btn.innerHTML = '⌛ Esperando login...';
 
+                    const prevCount = (window._llmAccounts || []).length;
                     const checkLogin = setInterval(async () => {
                         try {
                             const r = await fetch('/api/settings');
                             const d = await r.json();
-                            if (d.model_provider === 'openai' && d.llm_api_key && d.llm_api_key !== '') {
+                            if ((d.llm_accounts || []).length > prevCount) {
                                 clearInterval(checkLogin);
                                 closeLoginModal();
-                                updateProviderStatus('openai', d.llm_api_key);
+                                await loadSettings();
                             }
                         } catch (e) { }
                     }, 2000);
@@ -3180,147 +3188,17 @@
                             btn.disabled = false;
                             btn.innerHTML = originalText;
                         }
-                    }, 300000); // 5 min timeout
+                    }, 300000);
                 } else {
-                    alert("❌ Error: " + (data.error || "No se pudo iniciar auth"));
+                    alert('❌ Error: ' + (data.error || 'No se pudo iniciar auth'));
                     btn.disabled = false;
                     btn.innerHTML = originalText;
                 }
             } catch (err) {
-                alert("❌ Error de red.");
+                alert('❌ Error de red.');
                 btn.disabled = false;
                 btn.innerHTML = originalText;
             }
-        }
-
-        async function verifyKeyOnly() {
-            const apiKey = document.getElementById('modal_api_key').value;
-            const statusMsg = document.getElementById('modal_status_msg');
-            const btn = document.getElementById('btn_verify_key');
-
-            if (!apiKey) {
-                statusMsg.textContent = '❌ Introduce una API Key';
-                statusMsg.style.color = 'var(--danger)';
-                return;
-            }
-
-            btn.disabled = true;
-            statusMsg.textContent = '⌛ Verificando clave...';
-            statusMsg.style.color = 'var(--primary)';
-
-            try {
-                const res = await fetch('/api/models', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider: currentModalProvider, apiKey })
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    statusMsg.textContent = '✅ Clave válida. Elige un modelo.';
-                    statusMsg.style.color = 'var(--success)';
-
-                    const select = document.getElementById('modal_model_select');
-                    select.innerHTML = '';
-
-                    if (data.models && data.models.length > 0) {
-                        data.models.forEach(m => {
-                            const opt = document.createElement('option');
-                            opt.value = m.id;
-                            opt.textContent = m.name;
-                            select.appendChild(opt);
-                        });
-                        document.getElementById('model_selection_area').style.display = 'block';
-                    } else {
-                        document.getElementById('manual_model_area').style.display = 'block';
-                    }
-
-                    btn.style.display = 'none';
-                    document.getElementById('btn_test_conn').style.display = 'block';
-                } else {
-                    const data = await res.json();
-                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Clave inválida');
-                    statusMsg.style.color = 'var(--danger)';
-                }
-            } catch (e) {
-                statusMsg.textContent = '❌ Error de red';
-                statusMsg.style.color = 'var(--danger)';
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        async function testConnection() {
-            const apiKey = document.getElementById('modal_api_key').value;
-            const modelSelect = document.getElementById('modal_model_select');
-            const modelManual = document.getElementById('modal_model_name');
-            let model = (modelSelect && modelSelect.value) || (modelManual && modelManual.value);
-
-            // Evitar desajustes: si no hay modelo o es incongruente, poner default
-            if (!model || model === 'n/a' || (currentModalProvider === 'openai' && model.includes('openrouter'))) {
-                if (currentModalProvider === 'openai') model = 'gpt-4o-mini';
-                else if (currentModalProvider === 'groq') model = 'llama-3.3-70b-versatile';
-                else if (currentModalProvider === 'anthropic') model = 'claude-3-5-sonnet-20241022';
-                else if (currentModalProvider === 'google') model = 'gemini-1.5-flash';
-                else if (currentModalProvider === 'openrouter') model = 'openrouter/free';
-            }
-
-            const statusMsg = document.getElementById('modal_status_msg');
-            const btn = document.getElementById('btn_test_conn');
-
-            btn.disabled = true;
-            statusMsg.textContent = '⌛ Guardando configuración...';
-
-            try {
-                const res = await fetch('/api/verify-llm', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider: currentModalProvider, apiKey, model })
-                });
-
-                if (res.ok) {
-                    statusMsg.textContent = '✅ &iexcl;Conectado con éxito!';
-                    statusMsg.style.color = 'var(--success)';
-                    setTimeout(() => {
-                        closeLoginModal();
-                        updateProviderStatus(currentModalProvider, apiKey);
-                    }, 1500);
-                } else {
-                    const data = await res.json();
-                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Fallo al verificar');
-                    statusMsg.style.color = 'var(--danger)';
-                }
-            } catch (e) {
-                statusMsg.textContent = '❌ Error de red';
-                statusMsg.style.color = 'var(--danger)';
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        function updateProviderStatus(activeProvider, apiKey) {
-            document.querySelectorAll('.provider-badge').forEach(b => {
-                b.textContent = b.id === 'badge_anthropic' ? 'Próximamente' : 'Desconectado';
-                b.className = b.id === 'badge_anthropic' ? 'provider-badge pending' : 'provider-badge disconnected';
-            });
-            document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--border)');
-
-            if (activeProvider && apiKey) {
-                const badge = document.getElementById(`badge_${activeProvider}`);
-                const card = document.getElementById(`card_${activeProvider}`);
-                if (badge) {
-                    badge.textContent = 'Conectado';
-                    badge.className = 'provider-badge connected';
-                }
-                if (card) {
-                    card.style.borderColor = 'var(--success)';
-                }
-            }
-        }
-
-        function startOAuthLogin() {
-            const callback = window.location.origin + '/auth-provider?p=openrouter&oauth=true';
-            window.open(`https://openrouter.ai/auth?callback_url=${encodeURIComponent(callback)}`, '_blank', 'width=500,height=700');
         }
 
 
@@ -3350,22 +3228,7 @@
             } catch (e) { }
         }
 
-        async function saveMultiTierSettings() {
-            const p1 = document.getElementById('llm_primary_fallback').value;
-            const p2 = document.getElementById('llm_secondary_fallback').value;
-            const p3 = document.getElementById('llm_tertiary_fallback').value;
-
-            await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    llm_primary_provider: p1,
-                    llm_secondary_provider: p2,
-                    llm_tertiary_provider: p3
-                })
-            });
-            showSuccess();
-        }
+        // saveMultiTierSettings ahora se maneja por saveSettings genérico
 
         async function loadElevenLabsVoices() {
             const apiKey = document.getElementById('elevenlabs_api_key').value;

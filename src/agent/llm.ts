@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
-import { getSetting, addTokenUsage } from '../db/index.js';
+import { getSetting, addTokenUsage, getLLMAccounts } from '../db/index.js';
 
-async function _internalCompletion(model: string, provider: string, messages: any[], tools: any[] = [], testApiKey?: string) {
-    let apiKey = testApiKey || getSetting(`llm_key_${provider}`) || getSetting('llm_api_key') || '';
+async function _internalCompletion(model: string, provider: string, messages: any[], tools: any[] = [], overrideApiKey?: string) {
+    let apiKey = overrideApiKey || getSetting(`llm_key_${provider}`) || getSetting('llm_api_key') || '';
     let baseURL = '';
 
     // Fallback to env vars if not in DB
@@ -20,6 +20,7 @@ async function _internalCompletion(model: string, provider: string, messages: an
     else if (provider === 'openai') baseURL = 'https://api.openai.com/v1';
     else if (provider === 'google') baseURL = 'https://generativelanguage.googleapis.com/v1beta/openai/';
     else if (provider === 'qwen') baseURL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+    else if (provider === 'xai') baseURL = 'https://api.x.ai/v1';
 
     if (provider === 'anthropic') {
         const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -43,7 +44,6 @@ async function _internalCompletion(model: string, provider: string, messages: an
         }
 
         const data: any = await anthropicResponse.json();
-        // Registrar tokens
         if (data.usage) {
             addTokenUsage('anthropic', (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0));
         }
@@ -63,7 +63,6 @@ async function _internalCompletion(model: string, provider: string, messages: an
 
     const response = await client.chat.completions.create(payload);
 
-    // Registrar tokens
     if (response.usage) {
         addTokenUsage(provider, response.usage.total_tokens);
     }
@@ -71,19 +70,59 @@ async function _internalCompletion(model: string, provider: string, messages: an
     return response.choices[0].message;
 }
 
-export async function chatCompletion(model: string, provider: string, messages: any[], tools: any[] = [], testApiKey?: string) {
-    // Sistema Multi-tier (v5.0)
-    const tiers = ([
-        { p: getSetting('llm_primary_provider') || provider, m: getSetting('llm_primary_model') || model },
-        { p: getSetting('llm_secondary_provider'), m: getSetting('llm_secondary_model') },
-        { p: getSetting('llm_tertiary_provider'), m: getSetting('llm_tertiary_model') }
-    ].filter(t => t.p && t.m) as { p: string, m: string }[]);
+// ---------- RESOLVER UNA CUENTA POR ID ----------
+function resolveAccount(accountId: string): { provider: string, apiKey: string } | null {
+    if (!accountId) return null;
+    const accounts = getLLMAccounts();
+    const acc = accounts.find(a => a.id === accountId);
+    if (!acc) return null;
+    return { provider: acc.provider, apiKey: acc.apiKey };
+}
 
-    // Si se envía una clave de prueba explícita (desde la UI modal de validación), 
+export async function chatCompletion(model: string, provider: string, messages: any[], tools: any[] = [], testApiKey?: string) {
+    // Si se envía una clave de prueba explícita (desde la UI modal de validación),
     // forzamos a probar SÓLO esa combinación inicial sin caer en tiers de backup.
     if (testApiKey) {
         console.log(`[LLM] Intento validación directa (${provider}) -> ${model}`);
         return await _internalCompletion(model, provider, messages, tools, testApiKey);
+    }
+
+    // Sistema Multi-tier v6.0 (basado en IDs de cuenta)
+    interface Tier { p: string; m: string; key?: string }
+    const tiers: Tier[] = [];
+
+    // Tier 1: Cuenta principal (por ID de cuenta)
+    const primaryAccountId = getSetting('llm_primary_account_id');
+    const primaryModel = getSetting('llm_primary_model');
+    if (primaryAccountId) {
+        const acc = resolveAccount(primaryAccountId);
+        if (acc) {
+            tiers.push({ p: acc.provider, m: primaryModel || model, key: acc.apiKey });
+        }
+    }
+    // Si no hay cuenta primaria seleccionada, usar los valores legacy como primer tier
+    if (tiers.length === 0) {
+        tiers.push({ p: provider, m: model });
+    }
+
+    // Tier 2
+    const secondaryAccountId = getSetting('llm_secondary_account_id');
+    const secondaryModel = getSetting('llm_secondary_model');
+    if (secondaryAccountId) {
+        const acc = resolveAccount(secondaryAccountId);
+        if (acc && secondaryModel) {
+            tiers.push({ p: acc.provider, m: secondaryModel, key: acc.apiKey });
+        }
+    }
+
+    // Tier 3
+    const tertiaryAccountId = getSetting('llm_tertiary_account_id');
+    const tertiaryModel = getSetting('llm_tertiary_model');
+    if (tertiaryAccountId) {
+        const acc = resolveAccount(tertiaryAccountId);
+        if (acc && tertiaryModel) {
+            tiers.push({ p: acc.provider, m: tertiaryModel, key: acc.apiKey });
+        }
     }
 
     let lastError: any = null;
@@ -92,14 +131,14 @@ export async function chatCompletion(model: string, provider: string, messages: 
         const tier = tiers[i];
         try {
             console.log(`[LLM] Intento Tier ${i + 1} (${tier.p}) -> ${tier.m}`);
-            return await _internalCompletion(tier.m, tier.p, messages, tools);
+            return await _internalCompletion(tier.m, tier.p, messages, tools, tier.key);
         } catch (error: any) {
             console.warn(`[LLM] Fallo en Tier ${i + 1} (${tier.p}): ${error.message}`);
             lastError = error;
-            // Continuar al siguiente tier
         }
     }
 
     console.error(`[LLM] Todos los tiers fallaron.`);
     throw lastError || new Error("Error desconocido en la comunicación con la IA.");
 }
+
