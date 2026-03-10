@@ -5,6 +5,7 @@ import { speak_message_def, execute_speak_message } from './tools/speak_message.
 import { package_skill_def, execute_package_skill } from './tools/package_skill.js';
 import { toggle_skill_def, execute_toggle_skill } from './tools/toggle_skill.js';
 import { list_skills_def, execute_list_skills } from './tools/list_skills.js';
+import { update_setting_def, execute_update_setting } from './tools/update_setting.js';
 import { isToolEnabled, getSetting } from '../db/index.js';
 
 const AVAILABLE_TOOLS = {
@@ -47,6 +48,10 @@ const AVAILABLE_TOOLS = {
     list_skills: {
         def: list_skills_def,
         execute: execute_list_skills
+    },
+    update_setting: {
+        def: update_setting_def,
+        execute: execute_update_setting
     }
 };
 
@@ -58,6 +63,11 @@ export function getActiveTools() {
             if (enabled) {
                 tools.push(tool.def);
             }
+            continue;
+        }
+
+        if (key === 'update_setting') {
+            tools.push(tool.def);
             continue;
         }
 

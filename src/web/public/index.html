@@ -1313,19 +1313,13 @@
                             style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
                             <div class="form-group">
                                 <label>1. Cerebro Principal</label>
-                                <select id="llm_primary_fallback" onchange="saveMultiTierSettings()">
-                                    <option value="">(Usar predeterminado)</option>
-                                    <option value="openai">OpenAI</option>
-                                    <option value="anthropic">Anthropic</option>
-                                    <option value="google">Gemini</option>
-                                    <option value="groq">Groq</option>
-                                    <option value="openrouter">OpenRouter</option>
-                                    <option value="qwen">Qwen</option>
+                                <select id="llm_primary_fallback" disabled>
+                                    <option value="">(Se usa el de la pestaña Identidad)</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>2. Cerebro de Respaldo</label>
-                                <select id="llm_secondary_fallback" onchange="saveMultiTierSettings()">
+                                <select id="llm_secondary_provider" onchange="saveSettings()">
                                     <option value="">Ninguno</option>
                                     <option value="openai">OpenAI</option>
                                     <option value="anthropic">Anthropic</option>
@@ -1333,16 +1327,20 @@
                                     <option value="groq">Groq</option>
                                     <option value="qwen">Qwen</option>
                                 </select>
+                                <input type="text" id="llm_secondary_model" placeholder="Ej: gpt-4o-mini"
+                                    style="margin-top: 5px;" onchange="saveSettings()" />
                             </div>
                             <div class="form-group">
                                 <label>3. Última Opción</label>
-                                <select id="llm_tertiary_fallback" onchange="saveMultiTierSettings()">
+                                <select id="llm_tertiary_provider" onchange="saveSettings()">
                                     <option value="">Ninguno</option>
                                     <option value="openai">OpenAI</option>
                                     <option value="google">Gemini</option>
                                     <option value="groq">Groq</option>
                                     <option value="qwen">Qwen</option>
                                 </select>
+                                <input type="text" id="llm_tertiary_model" placeholder="Ej: gemini-1.5-flash"
+                                    style="margin-top: 5px;" onchange="saveSettings()" />
                             </div>
                         </div>
                     </div>
@@ -2533,7 +2531,18 @@
                 if (voiceEn) voiceEn.checked = data.voice_enabled === true;
                 const voiceEng = document.getElementById('voice_engine');
                 if (voiceEng) voiceEng.value = data.voice_engine || 'openai';
-                const openaiVoice = document.getElementById('openai_voice_id');
+                const primaryProvider = data.llm_primary_provider || data.model_provider || 'openai';
+
+                const secProv = document.getElementById('llm_secondary_provider');
+                if (secProv) secProv.value = data.llm_secondary_provider || '';
+                const secMod = document.getElementById('llm_secondary_model');
+                if (secMod) secMod.value = data.llm_secondary_model || '';
+
+                const terProv = document.getElementById('llm_tertiary_provider');
+                if (terProv) terProv.value = data.llm_tertiary_provider || '';
+                const terMod = document.getElementById('llm_tertiary_model');
+                if (terMod) terMod.value = data.llm_tertiary_model || '';
+
                 if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
                 const openaiKey = document.getElementById('openai_api_key_audio');
                 if (openaiKey) openaiKey.value = data.openai_api_key_audio || '';
@@ -2824,7 +2833,11 @@
                 openai_api_key_audio: document.getElementById('openai_api_key_audio')?.value || '',
                 openai_voice_id: document.getElementById('openai_voice_id')?.value || 'alloy',
                 elevenlabs_api_key: document.getElementById('elevenlabs_api_key')?.value || '',
-                elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || ''
+                elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || '',
+                llm_secondary_provider: document.getElementById('llm_secondary_provider')?.value || '',
+                llm_secondary_model: document.getElementById('llm_secondary_model')?.value || '',
+                llm_tertiary_provider: document.getElementById('llm_tertiary_provider')?.value || '',
+                llm_tertiary_model: document.getElementById('llm_tertiary_model')?.value || ''
             };
 
             const gogClientEl = document.getElementById('gog_client_secret');

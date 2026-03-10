@@ -235,12 +235,15 @@ app.post('/api/settings', (req, res) => {
         gog_client_secret, gog_email,
         voice_enabled, voice_engine, openai_voice_id, openai_api_key_audio,
         elevenlabs_api_key, elevenlabs_voice_id,
-        llm_primary_provider, llm_secondary_provider, llm_tertiary_provider
+        llm_primary_provider, llm_secondary_provider, llm_tertiary_provider,
+        llm_secondary_model, llm_tertiary_model
     } = req.body;
 
     if (llm_primary_provider !== undefined) setSetting('llm_primary_provider', llm_primary_provider);
     if (llm_secondary_provider !== undefined) setSetting('llm_secondary_provider', llm_secondary_provider);
     if (llm_tertiary_provider !== undefined) setSetting('llm_tertiary_provider', llm_tertiary_provider);
+    if (llm_secondary_model !== undefined) setSetting('llm_secondary_model', llm_secondary_model);
+    if (llm_tertiary_model !== undefined) setSetting('llm_tertiary_model', llm_tertiary_model);
 
     // Guardar dinámicamente cualquier skill enviada
     for (const key of Object.keys(req.body)) {
@@ -319,16 +322,7 @@ app.post('/api/models', async (req, res) => {
         });
     }
 
-    if (provider === 'google') {
-        return res.json({
-            models: [
-                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (Recommended)' },
-                { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-                { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Exp' },
-                { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' }
-            ]
-        });
-    }
+
 
     if (provider === 'qwen') {
         return res.json({
