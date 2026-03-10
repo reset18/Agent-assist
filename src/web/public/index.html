@@ -2296,7 +2296,7 @@
                 // Sincronizar versi├│n dinámicamente
                 fetch('/api/check-update').then(r => r.json()).then(v => {
                     const label = document.getElementById('ui_version_label');
-                    if (label) label.textContent = v.current || 'vv0.2.11-beta';
+                    if (label) label.textContent = v.current || 'v0.2.11-beta';
                 }).catch(() => { });
 
             } catch (e) {
