@@ -90,8 +90,9 @@ chmod +x /usr/local/bin/agent-assist
 npm install -g pm2
 npm run build
 
-# Detener cualquier instancia como root previa
-pm2 kill || true
+# Detener cualquier instancia previa
+pm2 delete agent-assist 2>/dev/null || true
+pm2 save 2>/dev/null || true
 
 # Arrancar agente como el usuario original usando 'su' o ejecutándolo sin sudo en el entorno
 REAL_USER=${SUDO_USER:-$USER}
