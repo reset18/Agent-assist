@@ -125,7 +125,7 @@ function generatePKCE() {
     return { verifier, challenge };
 }
 
-app.post('/api/auth/chatgpt/start', (req, res) => {
+app.get('/api/auth/chatgpt/start', (req, res) => {
     try {
         if (oauthServer) {
             oauthServer.close();
