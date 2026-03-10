@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
 import AdmZip from 'adm-zip';
-import { getSetting, setSetting, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession } from '../db/index.js';
+import { getSetting, setSetting, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, getTokenUsageHistory } from '../db/index.js';
 import { whatsappGlobalState } from '../bots/whatsapp.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -483,6 +483,15 @@ app.get('/api/sessions', (req, res) => {
     try {
         const sessions = getSessions();
         res.json({ sessions });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/tokens/history', (req, res) => {
+    try {
+        const history = getTokenUsageHistory(7);
+        res.json({ history });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
     }

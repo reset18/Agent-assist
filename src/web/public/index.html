@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root[data-theme="dark"] {
             --bg: #0f172a;
@@ -1071,6 +1072,14 @@
                 </svg>
                 Habilidades (Skills)
             </button>
+            <button class="nav-item" onclick="navigate('consumos')">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                    </path>
+                </svg>
+                Consumos
+            </button>
         </div>
         <div class="sidebar-footer">
             <div id="update_notification" class="update-box" style="display: none;">
@@ -1099,15 +1108,6 @@
             </button>
             <div id="ui_version_label"
                 style="font-size: 12px; color: var(--text-muted); text-align: center; opacity: 0.8;">v1.0.0 Local</div>
-
-            <!-- DEBUG BOX (Micro-consola visual) -->
-            <div id="debug_box"
-                style="margin-top: 10px; padding: 6px; background: rgba(0,0,0,0.3); border-radius: 8px; font-family: monospace; font-size: 10px; color: #fbbf24; display: none; max-height: 80px; overflow-y: auto; border: 1px solid rgba(251,191,36,0.2);">
-                <div
-                    style="font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid rgba(251,191,36,0.1); padding-bottom: 2px;">
-                    DEBUG LOG</div>
-                <div id="debug_content"></div>
-            </div>
         </div>
     </aside>
 
@@ -1208,15 +1208,16 @@
                         <div class="card provider-card" id="card_anthropic">
                             <div
                                 style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/7/75/Anthropic_logo.svg"
-                                    style="height: 20px;">
-                                <span class="provider-badge pending" id="badge_anthropic">Próximamente</span>
+                                <img src="https://anthropic.com/images/icons/apple-touch-icon.png"
+                                    style="height: 24px; border-radius: 4px;">
+                                <span class="provider-badge disconnected" id="badge_anthropic">Desconectado</span>
                             </div>
                             <h3>Anthropic</h3>
                             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Claude 3.5
                                 Sonnet.
                                 Razonamiento superior y escritura humana.</p>
-                            <button class="secondary-btn" style="width: 100%; opacity: 0.5;" disabled>Bloqueado</button>
+                            <button class="secondary-btn" style="width: 100%;"
+                                onclick="openLoginModal('anthropic')">Configurar</button>
                         </div>
 
                         <!-- Gemini -->
@@ -1339,16 +1340,34 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- Consumos -->
+        <div id="consumos" class="page-content">
+            <h2 class="page-title">Consumo de API y Costes</h2>
+
+            <div class="card" style="margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; border: none; padding: 0;">Historial de Uso (7 d&iacute;as)</h3>
+                    <div style="font-size: 12px; color: var(--text-muted);">Tokens totales agrupados por d&iacute;a
+                    </div>
+                </div>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="usageChart"></canvas>
+                </div>
+            </div>
+
+            <div class="grid-2">
                 <!-- DASHBOARD DE TOKENS (Shared across tabs) -->
-                <div class="card" style="margin-top: 24px;">
+                <div class="card">
                     <div
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h3 style="margin: 0; border: none; padding: 0;">Consumo de Tokens (Hoy)</h3>
                         <button class="secondary-btn" style="padding: 6px 12px; font-size: 12px;"
                             onclick="loadTokenUsage()">Actualizar</button>
                     </div>
-                    <div id="token_usage_stats"
-                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
+                    <div id="token_usage_stats" style="display: grid; grid-template-columns: 1fr; gap: 15px;">
                         <!-- Aquí se cargarán las estadísticas -->
                         <div
                             style="text-align: center; padding: 15px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border);">
@@ -1358,528 +1377,537 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            <!-- Canales -->
-            <div id="channels" class="page-content">
-                <h2 class="page-title">Canales y Bots</h2>
-                <div class="sub-tabs" style="margin-bottom: 24px;">
-                    <button class="sub-tab-btn active"
-                        onclick="switchChannelTab('tab_telegram', this)">Telegram</button>
-                    <button class="sub-tab-btn" onclick="switchChannelTab('tab_whatsapp', this)">WhatsApp</button>
-                </div>
-                <div id="tab_telegram" class="sub-tab-content active">
-                    <div class="card">
+
+                <div class="card">
+                    <h3 style="margin: 0; border: none; padding: 0; margin-bottom: 20px;">Coste Estimado</h3>
+                    <div
+                        style="background: var(--input-bg); padding: 24px; border-radius: 16px; text-align: center; border: 1px solid var(--border);">
                         <div
-                            style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
-                            <h3 style="margin: 0; border: none; padding: 0;">Telegram</h3>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="bot_telegram_enabled" onchange="toggleTelegramConfig()"
-                                    checked>
-                                <span class="slider"></span>
-                            </label>
+                            style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
+                            Gasto Total Estimado</div>
+                        <div id="estimated_cost_display"
+                            style="font-size: 36px; font-weight: 800; color: var(--success); margin-bottom: 4px;">$0.00
                         </div>
-                        <div id="telegram_config_section">
-                            <div class="form-group">
-                                <label for="telegram_bot_token">Token</label>
-                                <input type="password" id="telegram_bot_token" onchange="saveSettings()" />
-                            </div>
-                            <div class="form-group">
-                                <label for="telegram_whitelist">Whitelisted IDs</label>
-                                <input type="text" id="telegram_whitelist" onchange="saveSettings()" />
-                            </div>
-                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted);">D&oacute;lares USD</div>
                     </div>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 16px; line-height: 1.4;">
+                        * El coste es una estimaci&oacute;n basada en precios de mercado ($0.15/1M tokens entrada,
+                        $0.60/1M salida aprox).
+                        Los precios reales pueden variar según el modelo y el proveedor.
+                    </p>
                 </div>
-
-                <!-- Tab WhatsApp -->
-                <div id="tab_whatsapp" class="sub-tab-content">
-                    <div class="card">
-                        <div
-                            style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
-                            <h3 style="margin: 0; border: none; padding: 0;">Vincular WhatsApp de
-                                forma segura</h3>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="bot_whatsapp_enabled" onchange="toggleWhatsappConfig()"
-                                    checked>
-                                <span class="slider"></span>
-                            </label>
+            </div>
+        </div>
+        <!-- Canales -->
+        <div id="channels" class="page-content">
+            <h2 class="page-title">Canales y Bots</h2>
+            <div class="sub-tabs" style="margin-bottom: 24px;">
+                <button class="sub-tab-btn active" onclick="switchChannelTab('tab_telegram', this)">Telegram</button>
+                <button class="sub-tab-btn" onclick="switchChannelTab('tab_whatsapp', this)">WhatsApp</button>
+            </div>
+            <div id="tab_telegram" class="sub-tab-content active">
+                <div class="card">
+                    <div
+                        style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
+                        <h3 style="margin: 0; border: none; padding: 0;">Telegram</h3>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="bot_telegram_enabled" onchange="toggleTelegramConfig()" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div id="telegram_config_section">
+                        <div class="form-group">
+                            <label for="telegram_bot_token">Token</label>
+                            <input type="password" id="telegram_bot_token" onchange="saveSettings()" />
                         </div>
-                        <div id="whatsapp_config_section">
-                            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
-                                <b>Nota importante:</b> Utiliza el interruptor superior si deseas
-                                apagar o encender
-                                el
-                                bot
-                                de
-                                WhatsApp (tras guardarlo, requiere que reinicies el servidor con
-                                <code>npm run dev</code>).
-                            </p>
-
-                            <div class="whatsapp-status-box" id="whatsapp_status_box_container">
-                                <div style="margin-bottom: 20px; font-size: 15px; color: var(--fg); font-weight: 500;">
-                                    Estado de conexión de la sesión: <span id="wa_status_badge"
-                                        class="badge disconnected">Sin
-                                        Inicializar</span>
-                                </div>
-
-                                <div id="wa_qr_section" style="display: none;">
-                                    <p style="font-size: 14px; margin-bottom:15px; color: var(--text-muted);">
-                                        Ve a <b>WhatsApp > Dispositivos Vinculados > Vincular un
-                                            dispositivo</b> y
-                                        enfoca
-                                        este
-                                        código QR para dar acceso al agente.
-                                    </p>
-                                    <div id="qrcode_container"></div>
-                                </div>
-
-                                <div id="wa_connected_msg" style="display: none;">
-                                    <svg style="width: 48px; height: 48px; color: var(--success); margin: 0 auto;"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
-                                        </path>
-                                    </svg>
-                                    <p
-                                        style="color: var(--success); font-weight:600; font-size: 17px; margin-top: 15px;">
-                                        Agente de WhatsApp vinculado correctamente.
-                                    </p>
-                                </div>
-                            </div>
+                        <div class="form-group">
+                            <label for="telegram_whitelist">Whitelisted IDs</label>
+                            <input type="text" id="telegram_whitelist" onchange="saveSettings()" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Habilidades -->
-            <div id="skills" class="page-content">
-                <h2 class="page-title">Habilidades Autónomas (Tools)</h2>
-                <p class="page-subtitle">Las habilidades activas permiten al Agente ejecutar código
-                    de forma autónoma
-                    durante el razonamiento.</p>
+            <!-- Tab WhatsApp -->
+            <div id="tab_whatsapp" class="sub-tab-content">
+                <div class="card">
+                    <div
+                        style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
+                        <h3 style="margin: 0; border: none; padding: 0;">Vincular WhatsApp de
+                            forma segura</h3>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="bot_whatsapp_enabled" onchange="toggleWhatsappConfig()" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div id="whatsapp_config_section">
+                        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
+                            <b>Nota importante:</b> Utiliza el interruptor superior si deseas
+                            apagar o encender
+                            el
+                            bot
+                            de
+                            WhatsApp (tras guardarlo, requiere que reinicies el servidor con
+                            <code>npm run dev</code>).
+                        </p>
 
-                <!-- SubTabs para Skills -->
-                <div class="sub-tabs" style="margin-bottom: 24px;">
-                    <button class="sub-tab-btn active"
-                        onclick="switchSkillTab('tab_skills_natives', this)">Nativas</button>
-                    <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_mcp', this)">Externas (MCP)</button>
-                    <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_voice', this)">Voz
-                        (OpenAI/ElevenLabs)</button>
+                        <div class="whatsapp-status-box" id="whatsapp_status_box_container">
+                            <div style="margin-bottom: 20px; font-size: 15px; color: var(--fg); font-weight: 500;">
+                                Estado de conexión de la sesión: <span id="wa_status_badge"
+                                    class="badge disconnected">Sin
+                                    Inicializar</span>
+                            </div>
+
+                            <div id="wa_qr_section" style="display: none;">
+                                <p style="font-size: 14px; margin-bottom:15px; color: var(--text-muted);">
+                                    Ve a <b>WhatsApp > Dispositivos Vinculados > Vincular un
+                                        dispositivo</b> y
+                                    enfoca
+                                    este
+                                    código QR para dar acceso al agente.
+                                </p>
+                                <div id="qrcode_container"></div>
+                            </div>
+
+                            <div id="wa_connected_msg" style="display: none;">
+                                <svg style="width: 48px; height: 48px; color: var(--success); margin: 0 auto;"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
+                                    </path>
+                                </svg>
+                                <p style="color: var(--success); font-weight:600; font-size: 17px; margin-top: 15px;">
+                                    Agente de WhatsApp vinculado correctamente.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Tab Nativas -->
-                <div id="tab_skills_natives" class="sub-tab-content active">
-                    <div class="card">
-                        <h3>Herramientas Nativas</h3>
+        <!-- Habilidades -->
+        <div id="skills" class="page-content">
+            <h2 class="page-title">Habilidades Autónomas (Tools)</h2>
+            <p class="page-subtitle">Las habilidades activas permiten al Agente ejecutar código
+                de forma autónoma
+                durante el razonamiento.</p>
+
+            <!-- SubTabs para Skills -->
+            <div class="sub-tabs" style="margin-bottom: 24px;">
+                <button class="sub-tab-btn active" onclick="switchSkillTab('tab_skills_natives', this)">Nativas</button>
+                <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_mcp', this)">Externas (MCP)</button>
+                <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_voice', this)">Voz
+                    (OpenAI/ElevenLabs)</button>
+            </div>
+
+            <!-- Tab Nativas -->
+            <div id="tab_skills_natives" class="sub-tab-content active">
+                <div class="card">
+                    <h3>Herramientas Nativas</h3>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
+                        Puedes añadir más desarrollando archivos en `src/agent/tools`. Estas son
+                        las detectadas
+                        actualmente:
+                    </p>
+
+                    <div class="form-group">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Obtener Hora Local (get_current_time)</div>
+                                <span class="helper-text" style="margin-top: 0;">Otorga
+                                    percepción temporal al LLM
+                                    nativamente para programar o saber qué día es.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_get_current_time" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Herramientas OpenClaw (Sistema Local) -->
+                    <div class="form-group" style="margin-top: 15px;">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Leer Archivo (read_file_local)</div>
+                                <span class="helper-text" style="margin-top: 0;">Lectura de
+                                    archivos alojados en el
+                                    mismo contenedor donde está este Agente.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_read_file_local" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Escribir Archivo (write_file_local)</div>
+                                <span class="helper-text" style="margin-top: 0;">Escritura o
+                                    alteración del código y
+                                    contenido de archivos locales.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_write_file_local" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Listar Directorio (list_dir_local)</div>
+                                <span class="helper-text" style="margin-top: 0;">Inspección del
+                                    árbol de archivos en
+                                    base a una ruta local dada.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_list_dir_local" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px;">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Ejecutar Shell/Bash Local (run_shell_local)</div>
+                                <span class="helper-text" style="margin-top: 0;">Permite al
+                                    Agente lanzar scripts
+                                    npm, bash_commands o comandos locales autónomos.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_run_shell_local" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Herramienta de Acceso Proxmox/VMs -->
+                    <div class="form-group" style="margin-top: 15px;">
+                        <div class="toggle-container">
+                            <div>
+                                <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
+                                    Túnel SSH Remoto (run_ssh_command)</div>
+                                <span class="helper-text" style="margin-top: 0;">Conexión y
+                                    ejecución de comandos
+                                    SSH en Host externos usando sus credenciales seguras.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="tool_run_ssh_command" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab MCP -->
+            <div id="tab_skills_mcp" class="sub-tab-content">
+                <div class="skills-filter-bar">
+                    <button class="filter-btn active" onclick="filterSkills('all')">Todas</button>
+                    <button class="filter-btn" onclick="filterSkills('active')">Activas</button>
+                    <button class="filter-btn" onclick="filterSkills('inactive')">Inactivas</button>
+                    <div style="flex: 1;"></div>
+                    <input type="text" id="skill_search" placeholder="Buscar habilidad..." oninput="filterSkills()">
+                </div>
+                <div id="mcp_skills_container" class="skills-grid">
+                    <!-- Carga dinámica desde js -->
+                </div>
+            </div>
+
+            <style>
+                .skills-filter-bar {
+                    display: flex;
+                    gap: 12px;
+                    margin-bottom: 24px;
+                    align-items: center;
+                    background: rgba(0, 0, 0, 0.03);
+                    padding: 16px;
+                    border-radius: 16px;
+                    border: 1px solid var(--border);
+                }
+
+                .filter-btn {
+                    background: var(--card);
+                    border: 1px solid var(--border);
+                    color: var(--text-muted);
+                    padding: 10px 20px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 600;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                .filter-btn:hover {
+                    border-color: var(--primary);
+                    color: var(--fg);
+                    transform: translateY(-1px);
+                }
+
+                .filter-btn.active {
+                    background: var(--primary);
+                    border-color: var(--primary);
+                    color: white !important;
+                    box-shadow: 0 4px 12px rgba(var(--primary-rgb, 59, 130, 246), 0.3);
+                }
+
+                #skill_search {
+                    padding: 10px 16px;
+                    border-radius: 10px;
+                    border: 1px solid var(--border);
+                    background: var(--card);
+                    color: var(--fg);
+                    font-size: 14px;
+                    min-width: 240px;
+                    transition: border-color 0.2s;
+                }
+
+                #skill_search:focus {
+                    border-color: var(--primary);
+                    outline: none;
+                    box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 59, 130, 246), 0.1);
+                }
+
+                .skills-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+                    gap: 40px;
+                    margin-top: 10px;
+                }
+
+                .skill-card {
+                    background-color: var(--card);
+                    border: 1px solid var(--border);
+                    border-radius: 16px;
+                    padding: 24px;
+                    display: flex;
+                    flex-direction: column;
+                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+                    position: relative;
+                    overflow: visible;
+                    min-height: 200px;
+                }
+
+                .skill-card:hover {
+                    transform: translateY(-6px);
+                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                    border-color: var(--primary);
+                }
+
+                .skill-card.enabled {
+                    border-bottom: 5px solid var(--primary);
+                }
+
+                .skill-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 24px;
+                }
+
+                .skill-title-area {
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                }
+
+                .skill-emoji {
+                    font-size: 22px;
+                    background: rgba(var(--primary-rgb, 59, 130, 246), 0.1);
+                    width: 44px;
+                    height: 44px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 10px;
+                    border: 1px solid rgba(var(--primary-rgb, 59, 130, 246), 0.2);
+                    flex-shrink: 0;
+                }
+
+                .skill-title {
+                    font-weight: 700;
+                    font-size: 15px;
+                    color: var(--fg);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    position: relative;
+                    line-height: 1.2;
+                }
+
+                .info-icon {
+                    width: 22px;
+                    height: 22px;
+                    color: var(--text-muted);
+                    cursor: help;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s;
+                    border-radius: 50%;
+                    background: rgba(0, 0, 0, 0.05);
+                }
+
+                .info-icon:hover {
+                    color: var(--primary);
+                    background: rgba(var(--primary-rgb, 59, 130, 246), 0.1);
+                    transform: scale(1.1);
+                }
+
+                .tooltip-text {
+                    visibility: hidden;
+                    width: 280px;
+                    background-color: var(--card);
+                    color: var(--fg);
+                    text-align: left;
+                    border: 1px solid var(--primary);
+                    border-radius: 14px;
+                    padding: 18px;
+                    position: absolute;
+                    z-index: 1000;
+                    bottom: 140%;
+                    left: 50%;
+                    transform: translateX(-50%) translateY(10px);
+                    opacity: 0;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    font-size: 14px;
+                    line-height: 1.6;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                    pointer-events: none;
+                }
+
+                .info-icon:hover~.tooltip-text {
+                    visibility: visible;
+                    opacity: 1;
+                    transform: translateX(-50%) translateY(0);
+                }
+
+                .skill-description {
+                    display: none;
+                }
+
+                .skill-footer {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-top: auto;
+                    padding-top: 20px;
+                    border-top: 1px solid var(--border);
+                }
+
+                .skill-status-badge {
+                    font-size: 12px;
+                    font-weight: 800;
+                    text-transform: uppercase;
+                    padding: 6px 12px;
+                    border-radius: 8px;
+                    letter-spacing: 0.5px;
+                }
+
+                .badge-active {
+                    background-color: rgba(16, 185, 129, 0.1);
+                    color: var(--success);
+                    border: 1px solid rgba(16, 185, 129, 0.2);
+                }
+
+                .badge-inactive {
+                    background-color: rgba(148, 163, 184, 0.1);
+                    color: var(--text-muted);
+                    border: 1px solid rgba(148, 163, 184, 0.2);
+                }
+            </style>
+
+            <!-- Tab Voz -->
+            <div id="tab_skills_voice" class="sub-tab-content">
+                <div class="card">
+                    <div
+                        style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px;">
+                        <h3 style="margin: 0; border: none; padding: 0;">Configuración de Voz
+                            (TTS)</h3>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="voice_enabled" onchange="toggleVoiceMainConfig()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div id="voice_engine_section" style="display: none;">
                         <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
-                            Puedes añadir más desarrollando archivos en `src/agent/tools`. Estas son
-                            las detectadas
-                            actualmente:
+                            Otorga a tu Agente una voz realista e hiperhumana. Selecciona el
+                            motor que prefieras.
                         </p>
 
                         <div class="form-group">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Obtener Hora Local (get_current_time)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Otorga
-                                        percepción temporal al LLM
-                                        nativamente para programar o saber qué día es.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_get_current_time" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
+                            <label for="voice_engine">Motor de Voz Principal</label>
+                            <select id="voice_engine" onchange="updateVoiceEngineFields()">
+                                <option value="openai">OpenAI TTS (Recomendado si ya usas
+                                    OpenAI)</option>
+                                <option value="elevenlabs">ElevenLabs (Voces Premium / Clonadas)
+                                </option>
+                            </select>
                         </div>
 
-                        <!-- Herramientas OpenClaw (Sistema Local) -->
-                        <div class="form-group" style="margin-top: 15px;">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Leer Archivo (read_file_local)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Lectura de
-                                        archivos alojados en el
-                                        mismo contenedor donde está este Agente.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_read_file_local" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-group" style="margin-top: 15px;">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Escribir Archivo (write_file_local)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Escritura o
-                                        alteración del código y
-                                        contenido de archivos locales.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_write_file_local" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-group" style="margin-top: 15px;">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Listar Directorio (list_dir_local)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Inspección del
-                                        árbol de archivos en
-                                        base a una ruta local dada.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_list_dir_local" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-group" style="margin-top: 15px;">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Ejecutar Shell/Bash Local (run_shell_local)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Permite al
-                                        Agente lanzar scripts
-                                        npm, bash_commands o comandos locales autónomos.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_run_shell_local" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Herramienta de Acceso Proxmox/VMs -->
-                        <div class="form-group" style="margin-top: 15px;">
-                            <div class="toggle-container">
-                                <div>
-                                    <div
-                                        style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
-                                        Túnel SSH Remoto (run_ssh_command)</div>
-                                    <span class="helper-text" style="margin-top: 0;">Conexión y
-                                        ejecución de comandos
-                                        SSH en Host externos usando sus credenciales seguras.</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="tool_run_ssh_command" onchange="saveSettings()">
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab MCP -->
-                <div id="tab_skills_mcp" class="sub-tab-content">
-                    <div class="skills-filter-bar">
-                        <button class="filter-btn active" onclick="filterSkills('all')">Todas</button>
-                        <button class="filter-btn" onclick="filterSkills('active')">Activas</button>
-                        <button class="filter-btn" onclick="filterSkills('inactive')">Inactivas</button>
-                        <div style="flex: 1;"></div>
-                        <input type="text" id="skill_search" placeholder="Buscar habilidad..." oninput="filterSkills()">
-                    </div>
-                    <div id="mcp_skills_container" class="skills-grid">
-                        <!-- Carga dinámica desde js -->
-                    </div>
-                </div>
-
-                <style>
-                    .skills-filter-bar {
-                        display: flex;
-                        gap: 12px;
-                        margin-bottom: 24px;
-                        align-items: center;
-                        background: rgba(0, 0, 0, 0.03);
-                        padding: 16px;
-                        border-radius: 16px;
-                        border: 1px solid var(--border);
-                    }
-
-                    .filter-btn {
-                        background: var(--card);
-                        border: 1px solid var(--border);
-                        color: var(--text-muted);
-                        padding: 10px 20px;
-                        border-radius: 10px;
-                        cursor: pointer;
-                        font-size: 14px;
-                        font-weight: 600;
-                        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                    }
-
-                    .filter-btn:hover {
-                        border-color: var(--primary);
-                        color: var(--fg);
-                        transform: translateY(-1px);
-                    }
-
-                    .filter-btn.active {
-                        background: var(--primary);
-                        border-color: var(--primary);
-                        color: white !important;
-                        box-shadow: 0 4px 12px rgba(var(--primary-rgb, 59, 130, 246), 0.3);
-                    }
-
-                    #skill_search {
-                        padding: 10px 16px;
-                        border-radius: 10px;
-                        border: 1px solid var(--border);
-                        background: var(--card);
-                        color: var(--fg);
-                        font-size: 14px;
-                        min-width: 240px;
-                        transition: border-color 0.2s;
-                    }
-
-                    #skill_search:focus {
-                        border-color: var(--primary);
-                        outline: none;
-                        box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 59, 130, 246), 0.1);
-                    }
-
-                    .skills-grid {
-                        display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-                        gap: 40px;
-                        margin-top: 10px;
-                    }
-
-                    .skill-card {
-                        background-color: var(--card);
-                        border: 1px solid var(--border);
-                        border-radius: 16px;
-                        padding: 24px;
-                        display: flex;
-                        flex-direction: column;
-                        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-                        position: relative;
-                        overflow: visible;
-                        min-height: 200px;
-                    }
-
-                    .skill-card:hover {
-                        transform: translateY(-6px);
-                        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-                        border-color: var(--primary);
-                    }
-
-                    .skill-card.enabled {
-                        border-bottom: 5px solid var(--primary);
-                    }
-
-                    .skill-header {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-bottom: 24px;
-                    }
-
-                    .skill-title-area {
-                        display: flex;
-                        align-items: center;
-                        gap: 16px;
-                    }
-
-                    .skill-emoji {
-                        font-size: 22px;
-                        background: rgba(var(--primary-rgb, 59, 130, 246), 0.1);
-                        width: 44px;
-                        height: 44px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        border-radius: 10px;
-                        border: 1px solid rgba(var(--primary-rgb, 59, 130, 246), 0.2);
-                        flex-shrink: 0;
-                    }
-
-                    .skill-title {
-                        font-weight: 700;
-                        font-size: 15px;
-                        color: var(--fg);
-                        display: flex;
-                        align-items: center;
-                        gap: 8px;
-                        position: relative;
-                        line-height: 1.2;
-                    }
-
-                    .info-icon {
-                        width: 22px;
-                        height: 22px;
-                        color: var(--text-muted);
-                        cursor: help;
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        transition: all 0.2s;
-                        border-radius: 50%;
-                        background: rgba(0, 0, 0, 0.05);
-                    }
-
-                    .info-icon:hover {
-                        color: var(--primary);
-                        background: rgba(var(--primary-rgb, 59, 130, 246), 0.1);
-                        transform: scale(1.1);
-                    }
-
-                    .tooltip-text {
-                        visibility: hidden;
-                        width: 280px;
-                        background-color: var(--card);
-                        color: var(--fg);
-                        text-align: left;
-                        border: 1px solid var(--primary);
-                        border-radius: 14px;
-                        padding: 18px;
-                        position: absolute;
-                        z-index: 1000;
-                        bottom: 140%;
-                        left: 50%;
-                        transform: translateX(-50%) translateY(10px);
-                        opacity: 0;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        font-size: 14px;
-                        line-height: 1.6;
-                        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-                        pointer-events: none;
-                    }
-
-                    .info-icon:hover~.tooltip-text {
-                        visibility: visible;
-                        opacity: 1;
-                        transform: translateX(-50%) translateY(0);
-                    }
-
-                    .skill-description {
-                        display: none;
-                    }
-
-                    .skill-footer {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-top: auto;
-                        padding-top: 20px;
-                        border-top: 1px solid var(--border);
-                    }
-
-                    .skill-status-badge {
-                        font-size: 12px;
-                        font-weight: 800;
-                        text-transform: uppercase;
-                        padding: 6px 12px;
-                        border-radius: 8px;
-                        letter-spacing: 0.5px;
-                    }
-
-                    .badge-active {
-                        background-color: rgba(16, 185, 129, 0.1);
-                        color: var(--success);
-                        border: 1px solid rgba(16, 185, 129, 0.2);
-                    }
-
-                    .badge-inactive {
-                        background-color: rgba(148, 163, 184, 0.1);
-                        color: var(--text-muted);
-                        border: 1px solid rgba(148, 163, 184, 0.2);
-                    }
-                </style>
-
-                <!-- Tab Voz -->
-                <div id="tab_skills_voice" class="sub-tab-content">
-                    <div class="card">
-                        <div
-                            style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px;">
-                            <h3 style="margin: 0; border: none; padding: 0;">Configuración de Voz
-                                (TTS)</h3>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="voice_enabled" onchange="toggleVoiceMainConfig()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div id="voice_engine_section" style="display: none;">
-                            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
-                                Otorga a tu Agente una voz realista e hiperhumana. Selecciona el
-                                motor que prefieras.
-                            </p>
-
+                        <!-- Campos OpenAI -->
+                        <div id="openai_voice_config_area"
+                            style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
                             <div class="form-group">
-                                <label for="voice_engine">Motor de Voz Principal</label>
-                                <select id="voice_engine" onchange="updateVoiceEngineFields()">
-                                    <option value="openai">OpenAI TTS (Recomendado si ya usas
-                                        OpenAI)</option>
-                                    <option value="elevenlabs">ElevenLabs (Voces Premium / Clonadas)
-                                    </option>
+                                <label for="openai_voice_id">Identidad Vocal de OpenAI</label>
+                                <select id="openai_voice_id">
+                                    <option value="alloy">Alloy (Neutral, equilibrada)</option>
+                                    <option value="echo">Echo (Masculina, cálida)</option>
+                                    <option value="fable">Fable (Narrativa, británica)</option>
+                                    <option value="onyx">Onyx (Masculina, profunda)</option>
+                                    <option value="nova">Nova (Femenina, enérgica)</option>
+                                    <option value="shimmer">Shimmer (Femenina, suave)</option>
                                 </select>
+                                <span class="helper-text">Usará tu API Key principal de
+                                    OpenAI.</span>
+                            </div>
+                        </div>
+
+                        <!-- Campos ElevenLabs -->
+                        <div id="elevenlabs_voice_config_area"
+                            style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
+                            <div class="form-group">
+                                <label for="elevenlabs_api_key">ElevenLabs API Key</label>
+                                <input type="password" id="elevenlabs_api_key" placeholder="Ej: sk_..."
+                                    autocomplete="off" onchange="saveSettings()" />
                             </div>
 
-                            <!-- Campos OpenAI -->
-                            <div id="openai_voice_config_area"
-                                style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
-                                <div class="form-group">
-                                    <label for="openai_voice_id">Identidad Vocal de OpenAI</label>
-                                    <select id="openai_voice_id">
-                                        <option value="alloy">Alloy (Neutral, equilibrada)</option>
-                                        <option value="echo">Echo (Masculina, cálida)</option>
-                                        <option value="fable">Fable (Narrativa, británica)</option>
-                                        <option value="onyx">Onyx (Masculina, profunda)</option>
-                                        <option value="nova">Nova (Femenina, enérgica)</option>
-                                        <option value="shimmer">Shimmer (Femenina, suave)</option>
-                                    </select>
-                                    <span class="helper-text">Usará tu API Key principal de
-                                        OpenAI.</span>
-                                </div>
-                            </div>
-
-                            <!-- Campos ElevenLabs -->
-                            <div id="elevenlabs_voice_config_area"
-                                style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
-                                <div class="form-group">
-                                    <label for="elevenlabs_api_key">ElevenLabs API Key</label>
-                                    <input type="password" id="elevenlabs_api_key" placeholder="Ej: sk_..."
-                                        autocomplete="off" onchange="saveSettings()" />
-                                </div>
-
-                                <div class="form-group" style="margin-top: 15px;">
-                                    <label for="elevenlabs_voice_id">Voz Personalizada
-                                        ElevenLabs</label>
-                                    <div style="display: flex; gap: 12px; align-items: stretch;">
-                                        <div style="flex: 1;">
-                                            <select id="elevenlabs_voice_id"
-                                                style="width: 100%; height: 100%; margin: 0;" onchange="saveSettings()">
-                                                <option value="">-- Carga las voces con tu API Key
-                                                    --</option>
-                                            </select>
-                                        </div>
-                                        <button type="button" class="secondary-btn" onclick="loadElevenLabsVoices()"
-                                            style="display: flex; align-items: center; white-space: nowrap; height: 100%;">
-                                            Cargar Voces
-                                        </button>
+                            <div class="form-group" style="margin-top: 15px;">
+                                <label for="elevenlabs_voice_id">Voz Personalizada
+                                    ElevenLabs</label>
+                                <div style="display: flex; gap: 12px; align-items: stretch;">
+                                    <div style="flex: 1;">
+                                        <select id="elevenlabs_voice_id" style="width: 100%; height: 100%; margin: 0;"
+                                            onchange="saveSettings()">
+                                            <option value="">-- Carga las voces con tu API Key
+                                                --</option>
+                                        </select>
                                     </div>
+                                    <button type="button" class="secondary-btn" onclick="loadElevenLabsVoices()"
+                                        style="display: flex; align-items: center; white-space: nowrap; height: 100%;">
+                                        Cargar Voces
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
         </div> <!-- End of settings_container -->
     </main>
@@ -1904,24 +1932,23 @@
                     o usa el método manual</div>
             </div>
 
-            <div class="form-group">
-                <label>Método de Conexión</label>
-                <select id="conn_method" onchange="toggleConnMethod()">
-                    <option value="key">API Key Manual</option>
-                    <option value="web">Login Asistido</option>
-                </select>
-            </div>
-
             <div id="method_key_section">
                 <div class="form-group">
                     <label id="key_label">API Key</label>
                     <div style="display: flex; gap: 8px;">
-                        <input type="password" id="modal_api_key" placeholder="Pega tu clave aquí..."
+                        <input type="password" id="modal_api_key" placeholder="Pega tu clave aqu&iacute;..."
                             style="flex: 1;" />
                         <button class="secondary-btn" id="btn_verify_key" onclick="verifyKeyOnly()"
                             style="padding: 0 15px;">Verificar</button>
                     </div>
                 </div>
+                <!-- Link de ayuda para obtener API Key -->
+                <div id="help_link_container" style="margin-top: -10px; margin-bottom: 20px;">
+                    <a id="provider_help_link" href="#" target="_blank"
+                        style="font-size: 12px; color: var(--primary); text-decoration: none;">&iquest;No tienes una
+                        clave? Cons&iacute;guela aqu&iacute; &rarr;</a>
+                </div>
+
                 <div class="form-group" id="model_selection_area" style="display: none;">
                     <label>Modelo del Cerebro</label>
                     <select id="modal_model_select"></select>
@@ -1931,13 +1958,6 @@
                     <label>Modelo (Manual)</label>
                     <input type="text" id="modal_model_name" placeholder="Ej: gpt-4o-mini" />
                 </div>
-            </div>
-
-            <div id="method_web_section"
-                style="display: none; text-align: center; padding: 20px; background: var(--input-bg); border-radius: 8px; border: 1px dashed var(--border);">
-                <p style="font-size: 13px; margin-bottom: 15px;">Se abrirá un portal guiado para ayudarte a obtener tu
-                    clave.</p>
-                <button class="secondary-btn" onclick="openAuthProvider()">Abrir Portal de Login</button>
             </div>
 
             <div style="display: flex; gap: 12px; margin-top:32px;">
@@ -2012,19 +2032,8 @@
     <script>
         // Sistema de Registro de Errores Críticos (Detección para el usuario)
         // --- SISTEMA DE DIAGN├ôSTICO VISUAL ---
-        const debugBox = document.getElementById('debug_box');
-        const debugContent = document.getElementById('debug_content');
-
         function logDebug(msg, type = 'info') {
-            if (!debugBox || !debugContent) return;
-            debugBox.style.display = 'block';
-            const log = document.createElement('div');
-            log.style.marginBottom = '2px';
-            log.style.color = type === 'error' ? '#f87171' : '#fbbf24';
-            log.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            debugContent.appendChild(log);
-            if (debugContent.children.length > 5) debugContent.removeChild(debugContent.firstChild);
-            debugBox.scrollTop = debugBox.scrollHeight;
+            console.log(`[${type}] ${msg}`);
         }
 
         window.onerror = function (msg, url, line) {
@@ -2117,6 +2126,11 @@
                     }
                 });
 
+                if (pageId === 'consumos') {
+                    loadUsageHistory();
+                    loadTokenUsage();
+                }
+
                 if (window.innerWidth <= 768) sidebar.classList.remove('mobile-open');
                 localStorage.setItem('agentLastPage', pageId);
 
@@ -2131,328 +2145,372 @@
             } catch (e) {
                 logDebug(`NAV ERROR: ${e.message}`, 'error');
             }
-        }
-
-        function switchChannelTab(tabId, btnContext) {
-            // Ocultar todos los sub-tabs de canales
-            document.querySelectorAll('#channels .sub-tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('#channels .sub-tab-btn').forEach(el => el.classList.remove('active'));
-
-            // Mostrar el activo
-            document.getElementById(tabId).classList.add('active');
-            btnContext.classList.add('active');
-        }
-
-        function switchLLMTab(tabId, btnContext) {
-            // Ocultar todos los sub-tabs de LLM
-            document.querySelectorAll('#llm .sub-tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('#llm .sub-tab-btn').forEach(el => el.classList.remove('active'));
-
-            // Mostrar el activo
-            document.getElementById(tabId).classList.add('active');
-            btnContext.classList.add('active');
-        }
-
-        function switchSkillTab(tabId, btnContext) {
-            // Ocultar todos los sub-tabs de skills
-            document.querySelectorAll('#skills .sub-tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('#skills .sub-tab-btn').forEach(el => el.classList.remove('active'));
-
-            // Mostrar el activo
-            document.getElementById(tabId).classList.add('active');
-            btnContext.classList.add('active');
-        }
-
-        // Ejecutar estado inicial (restaura la última web visitada o 'chat' por defecto)
-        const lastPage = localStorage.getItem('agentLastPage') || 'chat';
-        navigate(lastPage);
-
-        // Variables globales para nombres en el UI del chat
-        window.agentNameCache = 'IA';
-        window.userNameCache = 'TU';
-        window.currentSessionId = 'default';
-        window.settingsLoaded = false; // Guard para evitar que saveSettings() se dispare antes de que la config se cargue
-
-        // Variables de versionado
-        let currentVersion = '0.2.16-beta';
-        let remoteVersion = '';
-
-        async function checkForUpdates() {
-            try {
-                const r = await fetch('/api/check-update');
-                const d = await r.json();
-                remoteVersion = d.remote;
-                currentVersion = d.current;
-                if (d.updateAvailable) {
-                    const updateNotification = document.getElementById('update_notification');
-                    if (updateNotification) updateNotification.style.display = 'flex';
-                    const updateVersionText = document.getElementById('update_version_text');
-                    if (updateVersionText) updateVersionText.textContent = `v${d.remote} disponible`;
-                    const btnSearch = document.getElementById('btn_search_updates');
-                    if (btnSearch) btnSearch.style.display = 'none';
-                }
-            } catch (e) { }
-        }
-
-        async function checkForUpdatesManually() {
-            const btn = document.getElementById('btn_search_updates');
-            if (!btn) return;
-            const originalHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '⌛ Buscando...';
-
-            await checkForUpdates();
-
-            const updateNotification = document.getElementById('update_notification');
-            if (updateNotification && updateNotification.style.display === 'flex') {
-                openUpdateModal();
-            } else {
-                btn.innerHTML = '✅ Al día';
-                setTimeout(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHtml;
-                }, 3000);
+            function switchChannelTab(tabId, btnContext) {
+                document.querySelectorAll('#channels .sub-tab-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('#channels .sub-tab-btn').forEach(el => el.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                btnContext.classList.add('active');
             }
-        }
 
-        function openUpdateModal() {
-            const currentBadge = document.getElementById('current_version_badge');
-            const newBadge = document.getElementById('new_version_badge');
-            if (currentBadge) currentBadge.textContent = currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`;
-            if (newBadge) newBadge.textContent = remoteVersion.startsWith('v') ? remoteVersion : `v${remoteVersion}`;
-            const updateModal = document.getElementById('update_modal');
-            if (updateModal) updateModal.style.display = 'flex';
-        }
-
-        function closeUpdateModal() {
-            const progressArea = document.getElementById('update_progress_area');
-            if (progressArea && progressArea.style.display === 'block') return;
-            const updateModal = document.getElementById('update_modal');
-            if (updateModal) updateModal.style.display = 'none';
-        }
-
-        async function startUpdateProcess() {
-            const actionsArea = document.getElementById('update_actions_area');
-            const updateNote = document.getElementById('update_note');
-            const progressArea = document.getElementById('update_progress_area');
-            if (actionsArea) actionsArea.style.display = 'none';
-            if (updateNote) updateNote.style.display = 'none';
-            if (progressArea) progressArea.style.display = 'block';
-
-            const bar = document.getElementById('update_progress_bar');
-            const txt = document.getElementById('update_status_text');
-
-            const steps = [
-                { p: 10, t: "Obteniendo cambios de GitHub..." },
-                { p: 30, t: "Sincronizando archivos del código..." },
-                { p: 50, t: "Iniciando compilación (npm install)..." },
-                { p: 75, t: "Construyendo interfaz (rebuild)..." },
-                { p: 90, t: "Reiniciando servidor de Horus..." }
-            ];
-
-            let stepIdx = 0;
-            const interval = setInterval(() => {
-                if (stepIdx < steps.length) {
-                    if (bar) bar.style.width = steps[stepIdx].p + "%";
-                    if (txt) txt.textContent = steps[stepIdx].t;
-                    stepIdx++;
-                } else {
-                    clearInterval(interval);
-                    // Petición al backend para actualizar de verdad
-                    fetch('/api/perform-update', { method: 'POST' }).finally(() => {
-                        setTimeout(() => window.location.reload(), 2000);
-                    });
-                }
-            }, 1500);
-        }
-
-        async function createNewChatSession() {
-            const name = prompt("Nombre del nuevo chat:", `Nuevo Chat ${new Date().toLocaleTimeString()}`);
-            if (!name) return;
-            const id = 'sess_' + Date.now();
-            const res = await fetch('/api/sessions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, name, platform: 'web' })
-            });
-            if (res.ok) {
-                window.currentSessionId = id;
-                await loadSessions();
-                await loadChatHistory();
+            function switchLLMTab(tabId, btnContext) {
+                document.querySelectorAll('#llm .sub-tab-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('#llm .sub-tab-btn').forEach(el => el.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                btnContext.classList.add('active');
             }
-        }
 
-        async function loadSessions() {
-            try {
-                const res = await fetch('/api/sessions');
-                const data = await res.json();
-                const select = document.getElementById('sessions_select');
-                if (!select) return;
+            function switchSkillTab(tabId, btnContext) {
+                document.querySelectorAll('#skills .sub-tab-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('#skills .sub-tab-btn').forEach(el => el.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                btnContext.classList.add('active');
+            }
 
-                select.innerHTML = '';
-                data.sessions.forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s.id;
+            const lastPage = localStorage.getItem('agentLastPage') || 'chat';
+            navigate(lastPage);
 
-                    let emoji = '🌐';
-                    if (s.platform === 'whatsapp' || s.id === 'whatsapp_default') emoji = '💬';
-                    if (s.platform === 'telegram' || s.id === 'telegram_default') emoji = '✈️';
+            window.agentNameCache = 'IA';
+            window.userNameCache = 'TU';
+            window.currentSessionId = 'default';
+            window.settingsLoaded = false;
 
-                    opt.textContent = `${emoji} ${s.name}`;
-                    if (s.id === window.currentSessionId) opt.selected = true;
-                    select.appendChild(opt);
+            let currentVersion = '0.2.17-beta';
+            let remoteVersion = '';
+            let usageChart = null;
+
+            function initUsageChart(data) {
+                const ctx = document.getElementById('usageChart');
+                if (!ctx) return;
+
+                if (usageChart) usageChart.destroy();
+
+                // Procesar datos para agruparlos por fecha
+                const dates = Array.from(new Set(data.map(d => d.date))).sort();
+                const providers = Array.from(new Set(data.map(d => d.provider)));
+
+                const datasets = providers.map((provider, i) => {
+                    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                    return {
+                        label: provider,
+                        data: dates.map(date => {
+                            const hit = data.find(d => d.date === date && d.provider === provider);
+                            return hit ? hit.total : 0;
+                        }),
+                        backgroundColor: colors[i % colors.length],
+                        borderRadius: 4
+                    };
                 });
 
-                // Sincronizar versión dinámicamente
-                fetch('/api/check-update').then(r => r.json()).then(v => {
-                    const label = document.getElementById('ui_version_label');
-                    if (label) label.textContent = v.current || 'v0.2.12-beta';
-                }).catch(() => { });
-
-            } catch (e) {
-                console.error("Error cargando sesiones:", e);
-            }
-        }
-
-        async function switchSession(id) {
-            window.currentSessionId = id;
-            loadChatHistory();
-        }
-        window.fullAgentNameCache = 'Agente';
-        window.fullUserNameCache = 'Tú';
-
-        // Formateador seguro de texto a HTML usando Marked
-        function formatChatText(text) {
-            if (!text) return '';
-            try {
-                if (typeof marked !== 'undefined') {
-                    marked.setOptions({
-                        breaks: true,
-                        gfm: true,
-                        headerIds: false,
-                        mangle: false
-                    });
-                    let formatted = marked.parse(text);
-
-                    // Restablecer de capa de escape únicamente la caja del Audio generada por el agente
-                    formatted = formatted.replace(
-                        /\[AUDIO:\s*(\/media\/[^\]]+)\]/gi,
-                        '<audio src="$1" controls style="max-width: 100%; margin-top: 10px; display: block; border-radius: 20px; outline: none;"></audio>'
-                    );
-
-                    return formatted;
-                }
-            } catch (e) {
-                logDebug(`Marked Error: ${e.message}`, 'error');
-            }
-            // Fallback: Escape básico
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;")
-                .replace(/\n/g, '<br>');
-        }
-
-        // Cargar configuración actual
-        async function loadSettings() {
-            try {
-                const r = await fetch('/api/settings');
-                const data = await r.json();
-                console.log('[Debug] Ajustes cargados de API:', data);
-
-                // Estos campos aún se cargan si existen en el modal o para compatibilidad
-                if (document.getElementById('telegram_bot_token')) document.getElementById('telegram_bot_token').value = data.telegram_bot_token || '';
-                if (document.getElementById('telegram_whitelist')) document.getElementById('telegram_whitelist').value = data.telegram_whitelist || '';
-
-                // Populate hidden inputs for compatibility
-                if (document.getElementById('model_provider')) document.getElementById('model_provider').value = data.model_provider || 'openai';
-                if (document.getElementById('model_name')) document.getElementById('model_name').value = data.model_name || 'gpt-4o';
-                if (document.getElementById('llm_api_key')) document.getElementById('llm_api_key').value = data.llm_api_key || '';
-
-                // Herramientas
-                const tools = ['get_current_time', 'read_file_local', 'write_file_local', 'list_dir_local', 'run_shell_local', 'run_ssh_command'];
-                tools.forEach(t => {
-                    const el = document.getElementById('tool_' + t);
-                    if (el) el.checked = data['tool_' + t];
-                });
-
-                if (data.agent_name) {
-                    window.agentNameCache = data.agent_name.substring(0, 2).toUpperCase();
-                    window.fullAgentNameCache = data.agent_name;
-                    const input = document.getElementById('chat_input');
-                    if (input) input.placeholder = `Pregúntale algo a ${data.agent_name}...`;
-                }
-                if (data.user_name) {
-                    window.userNameCache = data.user_name.substring(0, 2).toUpperCase();
-                    window.fullUserNameCache = data.user_name;
-                }
-
-                // Canales
-                const botTg = document.getElementById('bot_telegram_enabled');
-                if (botTg) botTg.checked = data.bot_telegram_enabled !== false;
-                const botWa = document.getElementById('bot_whatsapp_enabled');
-                if (botWa) botWa.checked = data.bot_whatsapp_enabled !== false;
-
-                // Voz
-                const voiceEn = document.getElementById('voice_enabled');
-                if (voiceEn) voiceEn.checked = data.voice_enabled === true;
-                const voiceEng = document.getElementById('voice_engine');
-                if (voiceEng) voiceEng.value = data.voice_engine || 'openai';
-                const openaiVoice = document.getElementById('openai_voice_id');
-                if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
-                const elevenLabsKey = document.getElementById('elevenlabs_api_key');
-                if (elevenLabsKey) elevenLabsKey.value = data.elevenlabs_api_key || '';
-
-                if (data.elevenlabs_voice_id && document.getElementById('elevenlabs_voice_id')) {
-                    const select = document.getElementById('elevenlabs_voice_id');
-                    if (!select.querySelector(`option[value="${data.elevenlabs_voice_id}"]`)) {
-                        const opt = document.createElement('option');
-                        opt.value = data.elevenlabs_voice_id;
-                        opt.text = "Voz Actual Guardada (Carga voces para ver resto)";
-                        select.appendChild(opt);
+                usageChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: dates, datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } }
+                        },
+                        scales: {
+                            x: { stacked: true, grid: { display: false }, ticks: { color: '#94a3b8' } },
+                            y: { stacked: true, grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94a3b8' } }
+                        }
                     }
-                    select.value = data.elevenlabs_voice_id;
-                }
-
-                // Actualizar estados de los cerebros (Cards)
-                updateProviderStatus(data.model_provider, data.llm_api_key);
-
-                window.settingsLoaded = true;
-
-                // Ejecutar toggles iniciales
-                if (typeof toggleTelegramConfig === 'function') toggleTelegramConfig();
-                if (typeof toggleWhatsappConfig === 'function') toggleWhatsappConfig();
-                if (typeof toggleVoiceMainConfig === 'function') toggleVoiceMainConfig();
-                if (typeof updateVoiceEngineFields === 'function') updateVoiceEngineFields();
-
-            } catch (e) {
-                console.error("Error cargando settings:", e);
-                // Aseguramos que el sistema no se bloquee aunque falle la carga de ajustes
-                window.settingsLoaded = true;
-            } finally {
-                window.settingsLoaded = true;
+                });
             }
-        }
-        loadSettings();
 
-        // Cargar MCP Skills
-        function loadMCPSkills() {
-            fetch('/api/skills').then(r => r.json()).then(data => {
-                const container = document.getElementById('mcp_skills_container');
-                container.innerHTML = '';
-                if (!data.skills || data.skills.length === 0) {
-                    container.innerHTML = '<span class="helper-text">No se hallaron archivos .zip de habilidades MCP en la carpeta base.</span>';
-                    return;
+            async function loadUsageHistory() {
+                try {
+                    const r = await fetch('/api/tokens/history');
+                    const d = await r.json();
+                    if (d.history) {
+                        initUsageChart(d.history);
+
+                        // Calcular coste estimado
+                        const totalTokens = d.history.reduce((acc, curr) => acc + curr.total, 0);
+                        // Estimación burda: $0.35 por cada 1M tokens (promedio entrada/salida mini/flash)
+                        const estimatedCost = (totalTokens / 1000000) * 0.35;
+                        const costEl = document.getElementById('estimated_cost_display');
+                        if (costEl) costEl.textContent = `$${estimatedCost.toFixed(2)}`;
+                    }
+                } catch (e) { console.error("Error loading usage history", e); }
+            }
+
+            async function checkForUpdates() {
+                try {
+                    const r = await fetch('/api/check-update');
+                    const d = await r.json();
+                    remoteVersion = d.remote;
+                    currentVersion = d.current;
+                    if (d.updateAvailable) {
+                        const updateNotification = document.getElementById('update_notification');
+                        if (updateNotification) updateNotification.style.display = 'flex';
+                        const updateVersionText = document.getElementById('update_version_text');
+                        if (updateVersionText) updateVersionText.textContent = `v${d.remote} disponible`;
+                        const btnSearch = document.getElementById('btn_search_updates');
+                        if (btnSearch) btnSearch.style.display = 'none';
+                    }
+                } catch (e) { }
+            }
+
+            async function checkForUpdatesManually() {
+                const btn = document.getElementById('btn_search_updates');
+                if (!btn) return;
+                const originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '⌛ Buscando...';
+
+                await checkForUpdates();
+
+                const updateNotification = document.getElementById('update_notification');
+                if (updateNotification && updateNotification.style.display === 'flex') {
+                    openUpdateModal();
+                } else {
+                    btn.innerHTML = '✅ Al día';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                    }, 3000);
                 }
+            }
 
-                data.skills.forEach(skill => {
-                    const card = document.createElement('div');
-                    card.className = `skill-card ${skill.enabled ? 'enabled' : ''}`;
-                    card.id = `card_${skill.id}`;
+            function openUpdateModal() {
+                const currentBadge = document.getElementById('current_version_badge');
+                const newBadge = document.getElementById('new_version_badge');
+                if (currentBadge) currentBadge.textContent = currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`;
+                if (newBadge) newBadge.textContent = remoteVersion.startsWith('v') ? remoteVersion : `v${remoteVersion}`;
+                const updateModal = document.getElementById('update_modal');
+                if (updateModal) updateModal.style.display = 'flex';
+            }
 
-                    card.innerHTML = `
+            function closeUpdateModal() {
+                const progressArea = document.getElementById('update_progress_area');
+                if (progressArea && progressArea.style.display === 'block') return;
+                const updateModal = document.getElementById('update_modal');
+                if (updateModal) updateModal.style.display = 'none';
+            }
+
+            async function startUpdateProcess() {
+                const actionsArea = document.getElementById('update_actions_area');
+                const updateNote = document.getElementById('update_note');
+                const progressArea = document.getElementById('update_progress_area');
+                if (actionsArea) actionsArea.style.display = 'none';
+                if (updateNote) updateNote.style.display = 'none';
+                if (progressArea) progressArea.style.display = 'block';
+
+                const bar = document.getElementById('update_progress_bar');
+                const txt = document.getElementById('update_status_text');
+
+                const steps = [
+                    { p: 10, t: "Obteniendo cambios de GitHub..." },
+                    { p: 30, t: "Sincronizando archivos del código..." },
+                    { p: 50, t: "Iniciando compilación (npm install)..." },
+                    { p: 75, t: "Construyendo interfaz (rebuild)..." },
+                    { p: 90, t: "Reiniciando servidor de Horus..." }
+                ];
+
+                let stepIdx = 0;
+                const interval = setInterval(() => {
+                    if (stepIdx < steps.length) {
+                        if (bar) bar.style.width = steps[stepIdx].p + "%";
+                        if (txt) txt.textContent = steps[stepIdx].t;
+                        stepIdx++;
+                    } else {
+                        clearInterval(interval);
+                        // Petición al backend para actualizar de verdad
+                        fetch('/api/perform-update', { method: 'POST' }).finally(() => {
+                            setTimeout(() => window.location.reload(), 2000);
+                        });
+                    }
+                }, 1500);
+            }
+
+            async function createNewChatSession() {
+                const name = prompt("Nombre del nuevo chat:", `Nuevo Chat ${new Date().toLocaleTimeString()}`);
+                if (!name) return;
+                const id = 'sess_' + Date.now();
+                const res = await fetch('/api/sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, name, platform: 'web' })
+                });
+                if (res.ok) {
+                    window.currentSessionId = id;
+                    await loadSessions();
+                    await loadChatHistory();
+                }
+            }
+
+            async function loadSessions() {
+                try {
+                    const res = await fetch('/api/sessions');
+                    const data = await res.json();
+                    const select = document.getElementById('sessions_select');
+                    if (!select) return;
+
+                    select.innerHTML = '';
+                    data.sessions.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+
+                        let emoji = '🌐';
+                        if (s.platform === 'whatsapp' || s.id === 'whatsapp_default') emoji = '💬';
+                        if (s.platform === 'telegram' || s.id === 'telegram_default') emoji = '✈️';
+
+                        opt.textContent = `${emoji} ${s.name}`;
+                        if (s.id === window.currentSessionId) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+
+                    // Sincronizar versión dinámicamente
+                    fetch('/api/check-update').then(r => r.json()).then(v => {
+                        const label = document.getElementById('ui_version_label');
+                        if (label) label.textContent = v.current || 'v0.2.12-beta';
+                    }).catch(() => { });
+
+                } catch (e) {
+                    console.error("Error cargando sesiones:", e);
+                }
+            }
+
+            async function switchSession(id) {
+                window.currentSessionId = id;
+                loadChatHistory();
+            }
+            window.fullAgentNameCache = 'Agente';
+            window.fullUserNameCache = 'Tú';
+
+            // Formateador seguro de texto a HTML usando Marked
+            function formatChatText(text) {
+                if (!text) return '';
+                try {
+                    if (typeof marked !== 'undefined') {
+                        marked.setOptions({
+                            breaks: true,
+                            gfm: true,
+                            headerIds: false,
+                            mangle: false
+                        });
+                        let formatted = marked.parse(text);
+
+                        // Restablecer de capa de escape únicamente la caja del Audio generada por el agente
+                        formatted = formatted.replace(
+                            /\[AUDIO:\s*(\/media\/[^\]]+)\]/gi,
+                            '<audio src="$1" controls style="max-width: 100%; margin-top: 10px; display: block; border-radius: 20px; outline: none;"></audio>'
+                        );
+
+                        return formatted;
+                    }
+                } catch (e) {
+                    logDebug(`Marked Error: ${e.message}`, 'error');
+                }
+                // Fallback: Escape básico
+                return text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;")
+                    .replace(/\n/g, '<br>');
+            }
+
+            // Cargar configuración actual
+            async function loadSettings() {
+                try {
+                    const r = await fetch('/api/settings');
+                    const data = await r.json();
+                    console.log('[Debug] Ajustes cargados de API:', data);
+
+                    // Estos campos aún se cargan si existen en el modal o para compatibilidad
+                    if (document.getElementById('telegram_bot_token')) document.getElementById('telegram_bot_token').value = data.telegram_bot_token || '';
+                    if (document.getElementById('telegram_whitelist')) document.getElementById('telegram_whitelist').value = data.telegram_whitelist || '';
+
+                    // Populate hidden inputs for compatibility
+                    if (document.getElementById('model_provider')) document.getElementById('model_provider').value = data.model_provider || 'openai';
+                    if (document.getElementById('model_name')) document.getElementById('model_name').value = data.model_name || 'gpt-4o';
+                    if (document.getElementById('llm_api_key')) document.getElementById('llm_api_key').value = data.llm_api_key || '';
+
+                    // Herramientas
+                    const tools = ['get_current_time', 'read_file_local', 'write_file_local', 'list_dir_local', 'run_shell_local', 'run_ssh_command'];
+                    tools.forEach(t => {
+                        const el = document.getElementById('tool_' + t);
+                        if (el) el.checked = data['tool_' + t];
+                    });
+
+                    if (data.agent_name) {
+                        window.agentNameCache = data.agent_name.substring(0, 2).toUpperCase();
+                        window.fullAgentNameCache = data.agent_name;
+                        const input = document.getElementById('chat_input');
+                        if (input) input.placeholder = `Pregúntale algo a ${data.agent_name}...`;
+                    }
+                    if (data.user_name) {
+                        window.userNameCache = data.user_name.substring(0, 2).toUpperCase();
+                        window.fullUserNameCache = data.user_name;
+                    }
+
+                    // Canales
+                    const botTg = document.getElementById('bot_telegram_enabled');
+                    if (botTg) botTg.checked = data.bot_telegram_enabled !== false;
+                    const botWa = document.getElementById('bot_whatsapp_enabled');
+                    if (botWa) botWa.checked = data.bot_whatsapp_enabled !== false;
+
+                    // Voz
+                    const voiceEn = document.getElementById('voice_enabled');
+                    if (voiceEn) voiceEn.checked = data.voice_enabled === true;
+                    const voiceEng = document.getElementById('voice_engine');
+                    if (voiceEng) voiceEng.value = data.voice_engine || 'openai';
+                    const openaiVoice = document.getElementById('openai_voice_id');
+                    if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
+                    const elevenLabsKey = document.getElementById('elevenlabs_api_key');
+                    if (elevenLabsKey) elevenLabsKey.value = data.elevenlabs_api_key || '';
+
+                    if (data.elevenlabs_voice_id && document.getElementById('elevenlabs_voice_id')) {
+                        const select = document.getElementById('elevenlabs_voice_id');
+                        if (!select.querySelector(`option[value="${data.elevenlabs_voice_id}"]`)) {
+                            const opt = document.createElement('option');
+                            opt.value = data.elevenlabs_voice_id;
+                            opt.text = "Voz Actual Guardada (Carga voces para ver resto)";
+                            select.appendChild(opt);
+                        }
+                        select.value = data.elevenlabs_voice_id;
+                    }
+
+                    // Actualizar estados de los cerebros (Cards)
+                    updateProviderStatus(data.model_provider, data.llm_api_key);
+
+                    window.settingsLoaded = true;
+
+                    // Ejecutar toggles iniciales
+                    if (typeof toggleTelegramConfig === 'function') toggleTelegramConfig();
+                    if (typeof toggleWhatsappConfig === 'function') toggleWhatsappConfig();
+                    if (typeof toggleVoiceMainConfig === 'function') toggleVoiceMainConfig();
+                    if (typeof updateVoiceEngineFields === 'function') updateVoiceEngineFields();
+
+                } catch (e) {
+                    console.error("Error cargando settings:", e);
+                    // Aseguramos que el sistema no se bloquee aunque falle la carga de ajustes
+                    window.settingsLoaded = true;
+                } finally {
+                    window.settingsLoaded = true;
+                }
+            }
+            loadSettings();
+
+            // Cargar MCP Skills
+            function loadMCPSkills() {
+                fetch('/api/skills').then(r => r.json()).then(data => {
+                    const container = document.getElementById('mcp_skills_container');
+                    container.innerHTML = '';
+                    if (!data.skills || data.skills.length === 0) {
+                        container.innerHTML = '<span class="helper-text">No se hallaron archivos .zip de habilidades MCP en la carpeta base.</span>';
+                        return;
+                    }
+
+                    data.skills.forEach(skill => {
+                        const card = document.createElement('div');
+                        card.className = `skill-card ${skill.enabled ? 'enabled' : ''}`;
+                        card.id = `card_${skill.id}`;
+
+                        card.innerHTML = `
                         <div class="skill-header">
                             <div class="skill-title-area">
                                 <div class="skill-emoji">${skill.emoji || 'ÔÜí'}</div>
@@ -2479,765 +2537,776 @@
                         </div>
                     `;
 
-                    // Lógica especial para GOG
-                    if (skill.id === 'gog.zip') {
-                        const configDiv = document.createElement('div');
-                        configDiv.id = `config_gog.zip`;
-                        configDiv.style.display = skill.enabled ? 'block' : 'none';
-                        configDiv.style.marginTop = '15px';
-                        configDiv.style.padding = '15px';
-                        configDiv.style.backgroundColor = 'rgba(0,0,0,0.1)';
-                        configDiv.style.borderRadius = '8px';
-                        configDiv.style.border = '1px solid var(--border)';
-                        configDiv.innerHTML = `
+                        // Lógica especial para GOG
+                        if (skill.id === 'gog.zip') {
+                            const configDiv = document.createElement('div');
+                            configDiv.id = `config_gog.zip`;
+                            configDiv.style.display = skill.enabled ? 'block' : 'none';
+                            configDiv.style.marginTop = '15px';
+                            configDiv.style.padding = '15px';
+                            configDiv.style.backgroundColor = 'rgba(0,0,0,0.1)';
+                            configDiv.style.borderRadius = '8px';
+                            configDiv.style.border = '1px solid var(--border)';
+                            configDiv.innerHTML = `
                             <label style="font-size: 13px; margin-bottom: 6px; display: block;">Ruta client_secret.json</label>
                             <input type="text" id="gog_client_secret" value="${window.gogSecretCache || ''}" style="margin-bottom: 10px; padding: 10px; font-size: 13px;" onchange="saveSettings()">
                             <label style="font-size: 13px; margin-bottom: 6px; display: block;">Email Gmail</label>
                             <input type="email" id="gog_email" value="${window.gogEmailCache || ''}" style="padding: 10px; font-size: 13px;" onchange="saveSettings()">
                         `;
-                        card.appendChild(configDiv);
-                    }
-
-                    container.appendChild(card);
-                });
-
-                // Inicializar caché para filtros
-                window.allSkillsCache = data.skills;
-            }).catch(e => console.error("Error loading MCP abilities", e));
-        }
-
-        // Nueva función de filtrado
-        window.filterSkills = function (filterType) {
-            const container = document.getElementById('mcp_skills_container');
-            const search = document.getElementById('skill_search').value.toLowerCase();
-            const cards = container.querySelectorAll('.skill-card');
-
-            if (filterType) {
-                // Actualizar botones activos
-                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-                const targetBtn = Array.from(document.querySelectorAll('.filter-btn')).find(b => b.getAttribute('onclick').includes(filterType));
-                if (targetBtn) targetBtn.classList.add('active');
-                window.currentFilter = filterType;
-            }
-
-            const activeFilter = window.currentFilter || 'all';
-
-            cards.forEach(card => {
-                const title = card.querySelector('.skill-title').textContent.toLowerCase();
-                const id = card.id.replace('card_', '').toLowerCase();
-                const isEnabled = card.classList.contains('enabled');
-
-                let matchesSearch = title.includes(search) || id.includes(search);
-                let matchesFilter = true;
-
-                if (activeFilter === 'active') matchesFilter = isEnabled;
-                if (activeFilter === 'inactive') matchesFilter = !isEnabled;
-
-                card.style.display = (matchesSearch && matchesFilter) ? 'flex' : 'none';
-            });
-        };
-
-        // Nueva función para manejar el UI del toggle de skills
-        window.toggleSkillUI = function (skillId) {
-            const isEnabled = document.getElementById('skill_enabled_' + skillId).checked;
-            const card = document.getElementById('card_' + skillId);
-            const badge = card.querySelector('.skill-status-badge');
-
-            if (isEnabled) {
-                card.classList.add('enabled');
-                badge.className = 'skill-status-badge badge-active';
-                badge.textContent = 'Activa';
-            } else {
-                card.classList.remove('enabled');
-                badge.className = 'skill-status-badge badge-inactive';
-                badge.textContent = 'Desactivada';
-            }
-
-            // Mostrar config si existe
-            const configEl = document.getElementById('config_' + skillId);
-            if (configEl) configEl.style.display = isEnabled ? 'block' : 'none';
-
-            // Auto-guardar
-            saveSettings();
-        };
-        loadMCPSkills();
-
-        // Cargar Historial de Chat y aplicar Polling
-        let lastMessageCount = 0;
-        let chatBusySending = false; // Flag para evitar que el polling destruya el DOM durante el envío
-
-        async function loadChatHistory() {
-            // Si estamos en medio de un envío, no tocar el DOM
-            if (chatBusySending) return;
-
-            try {
-                const res = await fetch(`/api/chat-history?sessionId=${window.currentSessionId}`);
-                const data = await res.json();
-                const chat = document.getElementById('chat_history');
-
-                if (data.messages) {
-                    const newCount = data.messages.length;
-                    const currentDOMCount = chat.querySelectorAll('.chat-message-wrapper').length;
-
-                    if (newCount !== currentDOMCount) {
-                        chat.innerHTML = '';
-
-                        if (newCount === 0) {
-                            // Chat vacío: no mostramos nada, esperamos al usuario
-                        } else {
-                            data.messages.forEach(msg => {
-                                const wrapper = document.createElement('div');
-                                wrapper.className = `chat-message-wrapper ${msg.role === 'user' ? 'user' : 'assistant'}`;
-
-                                const avatar = document.createElement('div');
-                                avatar.className = `avatar ${msg.role === 'user' ? 'user' : 'assistant'}`;
-                                avatar.textContent = msg.role === 'user' ? window.userNameCache : window.agentNameCache;
-                                avatar.title = msg.role === 'user' ? window.fullUserNameCache : window.fullAgentNameCache;
-
-                                const contentWrapper = document.createElement('div');
-                                contentWrapper.className = 'message-content';
-
-                                const senderName = document.createElement('div');
-                                senderName.className = 'sender-name';
-                                senderName.textContent = msg.role === 'user' ? window.fullUserNameCache : window.fullAgentNameCache;
-
-                                const bubble = document.createElement('div');
-                                bubble.className = `chat-bubble ${msg.role === 'user' ? 'user' : 'assistant'}`;
-                                bubble.innerHTML = formatChatText(msg.content);
-
-                                contentWrapper.appendChild(senderName);
-                                contentWrapper.appendChild(bubble);
-
-                                wrapper.appendChild(avatar);
-                                wrapper.appendChild(contentWrapper);
-                                chat.appendChild(wrapper);
-                            });
+                            card.appendChild(configDiv);
                         }
-                        setTimeout(() => chat.scrollTop = chat.scrollHeight, 100);
-                    }
-                }
-            } catch (e) {
-                console.error("Error al refrescar historial", e);
-            }
-        }
 
-        // Carga inicial y encuesta de nuevos mensajes cada 3s por si se chatea desde Telegram/WA
-        loadSessions();
-        loadChatHistory();
-        setInterval(() => {
-            // Solo hacer polling si la pestaña activa es 'chat'
-            if (document.getElementById('chat').classList.contains('active')) {
-                loadChatHistory();
-            }
-        }, 3000);
-
-        // Funciones para mostrar u ocultar la configuración según si están habilitados
-        function toggleTelegramConfig() {
-            const el = document.getElementById('bot_telegram_enabled');
-            const section = document.getElementById('telegram_config_section');
-            if (el && section) {
-                const isEnabled = el.checked;
-                section.style.display = isEnabled ? 'block' : 'none';
-            }
-            saveSettings();
-        }
-
-        function toggleVoiceMainConfig() {
-            const isEnabled = document.getElementById('voice_enabled').checked;
-            document.getElementById('voice_engine_section').style.display = isEnabled ? 'block' : 'none';
-            saveSettings();
-        }
-
-        function toggleWhatsappConfig() {
-            const el = document.getElementById('bot_whatsapp_enabled');
-            const section = document.getElementById('whatsapp_config_section');
-            if (el && section) {
-                section.style.display = el.checked ? 'block' : 'none';
-            }
-            saveSettings();
-        }
-
-        function updateVoiceEngineFields() {
-            const engine = document.getElementById('voice_engine').value;
-            document.getElementById('openai_voice_config_area').style.display = engine === 'openai' ? 'block' : 'none';
-            document.getElementById('elevenlabs_voice_config_area').style.display = engine === 'elevenlabs' ? 'block' : 'none';
-        }
-
-        async function saveSettings() {
-            // No guardar si la configuración aún no se ha cargado del servidor
-            if (!window.settingsLoaded) return;
-
-            const payload = {
-                model_provider: document.getElementById('model_provider')?.value || 'openai',
-                model_name: document.getElementById('model_name')?.value || 'gpt-4o',
-                llm_api_key: document.getElementById('llm_api_key')?.value || '',
-                telegram_bot_token: document.getElementById('telegram_bot_token')?.value || '',
-                telegram_whitelist: document.getElementById('telegram_whitelist')?.value || '',
-                tool_get_current_time: document.getElementById('tool_get_current_time')?.checked || false,
-                tool_read_file_local: document.getElementById('tool_read_file_local')?.checked || false,
-                tool_write_file_local: document.getElementById('tool_write_file_local')?.checked || false,
-                tool_list_dir_local: document.getElementById('tool_list_dir_local')?.checked || false,
-                tool_run_shell_local: document.getElementById('tool_run_shell_local')?.checked || false,
-                tool_run_ssh_command: document.getElementById('tool_run_ssh_command')?.checked || false,
-                bot_telegram_enabled: document.getElementById('bot_telegram_enabled')?.checked || false,
-                bot_whatsapp_enabled: document.getElementById('bot_whatsapp_enabled')?.checked || false,
-                voice_enabled: document.getElementById('voice_enabled')?.checked || false,
-                voice_engine: document.getElementById('voice_engine')?.value || 'openai',
-                openai_voice_id: document.getElementById('openai_voice_id')?.value || 'alloy',
-                elevenlabs_api_key: document.getElementById('elevenlabs_api_key')?.value || '',
-                elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || ''
-            };
-
-            const gogClientEl = document.getElementById('gog_client_secret');
-            if (gogClientEl) payload.gog_client_secret = gogClientEl.value;
-            const gogEmailEl = document.getElementById('gog_email');
-            if (gogEmailEl) payload.gog_email = gogEmailEl.value;
-
-            // Recolectar switches de MCP Skills dinámicos
-            document.querySelectorAll('input[id^="skill_enabled_"]').forEach(input => {
-                payload[input.id] = input.checked;
-            });
-
-            const res = await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (res.ok) {
-                const msg = document.getElementById('successMsg');
-                msg.style.display = 'block';
-                // Scroll arriba para ver el asomo verde
-                document.querySelector('.main-content').scrollTop = 0;
-                setTimeout(() => msg.style.display = 'none', 5000);
-            }
-        }
-
-        async function clearMemory() {
-            if (confirm("&iquest;Estás súper seguro de que quieres borrar de forma irreversible la memoria de tu agente?")) {
-                await fetch('/api/clear-memory', { method: 'POST' });
-                alert("Memoria borrada. El agente empezará de cero su hilo de conversación.");
-                document.getElementById('chat_history').innerHTML = '<div class="chat-bubble assistant">Memoria borrada. &iexcl;Hola de nuevo!</div>';
-            }
-        }
-
-        function handleChatEnter(e) {
-            if (e.key === 'Enter') sendChatMessage();
-        }
-
-        async function sendChatMessage() {
-            const input = document.getElementById('chat_input');
-            const text = input.value.trim();
-            if (!text) return;
-            console.log(`[Debug] sendChatMessage: sessionId=${window.currentSessionId}, messageLength=${text.length}`);
-
-            chatBusySending = true; // Evitar que el polling sobreescriba el DOM
-            const chat = document.getElementById('chat_history');
-
-            // Wrappers de chat
-            const userWrapper = document.createElement('div');
-            userWrapper.className = 'chat-message-wrapper user';
-
-            const userAvatar = document.createElement('div');
-            userAvatar.className = 'avatar user';
-            userAvatar.textContent = window.userNameCache;
-            userAvatar.title = window.fullUserNameCache;
-
-            const contentWrapper = document.createElement('div');
-            contentWrapper.className = 'message-content';
-
-            const senderName = document.createElement('div');
-            senderName.className = 'sender-name';
-            senderName.textContent = window.fullUserNameCache;
-
-            const userBubble = document.createElement('div');
-            userBubble.className = 'chat-bubble user';
-            userBubble.innerHTML = formatChatText(text);
-
-            contentWrapper.appendChild(senderName);
-            contentWrapper.appendChild(userBubble);
-
-            userWrapper.appendChild(userAvatar);
-            userWrapper.appendChild(contentWrapper);
-            chat.appendChild(userWrapper);
-
-            input.value = '';
-            chat.scrollTop = chat.scrollHeight;
-
-            // Indicación de carga estilo ChatGPT
-            const typingWrapper = document.createElement('div');
-            typingWrapper.className = 'chat-message-wrapper assistant';
-
-            const typingAvatar = document.createElement('div');
-            typingAvatar.className = 'avatar assistant';
-            typingAvatar.textContent = window.agentNameCache;
-            typingAvatar.title = window.fullAgentNameCache;
-
-            const typingContentWrapper = document.createElement('div');
-            typingContentWrapper.className = 'message-content';
-
-            const typingSenderName = document.createElement('div');
-            typingSenderName.className = 'sender-name';
-            typingSenderName.textContent = window.fullAgentNameCache;
-
-            const typingBubble = document.createElement('div');
-            typingBubble.className = 'chat-bubble assistant';
-            typingBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
-
-            typingContentWrapper.appendChild(typingSenderName);
-            typingContentWrapper.appendChild(typingBubble);
-
-            typingWrapper.appendChild(typingAvatar);
-            typingWrapper.appendChild(typingContentWrapper);
-            chat.appendChild(typingWrapper);
-            chat.scrollTop = chat.scrollHeight;
-
-            try {
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, sessionId: window.currentSessionId })
-                });
-
-                chat.removeChild(typingWrapper);
-
-                if (!res.ok) {
-                    const d = await res.json();
-                    throw new Error(d.error || 'Error del servidor');
-                }
-
-                const data = await res.json();
-
-                const botWrapper = document.createElement('div');
-                botWrapper.className = 'chat-message-wrapper assistant';
-
-                const botAvatar = document.createElement('div');
-                botAvatar.className = 'avatar assistant';
-                botAvatar.textContent = window.agentNameCache;
-                botAvatar.title = window.fullAgentNameCache;
-
-                const botContentWrapper = document.createElement('div');
-                botContentWrapper.className = 'message-content';
-
-                const botSenderName = document.createElement('div');
-                botSenderName.className = 'sender-name';
-                botSenderName.textContent = window.fullAgentNameCache;
-
-                const botBubble = document.createElement('div');
-                botBubble.className = 'chat-bubble assistant';
-                botBubble.innerHTML = formatChatText(data.reply);
-
-                botContentWrapper.appendChild(botSenderName);
-                botContentWrapper.appendChild(botBubble);
-
-                botWrapper.appendChild(botAvatar);
-                botWrapper.appendChild(botContentWrapper);
-                chat.appendChild(botWrapper);
-
-                chat.scrollTop = chat.scrollHeight;
-
-            } catch (e) {
-                chat.removeChild(typingWrapper);
-                const errWrapper = document.createElement('div');
-                errWrapper.className = 'chat-message-wrapper assistant';
-
-                const botAvatar = document.createElement('div');
-                botAvatar.className = 'avatar assistant';
-                botAvatar.textContent = window.agentNameCache;
-                botAvatar.title = window.fullAgentNameCache;
-
-                const errorContentWrapper = document.createElement('div');
-                errorContentWrapper.className = 'message-content';
-
-                const errorSenderName = document.createElement('div');
-                errorSenderName.className = 'sender-name';
-                errorSenderName.textContent = window.fullAgentNameCache;
-
-                const errorBubble = document.createElement('div');
-                errorBubble.className = 'chat-bubble assistant';
-                errorBubble.style.color = 'var(--danger)';
-                errorBubble.innerHTML = formatChatText("Error de red: " + e.message);
-
-                errorContentWrapper.appendChild(errorSenderName);
-                errorContentWrapper.appendChild(errorBubble);
-
-                errWrapper.appendChild(botAvatar);
-                errWrapper.appendChild(errorContentWrapper);
-                chat.appendChild(errWrapper);
-
-                chat.scrollTop = chat.scrollHeight;
-            }
-            chatBusySending = false; // Reanudar polling
-        }
-
-        async function loadModels() {
-            const provider = document.getElementById('model_provider').value;
-            const apiKey = document.getElementById('llm_api_key').value;
-            const statusEl = document.getElementById('models_status');
-
-            statusEl.textContent = "Consultando proveedor, por favor espera...";
-            statusEl.style.color = "var(--primary)";
-
-            try {
-                const res = await fetch('/api/models', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider, apiKey })
-                });
-
-                if (!res.ok) {
-                    const err = await res.json();
-                    statusEl.textContent = "Error: " + (err.error || "No se pudieron cargar los modelos");
-                    statusEl.style.color = "var(--danger)";
-                    return;
-                }
-
-                const data = await res.json();
-                const datalist = document.getElementById('model_list');
-                datalist.innerHTML = '';
-
-                if (data.models && data.models.length > 0) {
-                    data.models.forEach(m => {
-                        const opt = document.createElement('option');
-                        opt.value = m.id;
-                        opt.text = m.name;
-                        datalist.appendChild(opt);
+                        container.appendChild(card);
                     });
 
-                    document.getElementById('model_name').value = '';
-                    statusEl.textContent = `├ëxito. Se han sincronizado ${data.models.length} modelos. Abajo abre el selector para usar la lista.`;
-                    statusEl.style.color = "var(--success)";
+                    // Inicializar caché para filtros
+                    window.allSkillsCache = data.skills;
+                }).catch(e => console.error("Error loading MCP abilities", e));
+            }
+
+            // Nueva función de filtrado
+            window.filterSkills = function (filterType) {
+                const container = document.getElementById('mcp_skills_container');
+                const search = document.getElementById('skill_search').value.toLowerCase();
+                const cards = container.querySelectorAll('.skill-card');
+
+                if (filterType) {
+                    // Actualizar botones activos
+                    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                    const targetBtn = Array.from(document.querySelectorAll('.filter-btn')).find(b => b.getAttribute('onclick').includes(filterType));
+                    if (targetBtn) targetBtn.classList.add('active');
+                    window.currentFilter = filterType;
+                }
+
+                const activeFilter = window.currentFilter || 'all';
+
+                cards.forEach(card => {
+                    const title = card.querySelector('.skill-title').textContent.toLowerCase();
+                    const id = card.id.replace('card_', '').toLowerCase();
+                    const isEnabled = card.classList.contains('enabled');
+
+                    let matchesSearch = title.includes(search) || id.includes(search);
+                    let matchesFilter = true;
+
+                    if (activeFilter === 'active') matchesFilter = isEnabled;
+                    if (activeFilter === 'inactive') matchesFilter = !isEnabled;
+
+                    card.style.display = (matchesSearch && matchesFilter) ? 'flex' : 'none';
+                });
+            };
+
+            // Nueva función para manejar el UI del toggle de skills
+            window.toggleSkillUI = function (skillId) {
+                const isEnabled = document.getElementById('skill_enabled_' + skillId).checked;
+                const card = document.getElementById('card_' + skillId);
+                const badge = card.querySelector('.skill-status-badge');
+
+                if (isEnabled) {
+                    card.classList.add('enabled');
+                    badge.className = 'skill-status-badge badge-active';
+                    badge.textContent = 'Activa';
                 } else {
-                    statusEl.textContent = "No se encontraron modelos. Verifica tu API Key o proveedor.";
-                    statusEl.style.color = "var(--danger)";
+                    card.classList.remove('enabled');
+                    badge.className = 'skill-status-badge badge-inactive';
+                    badge.textContent = 'Desactivada';
                 }
-            } catch (e) {
-                statusEl.textContent = "Error de red interno consultando.";
-                statusEl.style.color = "var(--danger)";
-            }
-        }
 
-        // --- SISTEMA DE CEREBRO V4 (LOGIN) ---
-        let currentModalProvider = '';
+                // Mostrar config si existe
+                const configEl = document.getElementById('config_' + skillId);
+                if (configEl) configEl.style.display = isEnabled ? 'block' : 'none';
 
-        function openLoginModal(provider) {
-            currentModalProvider = provider;
-            const names = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google Gemini', groq: 'Groq', openrouter: 'OpenRouter' };
-            document.getElementById('modal_provider_title').textContent = `Conectar con ${names[provider] || provider}`;
+                // Auto-guardar
+                saveSettings();
+            };
+            loadMCPSkills();
 
-            // Reset UI
-            document.getElementById('model_selection_area').style.display = 'none';
-            document.getElementById('manual_model_area').style.display = 'none';
-            document.getElementById('btn_test_conn').style.display = 'none';
-            document.getElementById('btn_verify_key').style.display = 'block';
+            // Cargar Historial de Chat y aplicar Polling
+            let lastMessageCount = 0;
+            let chatBusySending = false; // Flag para evitar que el polling destruya el DOM durante el envío
 
-            // Re-etiquetar para Qwen
-            const label = document.getElementById('key_label');
-            if (label) label.textContent = (provider === 'qwen') ? 'DashScope API Key' : 'API Key';
+            async function loadChatHistory() {
+                // Si estamos en medio de un envío, no tocar el DOM
+                if (chatBusySending) return;
 
-            // Mostrar OAuth si es OpenRouter
-            document.getElementById('oauth_container').style.display = (provider === 'openrouter') ? 'block' : 'none';
+                try {
+                    const res = await fetch(`/api/chat-history?sessionId=${window.currentSessionId}`);
+                    const data = await res.json();
+                    const chat = document.getElementById('chat_history');
 
-            document.getElementById('llm_modal').style.display = 'flex';
-            document.getElementById('modal_status_msg').textContent = '';
-            document.getElementById('modal_api_key').value = '';
-            document.getElementById('modal_model_name').value = '';
-        }
+                    if (data.messages) {
+                        const newCount = data.messages.length;
+                        const currentDOMCount = chat.querySelectorAll('.chat-message-wrapper').length;
 
-        function closeLoginModal() {
-            document.getElementById('llm_modal').style.display = 'none';
-        }
+                        if (newCount !== currentDOMCount) {
+                            chat.innerHTML = '';
 
-        function toggleConnMethod() {
-            const method = document.getElementById('conn_method').value;
-            document.getElementById('method_key_section').style.display = method === 'key' ? 'block' : 'none';
-            document.getElementById('method_web_section').style.display = method === 'web' ? 'block' : 'none';
-            document.getElementById('btn_test_conn').style.display = method === 'key' ? 'block' : 'none';
-        }
+                            if (newCount === 0) {
+                                // Chat vacío: no mostramos nada, esperamos al usuario
+                            } else {
+                                data.messages.forEach(msg => {
+                                    const wrapper = document.createElement('div');
+                                    wrapper.className = `chat-message-wrapper ${msg.role === 'user' ? 'user' : 'assistant'}`;
 
-        function openAuthProvider() {
-            const url = `/auth-provider?p=${currentModalProvider}`;
-            window.open(url, '_blank', 'width=500,height=700');
+                                    const avatar = document.createElement('div');
+                                    avatar.className = `avatar ${msg.role === 'user' ? 'user' : 'assistant'}`;
+                                    avatar.textContent = msg.role === 'user' ? window.userNameCache : window.agentNameCache;
+                                    avatar.title = msg.role === 'user' ? window.fullUserNameCache : window.fullAgentNameCache;
 
-            // Polling para detectar login exitoso
-            const checkLogin = setInterval(async () => {
-                const r = await fetch('/api/settings');
-                const d = await r.json();
-                if (d.model_provider === currentModalProvider && d.llm_api_key) {
-                    clearInterval(checkLogin);
-                    closeLoginModal();
-                    updateProviderStatus(d.model_provider, d.llm_api_key);
+                                    const contentWrapper = document.createElement('div');
+                                    contentWrapper.className = 'message-content';
+
+                                    const senderName = document.createElement('div');
+                                    senderName.className = 'sender-name';
+                                    senderName.textContent = msg.role === 'user' ? window.fullUserNameCache : window.fullAgentNameCache;
+
+                                    const bubble = document.createElement('div');
+                                    bubble.className = `chat-bubble ${msg.role === 'user' ? 'user' : 'assistant'}`;
+                                    bubble.innerHTML = formatChatText(msg.content);
+
+                                    contentWrapper.appendChild(senderName);
+                                    contentWrapper.appendChild(bubble);
+
+                                    wrapper.appendChild(avatar);
+                                    wrapper.appendChild(contentWrapper);
+                                    chat.appendChild(wrapper);
+                                });
+                            }
+                            setTimeout(() => chat.scrollTop = chat.scrollHeight, 100);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error al refrescar historial", e);
                 }
-            }, 2000);
-            setTimeout(() => clearInterval(checkLogin), 60000);
-        }
-
-        async function verifyKeyOnly() {
-            const apiKey = document.getElementById('modal_api_key').value;
-            const statusMsg = document.getElementById('modal_status_msg');
-            const btn = document.getElementById('btn_verify_key');
-
-            if (!apiKey) {
-                statusMsg.textContent = '❌ Introduce una API Key';
-                statusMsg.style.color = 'var(--danger)';
-                return;
             }
 
-            btn.disabled = true;
-            statusMsg.textContent = '⌛ Verificando clave...';
-            statusMsg.style.color = 'var(--primary)';
+            // Carga inicial y encuesta de nuevos mensajes cada 3s por si se chatea desde Telegram/WA
+            loadSessions();
+            loadChatHistory();
+            setInterval(() => {
+                // Solo hacer polling si la pestaña activa es 'chat'
+                if (document.getElementById('chat').classList.contains('active')) {
+                    loadChatHistory();
+                }
+            }, 3000);
 
-            try {
-                const res = await fetch('/api/models', {
+            // Funciones para mostrar u ocultar la configuración según si están habilitados
+            function toggleTelegramConfig() {
+                const el = document.getElementById('bot_telegram_enabled');
+                const section = document.getElementById('telegram_config_section');
+                if (el && section) {
+                    const isEnabled = el.checked;
+                    section.style.display = isEnabled ? 'block' : 'none';
+                }
+                saveSettings();
+            }
+
+            function toggleVoiceMainConfig() {
+                const isEnabled = document.getElementById('voice_enabled').checked;
+                document.getElementById('voice_engine_section').style.display = isEnabled ? 'block' : 'none';
+                saveSettings();
+            }
+
+            function toggleWhatsappConfig() {
+                const el = document.getElementById('bot_whatsapp_enabled');
+                const section = document.getElementById('whatsapp_config_section');
+                if (el && section) {
+                    section.style.display = el.checked ? 'block' : 'none';
+                }
+                saveSettings();
+            }
+
+            function updateVoiceEngineFields() {
+                const engine = document.getElementById('voice_engine').value;
+                document.getElementById('openai_voice_config_area').style.display = engine === 'openai' ? 'block' : 'none';
+                document.getElementById('elevenlabs_voice_config_area').style.display = engine === 'elevenlabs' ? 'block' : 'none';
+            }
+
+            async function saveSettings() {
+                // No guardar si la configuración aún no se ha cargado del servidor
+                if (!window.settingsLoaded) return;
+
+                const payload = {
+                    model_provider: document.getElementById('model_provider')?.value || 'openai',
+                    model_name: document.getElementById('model_name')?.value || 'gpt-4o',
+                    llm_api_key: document.getElementById('llm_api_key')?.value || '',
+                    telegram_bot_token: document.getElementById('telegram_bot_token')?.value || '',
+                    telegram_whitelist: document.getElementById('telegram_whitelist')?.value || '',
+                    tool_get_current_time: document.getElementById('tool_get_current_time')?.checked || false,
+                    tool_read_file_local: document.getElementById('tool_read_file_local')?.checked || false,
+                    tool_write_file_local: document.getElementById('tool_write_file_local')?.checked || false,
+                    tool_list_dir_local: document.getElementById('tool_list_dir_local')?.checked || false,
+                    tool_run_shell_local: document.getElementById('tool_run_shell_local')?.checked || false,
+                    tool_run_ssh_command: document.getElementById('tool_run_ssh_command')?.checked || false,
+                    bot_telegram_enabled: document.getElementById('bot_telegram_enabled')?.checked || false,
+                    bot_whatsapp_enabled: document.getElementById('bot_whatsapp_enabled')?.checked || false,
+                    voice_enabled: document.getElementById('voice_enabled')?.checked || false,
+                    voice_engine: document.getElementById('voice_engine')?.value || 'openai',
+                    openai_voice_id: document.getElementById('openai_voice_id')?.value || 'alloy',
+                    elevenlabs_api_key: document.getElementById('elevenlabs_api_key')?.value || '',
+                    elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || ''
+                };
+
+                const gogClientEl = document.getElementById('gog_client_secret');
+                if (gogClientEl) payload.gog_client_secret = gogClientEl.value;
+                const gogEmailEl = document.getElementById('gog_email');
+                if (gogEmailEl) payload.gog_email = gogEmailEl.value;
+
+                // Recolectar switches de MCP Skills dinámicos
+                document.querySelectorAll('input[id^="skill_enabled_"]').forEach(input => {
+                    payload[input.id] = input.checked;
+                });
+
+                const res = await fetch('/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider: currentModalProvider, apiKey })
+                    body: JSON.stringify(payload)
                 });
 
                 if (res.ok) {
-                    const data = await res.json();
-                    statusMsg.textContent = '✅ Clave válida. Elige un modelo.';
-                    statusMsg.style.color = 'var(--success)';
+                    const msg = document.getElementById('successMsg');
+                    msg.style.display = 'block';
+                    // Scroll arriba para ver el asomo verde
+                    document.querySelector('.main-content').scrollTop = 0;
+                    setTimeout(() => msg.style.display = 'none', 5000);
+                }
+            }
 
-                    const select = document.getElementById('modal_model_select');
-                    select.innerHTML = '';
+            async function clearMemory() {
+                if (confirm("&iquest;Estás súper seguro de que quieres borrar de forma irreversible la memoria de tu agente?")) {
+                    await fetch('/api/clear-memory', { method: 'POST' });
+                    alert("Memoria borrada. El agente empezará de cero su hilo de conversación.");
+                    document.getElementById('chat_history').innerHTML = '<div class="chat-bubble assistant">Memoria borrada. &iexcl;Hola de nuevo!</div>';
+                }
+            }
+
+            function handleChatEnter(e) {
+                if (e.key === 'Enter') sendChatMessage();
+            }
+
+            async function sendChatMessage() {
+                const input = document.getElementById('chat_input');
+                const text = input.value.trim();
+                if (!text) return;
+                console.log(`[Debug] sendChatMessage: sessionId=${window.currentSessionId}, messageLength=${text.length}`);
+
+                chatBusySending = true; // Evitar que el polling sobreescriba el DOM
+                const chat = document.getElementById('chat_history');
+
+                // Wrappers de chat
+                const userWrapper = document.createElement('div');
+                userWrapper.className = 'chat-message-wrapper user';
+
+                const userAvatar = document.createElement('div');
+                userAvatar.className = 'avatar user';
+                userAvatar.textContent = window.userNameCache;
+                userAvatar.title = window.fullUserNameCache;
+
+                const contentWrapper = document.createElement('div');
+                contentWrapper.className = 'message-content';
+
+                const senderName = document.createElement('div');
+                senderName.className = 'sender-name';
+                senderName.textContent = window.fullUserNameCache;
+
+                const userBubble = document.createElement('div');
+                userBubble.className = 'chat-bubble user';
+                userBubble.innerHTML = formatChatText(text);
+
+                contentWrapper.appendChild(senderName);
+                contentWrapper.appendChild(userBubble);
+
+                userWrapper.appendChild(userAvatar);
+                userWrapper.appendChild(contentWrapper);
+                chat.appendChild(userWrapper);
+
+                input.value = '';
+                chat.scrollTop = chat.scrollHeight;
+
+                // Indicación de carga estilo ChatGPT
+                const typingWrapper = document.createElement('div');
+                typingWrapper.className = 'chat-message-wrapper assistant';
+
+                const typingAvatar = document.createElement('div');
+                typingAvatar.className = 'avatar assistant';
+                typingAvatar.textContent = window.agentNameCache;
+                typingAvatar.title = window.fullAgentNameCache;
+
+                const typingContentWrapper = document.createElement('div');
+                typingContentWrapper.className = 'message-content';
+
+                const typingSenderName = document.createElement('div');
+                typingSenderName.className = 'sender-name';
+                typingSenderName.textContent = window.fullAgentNameCache;
+
+                const typingBubble = document.createElement('div');
+                typingBubble.className = 'chat-bubble assistant';
+                typingBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+
+                typingContentWrapper.appendChild(typingSenderName);
+                typingContentWrapper.appendChild(typingBubble);
+
+                typingWrapper.appendChild(typingAvatar);
+                typingWrapper.appendChild(typingContentWrapper);
+                chat.appendChild(typingWrapper);
+                chat.scrollTop = chat.scrollHeight;
+
+                try {
+                    const res = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: text, sessionId: window.currentSessionId })
+                    });
+
+                    chat.removeChild(typingWrapper);
+
+                    if (!res.ok) {
+                        const d = await res.json();
+                        throw new Error(d.error || 'Error del servidor');
+                    }
+
+                    const data = await res.json();
+
+                    const botWrapper = document.createElement('div');
+                    botWrapper.className = 'chat-message-wrapper assistant';
+
+                    const botAvatar = document.createElement('div');
+                    botAvatar.className = 'avatar assistant';
+                    botAvatar.textContent = window.agentNameCache;
+                    botAvatar.title = window.fullAgentNameCache;
+
+                    const botContentWrapper = document.createElement('div');
+                    botContentWrapper.className = 'message-content';
+
+                    const botSenderName = document.createElement('div');
+                    botSenderName.className = 'sender-name';
+                    botSenderName.textContent = window.fullAgentNameCache;
+
+                    const botBubble = document.createElement('div');
+                    botBubble.className = 'chat-bubble assistant';
+                    botBubble.innerHTML = formatChatText(data.reply);
+
+                    botContentWrapper.appendChild(botSenderName);
+                    botContentWrapper.appendChild(botBubble);
+
+                    botWrapper.appendChild(botAvatar);
+                    botWrapper.appendChild(botContentWrapper);
+                    chat.appendChild(botWrapper);
+
+                    chat.scrollTop = chat.scrollHeight;
+
+                } catch (e) {
+                    chat.removeChild(typingWrapper);
+                    const errWrapper = document.createElement('div');
+                    errWrapper.className = 'chat-message-wrapper assistant';
+
+                    const botAvatar = document.createElement('div');
+                    botAvatar.className = 'avatar assistant';
+                    botAvatar.textContent = window.agentNameCache;
+                    botAvatar.title = window.fullAgentNameCache;
+
+                    const errorContentWrapper = document.createElement('div');
+                    errorContentWrapper.className = 'message-content';
+
+                    const errorSenderName = document.createElement('div');
+                    errorSenderName.className = 'sender-name';
+                    errorSenderName.textContent = window.fullAgentNameCache;
+
+                    const errorBubble = document.createElement('div');
+                    errorBubble.className = 'chat-bubble assistant';
+                    errorBubble.style.color = 'var(--danger)';
+                    errorBubble.innerHTML = formatChatText("Error de red: " + e.message);
+
+                    errorContentWrapper.appendChild(errorSenderName);
+                    errorContentWrapper.appendChild(errorBubble);
+
+                    errWrapper.appendChild(botAvatar);
+                    errWrapper.appendChild(errorContentWrapper);
+                    chat.appendChild(errWrapper);
+
+                    chat.scrollTop = chat.scrollHeight;
+                }
+                chatBusySending = false; // Reanudar polling
+            }
+
+            async function loadModels() {
+                const provider = document.getElementById('model_provider').value;
+                const apiKey = document.getElementById('llm_api_key').value;
+                const statusEl = document.getElementById('models_status');
+
+                statusEl.textContent = "Consultando proveedor, por favor espera...";
+                statusEl.style.color = "var(--primary)";
+
+                try {
+                    const res = await fetch('/api/models', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ provider, apiKey })
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        statusEl.textContent = "Error: " + (err.error || "No se pudieron cargar los modelos");
+                        statusEl.style.color = "var(--danger)";
+                        return;
+                    }
+
+                    const data = await res.json();
+                    const datalist = document.getElementById('model_list');
+                    datalist.innerHTML = '';
 
                     if (data.models && data.models.length > 0) {
                         data.models.forEach(m => {
                             const opt = document.createElement('option');
                             opt.value = m.id;
-                            opt.textContent = m.name;
-                            select.appendChild(opt);
+                            opt.text = m.name;
+                            datalist.appendChild(opt);
                         });
-                        document.getElementById('model_selection_area').style.display = 'block';
+
+                        document.getElementById('model_name').value = '';
+                        statusEl.textContent = `├ëxito. Se han sincronizado ${data.models.length} modelos. Abajo abre el selector para usar la lista.`;
+                        statusEl.style.color = "var(--success)";
                     } else {
-                        document.getElementById('manual_model_area').style.display = 'block';
+                        statusEl.textContent = "No se encontraron modelos. Verifica tu API Key o proveedor.";
+                        statusEl.style.color = "var(--danger)";
                     }
-
-                    btn.style.display = 'none';
-                    document.getElementById('btn_test_conn').style.display = 'block';
-                } else {
-                    const data = await res.json();
-                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Clave inválida');
-                    statusMsg.style.color = 'var(--danger)';
+                } catch (e) {
+                    statusEl.textContent = "Error de red interno consultando.";
+                    statusEl.style.color = "var(--danger)";
                 }
-            } catch (e) {
-                statusMsg.textContent = '❌ Error de red';
-                statusMsg.style.color = 'var(--danger)';
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        async function testConnection() {
-            const apiKey = document.getElementById('modal_api_key').value;
-            const modelSelect = document.getElementById('modal_model_select');
-            const modelManual = document.getElementById('modal_model_name');
-            let model = (modelSelect && modelSelect.value) || (modelManual && modelManual.value);
-
-            // Evitar desajustes: si no hay modelo o es incongruente, poner default
-            if (!model || model === 'n/a' || (currentModalProvider === 'openai' && model.includes('openrouter'))) {
-                if (currentModalProvider === 'openai') model = 'gpt-4o-mini';
-                else if (currentModalProvider === 'groq') model = 'llama-3.3-70b-versatile';
-                else if (currentModalProvider === 'anthropic') model = 'claude-3-5-sonnet-20241022';
-                else if (currentModalProvider === 'google') model = 'gemini-1.5-flash';
-                else if (currentModalProvider === 'openrouter') model = 'openrouter/free';
             }
 
-            const statusMsg = document.getElementById('modal_status_msg');
-            const btn = document.getElementById('btn_test_conn');
+            // --- SISTEMA DE CEREBRO V4 (LOGIN) ---
+            let currentModalProvider = '';
 
-            btn.disabled = true;
-            statusMsg.textContent = '⌛ Guardando configuración...';
+            function openLoginModal(provider) {
+                currentModalProvider = provider;
+                const names = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google Gemini', groq: 'Groq', openrouter: 'OpenRouter' };
+                const helpLinks = {
+                    openai: 'https://platform.openai.com/api-keys',
+                    anthropic: 'https://console.anthropic.com/settings/keys',
+                    google: 'https://aistudio.google.com/app/apikey',
+                    groq: 'https://console.groq.com/keys',
+                    openrouter: 'https://openrouter.ai/keys'
+                };
 
-            try {
-                const res = await fetch('/api/verify-llm', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider: currentModalProvider, apiKey, model })
-                });
+                document.getElementById('modal_provider_title').textContent = `Conectar con ${names[provider] || provider}`;
 
-                if (res.ok) {
-                    statusMsg.textContent = '✅ &iexcl;Conectado con éxito!';
-                    statusMsg.style.color = 'var(--success)';
-                    setTimeout(() => {
+                const helpLink = document.getElementById('provider_help_link');
+                if (helpLink) helpLink.href = helpLinks[provider] || '#';
+
+                // Reset UI
+                document.getElementById('model_selection_area').style.display = 'none';
+                document.getElementById('manual_model_area').style.display = 'none';
+                document.getElementById('btn_test_conn').style.display = 'none';
+                document.getElementById('btn_verify_key').style.display = 'block';
+
+                // Re-etiquetar para Qwen
+                const label = document.getElementById('key_label');
+                if (label) label.textContent = (provider === 'qwen') ? 'DashScope API Key' : 'API Key';
+
+                // Mostrar OAuth si es OpenRouter
+                document.getElementById('oauth_container').style.display = (provider === 'openrouter') ? 'block' : 'none';
+
+                document.getElementById('llm_modal').style.display = 'flex';
+                document.getElementById('modal_status_msg').textContent = '';
+                document.getElementById('modal_api_key').value = '';
+                document.getElementById('modal_model_name').value = '';
+            }
+
+            function closeLoginModal() {
+                document.getElementById('llm_modal').style.display = 'none';
+            }
+
+            function toggleConnMethod() {
+                const method = document.getElementById('conn_method').value;
+                document.getElementById('method_key_section').style.display = method === 'key' ? 'block' : 'none';
+                document.getElementById('method_web_section').style.display = method === 'web' ? 'block' : 'none';
+                document.getElementById('btn_test_conn').style.display = method === 'key' ? 'block' : 'none';
+            }
+
+            function openAuthProvider() {
+                const url = `/auth-provider?p=${currentModalProvider}`;
+                window.open(url, '_blank', 'width=500,height=700');
+
+                // Polling para detectar login exitoso
+                const checkLogin = setInterval(async () => {
+                    const r = await fetch('/api/settings');
+                    const d = await r.json();
+                    if (d.model_provider === currentModalProvider && d.llm_api_key) {
+                        clearInterval(checkLogin);
                         closeLoginModal();
-                        updateProviderStatus(currentModalProvider, apiKey);
-                    }, 1500);
-                } else {
-                    const data = await res.json();
-                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Fallo al verificar');
+                        updateProviderStatus(d.model_provider, d.llm_api_key);
+                    }
+                }, 2000);
+                setTimeout(() => clearInterval(checkLogin), 60000);
+            }
+
+            async function verifyKeyOnly() {
+                const apiKey = document.getElementById('modal_api_key').value;
+                const statusMsg = document.getElementById('modal_status_msg');
+                const btn = document.getElementById('btn_verify_key');
+
+                if (!apiKey) {
+                    statusMsg.textContent = '❌ Introduce una API Key';
                     statusMsg.style.color = 'var(--danger)';
-                }
-            } catch (e) {
-                statusMsg.textContent = '❌ Error de red';
-                statusMsg.style.color = 'var(--danger)';
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        function updateProviderStatus(activeProvider, apiKey) {
-            document.querySelectorAll('.provider-badge').forEach(b => {
-                b.textContent = b.id === 'badge_anthropic' ? 'Próximamente' : 'Desconectado';
-                b.className = b.id === 'badge_anthropic' ? 'provider-badge pending' : 'provider-badge disconnected';
-            });
-            document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--border)');
-
-            if (activeProvider && apiKey) {
-                const badge = document.getElementById(`badge_${activeProvider}`);
-                const card = document.getElementById(`card_${activeProvider}`);
-                if (badge) {
-                    badge.textContent = 'Conectado';
-                    badge.className = 'provider-badge connected';
-                }
-                if (card) {
-                    card.style.borderColor = 'var(--success)';
-                }
-            }
-        }
-
-        function startOAuthLogin() {
-            const callback = window.location.origin + '/auth-provider?p=openrouter&oauth=true';
-            window.open(`https://openrouter.ai/auth?callback_url=${encodeURIComponent(callback)}`, '_blank', 'width=500,height=700');
-        }
-
-
-
-        async function loadTokenUsage() {
-            try {
-                const r = await fetch('/api/tokens/today');
-                const data = await r.json();
-                const container = document.getElementById('token_usage_stats');
-                container.innerHTML = '';
-
-                if (data.length === 0) {
-                    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;">Sin consumo registrado hoy.</div>';
                     return;
                 }
 
-                data.forEach(stat => {
-                    const box = document.createElement('div');
-                    box.style = 'text-align: center; padding: 15px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border); transition: transform 0.2s;';
-                    box.innerHTML = `
+                btn.disabled = true;
+                statusMsg.textContent = '⌛ Verificando clave...';
+                statusMsg.style.color = 'var(--primary)';
+
+                try {
+                    const res = await fetch('/api/models', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ provider: currentModalProvider, apiKey })
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        statusMsg.textContent = '✅ Clave válida. Elige un modelo.';
+                        statusMsg.style.color = 'var(--success)';
+
+                        const select = document.getElementById('modal_model_select');
+                        select.innerHTML = '';
+
+                        if (data.models && data.models.length > 0) {
+                            data.models.forEach(m => {
+                                const opt = document.createElement('option');
+                                opt.value = m.id;
+                                opt.textContent = m.name;
+                                select.appendChild(opt);
+                            });
+                            document.getElementById('model_selection_area').style.display = 'block';
+                        } else {
+                            document.getElementById('manual_model_area').style.display = 'block';
+                        }
+
+                        btn.style.display = 'none';
+                        document.getElementById('btn_test_conn').style.display = 'block';
+                    } else {
+                        const data = await res.json();
+                        statusMsg.textContent = '❌ Error: ' + (data.error || 'Clave inválida');
+                        statusMsg.style.color = 'var(--danger)';
+                    }
+                } catch (e) {
+                    statusMsg.textContent = '❌ Error de red';
+                    statusMsg.style.color = 'var(--danger)';
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            async function testConnection() {
+                const apiKey = document.getElementById('modal_api_key').value;
+                const modelSelect = document.getElementById('modal_model_select');
+                const modelManual = document.getElementById('modal_model_name');
+                let model = (modelSelect && modelSelect.value) || (modelManual && modelManual.value);
+
+                // Evitar desajustes: si no hay modelo o es incongruente, poner default
+                if (!model || model === 'n/a' || (currentModalProvider === 'openai' && model.includes('openrouter'))) {
+                    if (currentModalProvider === 'openai') model = 'gpt-4o-mini';
+                    else if (currentModalProvider === 'groq') model = 'llama-3.3-70b-versatile';
+                    else if (currentModalProvider === 'anthropic') model = 'claude-3-5-sonnet-20241022';
+                    else if (currentModalProvider === 'google') model = 'gemini-1.5-flash';
+                    else if (currentModalProvider === 'openrouter') model = 'openrouter/free';
+                }
+
+                const statusMsg = document.getElementById('modal_status_msg');
+                const btn = document.getElementById('btn_test_conn');
+
+                btn.disabled = true;
+                statusMsg.textContent = '⌛ Guardando configuración...';
+
+                try {
+                    const res = await fetch('/api/verify-llm', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ provider: currentModalProvider, apiKey, model })
+                    });
+
+                    if (res.ok) {
+                        statusMsg.textContent = '✅ &iexcl;Conectado con éxito!';
+                        statusMsg.style.color = 'var(--success)';
+                        setTimeout(() => {
+                            closeLoginModal();
+                            updateProviderStatus(currentModalProvider, apiKey);
+                        }, 1500);
+                    } else {
+                        const data = await res.json();
+                        statusMsg.textContent = '❌ Error: ' + (data.error || 'Fallo al verificar');
+                        statusMsg.style.color = 'var(--danger)';
+                    }
+                } catch (e) {
+                    statusMsg.textContent = '❌ Error de red';
+                    statusMsg.style.color = 'var(--danger)';
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            function updateProviderStatus(activeProvider, apiKey) {
+                document.querySelectorAll('.provider-badge').forEach(b => {
+                    b.textContent = b.id === 'badge_anthropic' ? 'Próximamente' : 'Desconectado';
+                    b.className = b.id === 'badge_anthropic' ? 'provider-badge pending' : 'provider-badge disconnected';
+                });
+                document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--border)');
+
+                if (activeProvider && apiKey) {
+                    const badge = document.getElementById(`badge_${activeProvider}`);
+                    const card = document.getElementById(`card_${activeProvider}`);
+                    if (badge) {
+                        badge.textContent = 'Conectado';
+                        badge.className = 'provider-badge connected';
+                    }
+                    if (card) {
+                        card.style.borderColor = 'var(--success)';
+                    }
+                }
+            }
+
+            function startOAuthLogin() {
+                const callback = window.location.origin + '/auth-provider?p=openrouter&oauth=true';
+                window.open(`https://openrouter.ai/auth?callback_url=${encodeURIComponent(callback)}`, '_blank', 'width=500,height=700');
+            }
+
+
+
+            async function loadTokenUsage() {
+                try {
+                    const r = await fetch('/api/tokens/today');
+                    const data = await r.json();
+                    const container = document.getElementById('token_usage_stats');
+                    container.innerHTML = '';
+
+                    if (data.length === 0) {
+                        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;">Sin consumo registrado hoy.</div>';
+                        return;
+                    }
+
+                    data.forEach(stat => {
+                        const box = document.createElement('div');
+                        box.style = 'text-align: center; padding: 15px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border); transition: transform 0.2s;';
+                        box.innerHTML = `
                         <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">${stat.provider}</div>
                         <div style="font-size: 18px; font-weight: 700; color: var(--primary);">${stat.total.toLocaleString()}</div>
                         <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px;">Tokens</div>
                     `;
-                    container.appendChild(box);
-                });
-            } catch (e) { }
-        }
-
-        async function saveMultiTierSettings() {
-            const p1 = document.getElementById('llm_primary_fallback').value;
-            const p2 = document.getElementById('llm_secondary_fallback').value;
-            const p3 = document.getElementById('llm_tertiary_fallback').value;
-
-            await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    llm_primary_provider: p1,
-                    llm_secondary_provider: p2,
-                    llm_tertiary_provider: p3
-                })
-            });
-            showSuccess();
-        }
-
-        async function loadElevenLabsVoices() {
-            const apiKey = document.getElementById('elevenlabs_api_key').value;
-            const statusEl = document.getElementById('voices_status');
-
-            if (!apiKey) {
-                statusEl.textContent = "Introduce primero tu API Key arriba.";
-                statusEl.style.color = "var(--danger)";
-                return;
+                        container.appendChild(box);
+                    });
+                } catch (e) { }
             }
 
-            statusEl.textContent = "Consultando voces, por favor espera...";
-            statusEl.style.color = "var(--primary)";
+            async function saveMultiTierSettings() {
+                const p1 = document.getElementById('llm_primary_fallback').value;
+                const p2 = document.getElementById('llm_secondary_fallback').value;
+                const p3 = document.getElementById('llm_tertiary_fallback').value;
 
-            try {
-                const res = await fetch('https://api.elevenlabs.io/v1/voices', {
-                    headers: { 'xi-api-key': apiKey }
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        llm_primary_provider: p1,
+                        llm_secondary_provider: p2,
+                        llm_tertiary_provider: p3
+                    })
                 });
+                showSuccess();
+            }
 
-                if (!res.ok) throw new Error('Error validando API Key');
+            async function loadElevenLabsVoices() {
+                const apiKey = document.getElementById('elevenlabs_api_key').value;
+                const statusEl = document.getElementById('voices_status');
 
-                const data = await res.json();
-                const select = document.getElementById('elevenlabs_voice_id');
-                select.innerHTML = '';
+                if (!apiKey) {
+                    statusEl.textContent = "Introduce primero tu API Key arriba.";
+                    statusEl.style.color = "var(--danger)";
+                    return;
+                }
 
-                if (data.voices && data.voices.length > 0) {
-                    data.voices.forEach(v => {
-                        const opt = document.createElement('option');
-                        opt.value = v.voice_id;
-                        opt.text = v.name;
-                        select.appendChild(opt);
+                statusEl.textContent = "Consultando voces, por favor espera...";
+                statusEl.style.color = "var(--primary)";
+
+                try {
+                    const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+                        headers: { 'xi-api-key': apiKey }
                     });
 
-                    statusEl.textContent = `├ëxito. Se cargaron ${data.voices.length} voces.`;
-                    statusEl.style.color = "var(--success)";
-                }
-            } catch (e) {
-                console.error(e);
-                statusEl.textContent = "Error consultando ElevenLabs. Revisa la clave o comprueba tu conexión de red.";
-                statusEl.style.color = "var(--danger)";
-            }
-        }
+                    if (!res.ok) throw new Error('Error validando API Key');
 
-        // WhatsApp QR Polling
-        let qrCodeInstance = null;
-        let lastQrString = '';
+                    const data = await res.json();
+                    const select = document.getElementById('elevenlabs_voice_id');
+                    select.innerHTML = '';
 
-        async function checkWhatsappStatus() {
-            try {
-                const res = await fetch('/api/whatsapp/status');
-                const data = await res.json();
-
-                const badge = document.getElementById('wa_status_badge');
-                const qrSection = document.getElementById('wa_qr_section');
-                const connectedMsg = document.getElementById('wa_connected_msg');
-
-                if (data.status === 'connected') {
-                    badge.className = 'badge connected';
-                    badge.textContent = 'En Línea';
-                    qrSection.style.display = 'none';
-                    connectedMsg.style.display = 'block';
-                } else if (data.status === 'qr_ready') {
-                    badge.className = 'badge pending';
-                    badge.textContent = 'Pendiente de Escaneo';
-                    qrSection.style.display = 'block';
-                    connectedMsg.style.display = 'none';
-
-                    if (data.qr !== lastQrString) {
-                        lastQrString = data.qr;
-                        const container = document.getElementById('qrcode_container');
-                        container.innerHTML = '';
-                        qrCodeInstance = new QRCode(container, {
-                            text: data.qr,
-                            width: 256,
-                            height: 256,
-                            colorDark: "#0f172a",
-                            colorLight: "#ffffff",
-                            correctLevel: QRCode.CorrectLevel.M
+                    if (data.voices && data.voices.length > 0) {
+                        data.voices.forEach(v => {
+                            const opt = document.createElement('option');
+                            opt.value = v.voice_id;
+                            opt.text = v.name;
+                            select.appendChild(opt);
                         });
-                    }
-                } else {
-                    badge.className = 'badge disconnected';
-                    badge.textContent = 'Desconectado / Iniciando Server...';
-                    qrSection.style.display = 'none';
-                    connectedMsg.style.display = 'none';
-                }
-            } catch (e) {
-                console.log("Servidor ocupado o apagado...");
-            }
-        }
 
-        setInterval(checkWhatsappStatus, 2500);
-        checkWhatsappStatus();
+                        statusEl.textContent = `├ëxito. Se cargaron ${data.voices.length} voces.`;
+                        statusEl.style.color = "var(--success)";
+                    }
+                } catch (e) {
+                    console.error(e);
+                    statusEl.textContent = "Error consultando ElevenLabs. Revisa la clave o comprueba tu conexión de red.";
+                    statusEl.style.color = "var(--danger)";
+                }
+            }
+
+            // WhatsApp QR Polling
+            let qrCodeInstance = null;
+            let lastQrString = '';
+
+            async function checkWhatsappStatus() {
+                try {
+                    const res = await fetch('/api/whatsapp/status');
+                    const data = await res.json();
+
+                    const badge = document.getElementById('wa_status_badge');
+                    const qrSection = document.getElementById('wa_qr_section');
+                    const connectedMsg = document.getElementById('wa_connected_msg');
+
+                    if (data.status === 'connected') {
+                        badge.className = 'badge connected';
+                        badge.textContent = 'En Línea';
+                        qrSection.style.display = 'none';
+                        connectedMsg.style.display = 'block';
+                    } else if (data.status === 'qr_ready') {
+                        badge.className = 'badge pending';
+                        badge.textContent = 'Pendiente de Escaneo';
+                        qrSection.style.display = 'block';
+                        connectedMsg.style.display = 'none';
+
+                        if (data.qr !== lastQrString) {
+                            lastQrString = data.qr;
+                            const container = document.getElementById('qrcode_container');
+                            container.innerHTML = '';
+                            qrCodeInstance = new QRCode(container, {
+                                text: data.qr,
+                                width: 256,
+                                height: 256,
+                                colorDark: "#0f172a",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.M
+                            });
+                        }
+                    } else {
+                        badge.className = 'badge disconnected';
+                        badge.textContent = 'Desconectado / Iniciando Server...';
+                        qrSection.style.display = 'none';
+                        connectedMsg.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.log("Servidor ocupado o apagado...");
+                }
+            }
+
+            setInterval(checkWhatsappStatus, 2500);
+            checkWhatsappStatus();
     </script>
 </body>
 
