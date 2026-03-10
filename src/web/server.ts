@@ -132,6 +132,58 @@ app.post('/api/test-llm', async (req, res) => {
     }
 });
 
+// Endpoint para listar modelos disponibles de un proveedor
+app.post('/api/models', async (req, res) => {
+    const { provider, apiKey } = req.body;
+    if (!apiKey) return res.status(400).json({ success: false, error: 'API Key requerida' });
+
+    try {
+        const baseURLs: Record<string, string> = {
+            openai: 'https://api.openai.com/v1',
+            openrouter: 'https://openrouter.ai/api/v1',
+            groq: 'https://api.groq.com/openai/v1',
+            google: 'https://generativelanguage.googleapis.com/v1beta/openai',
+            qwen: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+            xai: 'https://api.x.ai/v1'
+        };
+
+        if (provider === 'anthropic') {
+            // Anthropic no tiene endpoint de modelos — devolver lista estática
+            return res.json({
+                models: [
+                    { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
+                    { id: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet' },
+                    { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
+                    { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' }
+                ]
+            });
+        }
+
+        const baseURL = baseURLs[provider];
+        if (!baseURL) {
+            return res.status(400).json({ success: false, error: 'Proveedor no soportado: ' + provider });
+        }
+
+        const modelsRes = await fetch(`${baseURL}/models`, {
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+
+        if (!modelsRes.ok) {
+            const errText = await modelsRes.text();
+            return res.status(modelsRes.status).json({ success: false, error: 'Error del proveedor: ' + errText });
+        }
+
+        const data: any = await modelsRes.json();
+        const models = (data.data || [])
+            .map((m: any) => ({ id: m.id, name: m.id }))
+            .sort((a: any, b: any) => a.id.localeCompare(b.id));
+
+        res.json({ models });
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Endpoint para "Login" sincronizado con CLI o Web
 app.post('/api/verify-llm', async (req, res) => {
     const { provider, apiKey, model } = req.body;

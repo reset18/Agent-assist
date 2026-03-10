@@ -193,6 +193,15 @@ ${voiceContext}
                 const msg = responseMessage as any;
                 console.log(`[Agent] Se invocan ${msg.tool_calls.length} herramientas...`);
                 for (const toolCall of msg.tool_calls) {
+                    if (!toolCall || !toolCall.function || !toolCall.function.name) {
+                        console.warn('[Agent] toolCall malformado, omitiendo:', JSON.stringify(toolCall));
+                        thread.push({
+                            role: 'tool',
+                            tool_call_id: toolCall?.id || 'unknown',
+                            content: 'Error: tool call malformado'
+                        });
+                        continue;
+                    }
                     let functionResult;
                     const isMCPTool = mcpTools.some(t => t.function.name === toolCall.function.name);
                     if (isMCPTool) {

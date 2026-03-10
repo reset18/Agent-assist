@@ -3330,24 +3330,70 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    statusEl.textContent = '✅ ¡Cuenta de ChatGPT vinculada correctamente!';
+                    statusEl.textContent = '✅ ¡Vinculada! Selecciona un modelo:';
                     statusEl.style.color = 'var(--success)';
-                    setTimeout(async () => {
-                        closeLoginModal();
-                        // Limpiar el área de pegado
-                        const pasteArea = document.getElementById('oauth_paste_area');
-                        if (pasteArea) pasteArea.style.display = 'none';
-                        const btn = document.getElementById('btn_oauth_chatgpt');
-                        btn.disabled = false;
-                        btn.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">Vincular ChatGPT (Sesión Web Gratuita/Plus)`;
-                        await loadSettings();
-                    }, 1500);
+
+                    // Mostrar selección de modelo para la cuenta recién creada
+                    const pasteArea = document.getElementById('oauth_paste_area');
+                    pasteArea.innerHTML = `
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 8px;">
+                            <strong>✅ Cuenta vinculada.</strong> Elige el modelo de OpenAI que quieres usar:
+                        </p>
+                        <select id="oauth_model_select" style="width: 100%; margin-bottom: 10px;">
+                            <option value="gpt-4o">GPT-4o</option>
+                            <option value="gpt-4o-mini">GPT-4o Mini</option>
+                            <option value="gpt-4.1">GPT-4.1</option>
+                            <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+                            <option value="gpt-4.1-nano">GPT-4.1 Nano</option>
+                            <option value="o3-mini">o3-mini</option>
+                            <option value="o4-mini">o4-mini</option>
+                        </select>
+                        <button class="primary-btn" onclick="saveOAuthModel('${data.accountId}')" style="width: 100%;">Guardar modelo</button>
+                        <p id="oauth_model_status" style="font-size: 12px; margin: 8px 0 0; text-align: center;"></p>
+                    `;
                 } else {
                     statusEl.textContent = '❌ ' + (data.error || 'Error al vincular');
                     statusEl.style.color = 'var(--danger)';
                 }
             } catch (e) {
                 statusEl.textContent = '❌ Error de red';
+                statusEl.style.color = 'var(--danger)';
+            }
+        }
+
+        async function saveOAuthModel(accountId) {
+            const select = document.getElementById('oauth_model_select');
+            const statusEl = document.getElementById('oauth_model_status');
+            const model = select.value;
+
+            statusEl.textContent = '⌛ Guardando...';
+            statusEl.style.color = 'var(--primary)';
+
+            try {
+                // Actualizar el modelo en la cuenta y los settings
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model_name: model,
+                        llm_primary_model: model
+                    })
+                });
+
+                statusEl.textContent = '✅ ¡Listo!';
+                statusEl.style.color = 'var(--success)';
+
+                setTimeout(async () => {
+                    closeLoginModal();
+                    const pasteArea = document.getElementById('oauth_paste_area');
+                    if (pasteArea) pasteArea.style.display = 'none';
+                    const btn = document.getElementById('btn_oauth_chatgpt');
+                    btn.disabled = false;
+                    btn.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">Vincular ChatGPT (Sesión Web Gratuita/Plus)`;
+                    await loadSettings();
+                }, 1000);
+            } catch (e) {
+                statusEl.textContent = '❌ Error guardando modelo';
                 statusEl.style.color = 'var(--danger)';
             }
         }
