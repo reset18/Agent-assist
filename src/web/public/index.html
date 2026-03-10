@@ -1038,8 +1038,16 @@
 
     <!-- Menú Lateral (Sidebar) -->
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h1>AgentAssist</h1>
+        <div class="sidebar-header"
+            style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <h1 style="margin: 0; font-size: 20px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                AgentAssist</h1>
+            <button class="hamburger-btn" onclick="toggleSidebar()" style="margin: 0; flex-shrink: 0;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+                    </path>
+                </svg>
+            </button>
         </div>
         <div class="nav-menu">
             <button class="nav-item active" onclick="navigate('chat')">
@@ -1113,38 +1121,28 @@
 
     <!-- Contenido Principal -->
     <main class="main-content">
-        <!-- Barra Superior -->
-        <header class="top-bar">
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <button class="hamburger-btn" onclick="toggleSidebar()">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
-                </button>
-            </div>
-
-            <div class="top-bar-actions">
-                <button id="new_chat_btn" class="secondary-btn" onclick="createNewChatSession()"
-                    style="display: none; border-radius: 12px; padding: 10px 16px; font-weight: 600;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        style="width:16px; height:16px; margin-right:8px; vertical-align:middle;">
-                        <path d="M12 5v14M5 12h14" />
-                    </svg>
-                    Nuevo Chat
-                </button>
-                <div id="sessions_nav" class="sessions-dropdown-container" style="display: none;">
-                    <select id="sessions_select" class="sessions-select" onchange="switchSession(this.value)">
-                        <!-- Sesiones cargadas dinámicamente -->
-                    </select>
-                </div>
-            </div>
-        </header>
-
         <!-- Chat Web (Rediseñado Centrado) -->
-        <div id="chat" class="page-content active"
-            style="padding: 0; height: calc(100vh - 72px); border-top: 1px solid var(--border);">
+        <div id="chat" class="page-content active" style="padding: 0; height: 100vh;">
             <div class="chat-container">
+                <div
+                    style="display: flex; justify-content: flex-end; align-items: center; padding: 12px 24px; border-bottom: 1px solid var(--border); background-color: var(--bg); position: sticky; top: 0; z-index: 10;">
+                    <div class="top-bar-actions">
+                        <button id="new_chat_btn" class="secondary-btn" onclick="createNewChatSession()"
+                            style="display: none; border-radius: 12px; padding: 8px 14px; font-weight: 600; font-size: 13px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                style="width:14px; height:14px; margin-right:6px; vertical-align:middle;">
+                                <path d="M12 5v14M5 12h14" />
+                            </svg>
+                            Nuevo Chat
+                        </button>
+                        <div id="sessions_nav" class="sessions-dropdown-container" style="display: none;">
+                            <select id="sessions_select" class="sessions-select" onchange="switchSession(this.value)"
+                                style="padding: 8px 30px 8px 14px; font-size: 13px;">
+                                <!-- Sesiones cargadas dinámicamente -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
                 <div class="chat-main">
                     <div class="chat-history" id="chat_history">
                         <!-- Mensajes de la sesión activa -->
@@ -2222,7 +2220,7 @@
         window.currentSessionId = 'default';
         window.settingsLoaded = false;
 
-        let currentVersion = '0.2.19-beta';
+        let currentVersion = '0.2.20-beta';
         let remoteVersion = '';
         let usageChart = null;
 
