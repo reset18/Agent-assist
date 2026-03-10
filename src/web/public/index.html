@@ -3263,37 +3263,32 @@
 
                 if (data.success && data.url) {
                     window.open(data.url, '_blank', 'width=500,height=700');
-                    btn.innerHTML = '⌛ Esperando login...';
 
-                    const prevCount = (window._llmAccounts || []).length;
-                    const prevKey = window._lastLlmApiKey || '';
-                    console.log('[OAuth Poll] Inicio polling. prevCount:', prevCount, 'prevKey:', prevKey ? prevKey.substring(0, 8) + '...' : '(vacía)');
-                    const checkLogin = setInterval(async () => {
-                        try {
-                            const r = await fetch('/api/settings');
-                            const d = await r.json();
-                            const newCount = (d.llm_accounts || []).length;
-                            const newKey = d.llm_api_key || '';
-                            console.log('[OAuth Poll] newCount:', newCount, 'newKey:', newKey ? newKey.substring(0, 8) + '...' : '(vacía)');
-                            // Detectar éxito: más cuentas en el array O cambio en la API key legacy
-                            if (newCount > prevCount || (newKey && newKey !== prevKey)) {
-                                console.log('[OAuth Poll] ¡Login detectado! Cerrando modal...');
-                                clearInterval(checkLogin);
-                                closeLoginModal();
-                                btn.disabled = false;
-                                btn.innerHTML = originalText;
-                                await loadSettings();
-                            }
-                        } catch (e) { console.warn('[OAuth Poll] Error en el polling:', e); }
-                    }, 2000);
+                    // Mostrar el campo para pegar la URL de callback
+                    btn.innerHTML = '⌛ Esperando URL...';
 
-                    setTimeout(() => {
-                        clearInterval(checkLogin);
-                        if (btn.disabled) {
-                            btn.disabled = false;
-                            btn.innerHTML = originalText;
-                        }
-                    }, 300000);
+                    const oauthContainer = document.getElementById('oauth_container');
+                    // Crear el área de pegado
+                    let pasteArea = document.getElementById('oauth_paste_area');
+                    if (!pasteArea) {
+                        pasteArea = document.createElement('div');
+                        pasteArea.id = 'oauth_paste_area';
+                        pasteArea.style.cssText = 'margin-top: 15px; padding: 15px; background: var(--input-bg); border-radius: 10px; border: 1px dashed var(--border);';
+                        pasteArea.innerHTML = `
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 8px;">
+                                <strong>Paso 2:</strong> Tras iniciar sesión, el navegador te llevará a una página que no carga. 
+                                <strong>Copia la URL completa</strong> de la barra de direcciones y pégala aquí:
+                            </p>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="oauth_callback_url" placeholder="http://localhost:1455/auth/callback?code=..." style="flex: 1; font-size: 12px;" />
+                                <button class="primary-btn" onclick="submitOAuthCallbackUrl()" style="padding: 0 15px; white-space: nowrap;">Enviar</button>
+                            </div>
+                            <p id="oauth_paste_status" style="font-size: 12px; margin: 8px 0 0; text-align: center;"></p>
+                        `;
+                        oauthContainer.appendChild(pasteArea);
+                    }
+                    pasteArea.style.display = 'block';
+
                 } else {
                     alert('❌ Error: ' + (data.error || 'No se pudo iniciar auth'));
                     btn.disabled = false;
@@ -3303,6 +3298,57 @@
                 alert('❌ Error de red.');
                 btn.disabled = false;
                 btn.innerHTML = originalText;
+            }
+        }
+
+        async function submitOAuthCallbackUrl() {
+            const input = document.getElementById('oauth_callback_url');
+            const statusEl = document.getElementById('oauth_paste_status');
+            const callbackUrl = input.value.trim();
+
+            if (!callbackUrl) {
+                statusEl.textContent = '❌ Pega la URL de la barra de direcciones';
+                statusEl.style.color = 'var(--danger)';
+                return;
+            }
+
+            if (!callbackUrl.includes('code=')) {
+                statusEl.textContent = '❌ La URL no contiene un código de autorización válido';
+                statusEl.style.color = 'var(--danger)';
+                return;
+            }
+
+            statusEl.textContent = '⌛ Procesando...';
+            statusEl.style.color = 'var(--primary)';
+
+            try {
+                const res = await fetch('/api/auth/chatgpt/exchange', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ callbackUrl })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    statusEl.textContent = '✅ ¡Cuenta de ChatGPT vinculada correctamente!';
+                    statusEl.style.color = 'var(--success)';
+                    setTimeout(async () => {
+                        closeLoginModal();
+                        // Limpiar el área de pegado
+                        const pasteArea = document.getElementById('oauth_paste_area');
+                        if (pasteArea) pasteArea.style.display = 'none';
+                        const btn = document.getElementById('btn_oauth_chatgpt');
+                        btn.disabled = false;
+                        btn.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">Vincular ChatGPT (Sesión Web Gratuita/Plus)`;
+                        await loadSettings();
+                    }, 1500);
+                } else {
+                    statusEl.textContent = '❌ ' + (data.error || 'Error al vincular');
+                    statusEl.style.color = 'var(--danger)';
+                }
+            } catch (e) {
+                statusEl.textContent = '❌ Error de red';
+                statusEl.style.color = 'var(--danger)';
             }
         }
 
