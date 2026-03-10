@@ -790,7 +790,7 @@
         .chat-message-wrapper {
             display: flex;
             gap: 16px;
-            max-width: 900px;
+            max-width: 1100px;
             margin: 0 auto;
             width: 100%;
         }
@@ -957,7 +957,7 @@
 
         .chat-input-container {
             width: 100%;
-            max-width: 900px;
+            max-width: 1100px;
             padding: 0 24px;
             position: relative;
             display: flex;
@@ -1121,6 +1121,15 @@
 
     <!-- Contenido Principal -->
     <main class="main-content">
+        <!-- Floating Hamburger Menu Button (visible only when sidebar is collapsed) -->
+        <button id="floating_hamburger" class="hamburger-btn" onclick="toggleSidebar()"
+            style="position: absolute; top: 16px; left: 16px; z-index: 50; display: none; background: var(--card); border: 1px solid var(--border); box-shadow: var(--shadow-md); padding: 8px;">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+                </path>
+            </svg>
+        </button>
+
         <!-- Chat Web (Rediseñado Centrado) -->
         <div id="chat" class="page-content active" style="padding: 0; height: 100vh;">
             <div class="chat-container">
@@ -2126,6 +2135,11 @@
         function toggleSidebar() {
             sidebar.classList.toggle('collapsed');
 
+            const floatingBtn = document.getElementById('floating_hamburger');
+            if (floatingBtn) {
+                floatingBtn.style.display = sidebar.classList.contains('collapsed') ? 'flex' : 'none';
+            }
+
             // Para móviles, abrir el sidebar es una clase diferente si no estorba el grid
             if (window.innerWidth <= 768) {
                 sidebar.classList.toggle('mobile-open');
@@ -2220,7 +2234,7 @@
         window.currentSessionId = 'default';
         window.settingsLoaded = false;
 
-        let currentVersion = '0.2.20-beta';
+        let currentVersion = '0.2.21-beta';
         let remoteVersion = '';
         let usageChart = null;
 
@@ -2368,7 +2382,9 @@
                     clearInterval(interval);
                     // Petición al backend para actualizar de verdad
                     fetch('/api/perform-update', { method: 'POST' }).finally(() => {
-                        setTimeout(() => window.location.reload(), 2000);
+                        setTimeout(() => {
+                            window.location.href = window.location.pathname + '?v=' + new Date().getTime();
+                        }, 2000);
                     });
                 }
             }, 1500);
