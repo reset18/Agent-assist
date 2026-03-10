@@ -2145,372 +2145,374 @@
             } catch (e) {
                 logDebug(`NAV ERROR: ${e.message}`, 'error');
             }
-            function switchChannelTab(tabId, btnContext) {
-                document.querySelectorAll('#channels .sub-tab-content').forEach(el => el.classList.remove('active'));
-                document.querySelectorAll('#channels .sub-tab-btn').forEach(el => el.classList.remove('active'));
-                document.getElementById(tabId).classList.add('active');
-                btnContext.classList.add('active');
-            }
+        }
 
-            function switchLLMTab(tabId, btnContext) {
-                document.querySelectorAll('#llm .sub-tab-content').forEach(el => el.classList.remove('active'));
-                document.querySelectorAll('#llm .sub-tab-btn').forEach(el => el.classList.remove('active'));
-                document.getElementById(tabId).classList.add('active');
-                btnContext.classList.add('active');
-            }
+        function switchChannelTab(tabId, btnContext) {
+            document.querySelectorAll('#channels .sub-tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('#channels .sub-tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btnContext.classList.add('active');
+        }
 
-            function switchSkillTab(tabId, btnContext) {
-                document.querySelectorAll('#skills .sub-tab-content').forEach(el => el.classList.remove('active'));
-                document.querySelectorAll('#skills .sub-tab-btn').forEach(el => el.classList.remove('active'));
-                document.getElementById(tabId).classList.add('active');
-                btnContext.classList.add('active');
-            }
+        function switchLLMTab(tabId, btnContext) {
+            document.querySelectorAll('#llm .sub-tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('#llm .sub-tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btnContext.classList.add('active');
+        }
 
-            const lastPage = localStorage.getItem('agentLastPage') || 'chat';
-            navigate(lastPage);
+        function switchSkillTab(tabId, btnContext) {
+            document.querySelectorAll('#skills .sub-tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('#skills .sub-tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btnContext.classList.add('active');
+        }
 
-            window.agentNameCache = 'IA';
-            window.userNameCache = 'TU';
-            window.currentSessionId = 'default';
-            window.settingsLoaded = false;
+        const lastPage = localStorage.getItem('agentLastPage') || 'chat';
+        navigate(lastPage);
 
-            let currentVersion = '0.2.17-beta';
-            let remoteVersion = '';
-            let usageChart = null;
+        window.agentNameCache = 'IA';
+        window.userNameCache = 'TU';
+        window.currentSessionId = 'default';
+        window.settingsLoaded = false;
 
-            function initUsageChart(data) {
-                const ctx = document.getElementById('usageChart');
-                if (!ctx) return;
+        let currentVersion = '0.2.17-beta';
+        let remoteVersion = '';
+        let usageChart = null;
 
-                if (usageChart) usageChart.destroy();
+        function initUsageChart(data) {
+            const ctx = document.getElementById('usageChart');
+            if (!ctx) return;
 
-                // Procesar datos para agruparlos por fecha
-                const dates = Array.from(new Set(data.map(d => d.date))).sort();
-                const providers = Array.from(new Set(data.map(d => d.provider)));
+            if (usageChart) usageChart.destroy();
 
-                const datasets = providers.map((provider, i) => {
-                    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                    return {
-                        label: provider,
-                        data: dates.map(date => {
-                            const hit = data.find(d => d.date === date && d.provider === provider);
-                            return hit ? hit.total : 0;
-                        }),
-                        backgroundColor: colors[i % colors.length],
-                        borderRadius: 4
-                    };
-                });
+            // Procesar datos para agruparlos por fecha
+            const dates = Array.from(new Set(data.map(d => d.date))).sort();
+            const providers = Array.from(new Set(data.map(d => d.provider)));
 
-                usageChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: { labels: dates, datasets },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } }
-                        },
-                        scales: {
-                            x: { stacked: true, grid: { display: false }, ticks: { color: '#94a3b8' } },
-                            y: { stacked: true, grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94a3b8' } }
-                        }
+            const datasets = providers.map((provider, i) => {
+                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                return {
+                    label: provider,
+                    data: dates.map(date => {
+                        const hit = data.find(d => d.date === date && d.provider === provider);
+                        return hit ? hit.total : 0;
+                    }),
+                    backgroundColor: colors[i % colors.length],
+                    borderRadius: 4
+                };
+            });
+
+            usageChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: dates, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } }
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false }, ticks: { color: '#94a3b8' } },
+                        y: { stacked: true, grid: { color: 'rgba(148, 163, 184, 0.1)' }, ticks: { color: '#94a3b8' } }
                     }
-                });
+                }
+            });
+        }
+
+        async function loadUsageHistory() {
+            try {
+                const r = await fetch('/api/tokens/history');
+                const d = await r.json();
+                if (d.history) {
+                    initUsageChart(d.history);
+
+                    // Calcular coste estimado
+                    const totalTokens = d.history.reduce((acc, curr) => acc + curr.total, 0);
+                    // Estimación burda: $0.35 por cada 1M tokens (promedio entrada/salida mini/flash)
+                    const estimatedCost = (totalTokens / 1000000) * 0.35;
+                    const costEl = document.getElementById('estimated_cost_display');
+                    if (costEl) costEl.textContent = `$${estimatedCost.toFixed(2)}`;
+                }
+            } catch (e) { console.error("Error loading usage history", e); }
+        }
+
+        async function checkForUpdates() {
+            try {
+                const r = await fetch('/api/check-update');
+                const d = await r.json();
+                remoteVersion = d.remote;
+                currentVersion = d.current;
+                if (d.updateAvailable) {
+                    const updateNotification = document.getElementById('update_notification');
+                    if (updateNotification) updateNotification.style.display = 'flex';
+                    const updateVersionText = document.getElementById('update_version_text');
+                    if (updateVersionText) updateVersionText.textContent = `v${d.remote} disponible`;
+                    const btnSearch = document.getElementById('btn_search_updates');
+                    if (btnSearch) btnSearch.style.display = 'none';
+                }
+            } catch (e) { }
+        }
+
+        async function checkForUpdatesManually() {
+            const btn = document.getElementById('btn_search_updates');
+            if (!btn) return;
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⌛ Buscando...';
+
+            await checkForUpdates();
+
+            const updateNotification = document.getElementById('update_notification');
+            if (updateNotification && updateNotification.style.display === 'flex') {
+                openUpdateModal();
+            } else {
+                btn.innerHTML = '✅ Al día';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }, 3000);
             }
+        }
 
-            async function loadUsageHistory() {
-                try {
-                    const r = await fetch('/api/tokens/history');
-                    const d = await r.json();
-                    if (d.history) {
-                        initUsageChart(d.history);
+        function openUpdateModal() {
+            const currentBadge = document.getElementById('current_version_badge');
+            const newBadge = document.getElementById('new_version_badge');
+            if (currentBadge) currentBadge.textContent = currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`;
+            if (newBadge) newBadge.textContent = remoteVersion.startsWith('v') ? remoteVersion : `v${remoteVersion}`;
+            const updateModal = document.getElementById('update_modal');
+            if (updateModal) updateModal.style.display = 'flex';
+        }
 
-                        // Calcular coste estimado
-                        const totalTokens = d.history.reduce((acc, curr) => acc + curr.total, 0);
-                        // Estimación burda: $0.35 por cada 1M tokens (promedio entrada/salida mini/flash)
-                        const estimatedCost = (totalTokens / 1000000) * 0.35;
-                        const costEl = document.getElementById('estimated_cost_display');
-                        if (costEl) costEl.textContent = `$${estimatedCost.toFixed(2)}`;
-                    }
-                } catch (e) { console.error("Error loading usage history", e); }
-            }
+        function closeUpdateModal() {
+            const progressArea = document.getElementById('update_progress_area');
+            if (progressArea && progressArea.style.display === 'block') return;
+            const updateModal = document.getElementById('update_modal');
+            if (updateModal) updateModal.style.display = 'none';
+        }
 
-            async function checkForUpdates() {
-                try {
-                    const r = await fetch('/api/check-update');
-                    const d = await r.json();
-                    remoteVersion = d.remote;
-                    currentVersion = d.current;
-                    if (d.updateAvailable) {
-                        const updateNotification = document.getElementById('update_notification');
-                        if (updateNotification) updateNotification.style.display = 'flex';
-                        const updateVersionText = document.getElementById('update_version_text');
-                        if (updateVersionText) updateVersionText.textContent = `v${d.remote} disponible`;
-                        const btnSearch = document.getElementById('btn_search_updates');
-                        if (btnSearch) btnSearch.style.display = 'none';
-                    }
-                } catch (e) { }
-            }
+        async function startUpdateProcess() {
+            const actionsArea = document.getElementById('update_actions_area');
+            const updateNote = document.getElementById('update_note');
+            const progressArea = document.getElementById('update_progress_area');
+            if (actionsArea) actionsArea.style.display = 'none';
+            if (updateNote) updateNote.style.display = 'none';
+            if (progressArea) progressArea.style.display = 'block';
 
-            async function checkForUpdatesManually() {
-                const btn = document.getElementById('btn_search_updates');
-                if (!btn) return;
-                const originalHtml = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '⌛ Buscando...';
+            const bar = document.getElementById('update_progress_bar');
+            const txt = document.getElementById('update_status_text');
 
-                await checkForUpdates();
+            const steps = [
+                { p: 10, t: "Obteniendo cambios de GitHub..." },
+                { p: 30, t: "Sincronizando archivos del código..." },
+                { p: 50, t: "Iniciando compilación (npm install)..." },
+                { p: 75, t: "Construyendo interfaz (rebuild)..." },
+                { p: 90, t: "Reiniciando servidor de Horus..." }
+            ];
 
-                const updateNotification = document.getElementById('update_notification');
-                if (updateNotification && updateNotification.style.display === 'flex') {
-                    openUpdateModal();
+            let stepIdx = 0;
+            const interval = setInterval(() => {
+                if (stepIdx < steps.length) {
+                    if (bar) bar.style.width = steps[stepIdx].p + "%";
+                    if (txt) txt.textContent = steps[stepIdx].t;
+                    stepIdx++;
                 } else {
-                    btn.innerHTML = '✅ Al día';
-                    setTimeout(() => {
-                        btn.disabled = false;
-                        btn.innerHTML = originalHtml;
-                    }, 3000);
-                }
-            }
-
-            function openUpdateModal() {
-                const currentBadge = document.getElementById('current_version_badge');
-                const newBadge = document.getElementById('new_version_badge');
-                if (currentBadge) currentBadge.textContent = currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`;
-                if (newBadge) newBadge.textContent = remoteVersion.startsWith('v') ? remoteVersion : `v${remoteVersion}`;
-                const updateModal = document.getElementById('update_modal');
-                if (updateModal) updateModal.style.display = 'flex';
-            }
-
-            function closeUpdateModal() {
-                const progressArea = document.getElementById('update_progress_area');
-                if (progressArea && progressArea.style.display === 'block') return;
-                const updateModal = document.getElementById('update_modal');
-                if (updateModal) updateModal.style.display = 'none';
-            }
-
-            async function startUpdateProcess() {
-                const actionsArea = document.getElementById('update_actions_area');
-                const updateNote = document.getElementById('update_note');
-                const progressArea = document.getElementById('update_progress_area');
-                if (actionsArea) actionsArea.style.display = 'none';
-                if (updateNote) updateNote.style.display = 'none';
-                if (progressArea) progressArea.style.display = 'block';
-
-                const bar = document.getElementById('update_progress_bar');
-                const txt = document.getElementById('update_status_text');
-
-                const steps = [
-                    { p: 10, t: "Obteniendo cambios de GitHub..." },
-                    { p: 30, t: "Sincronizando archivos del código..." },
-                    { p: 50, t: "Iniciando compilación (npm install)..." },
-                    { p: 75, t: "Construyendo interfaz (rebuild)..." },
-                    { p: 90, t: "Reiniciando servidor de Horus..." }
-                ];
-
-                let stepIdx = 0;
-                const interval = setInterval(() => {
-                    if (stepIdx < steps.length) {
-                        if (bar) bar.style.width = steps[stepIdx].p + "%";
-                        if (txt) txt.textContent = steps[stepIdx].t;
-                        stepIdx++;
-                    } else {
-                        clearInterval(interval);
-                        // Petición al backend para actualizar de verdad
-                        fetch('/api/perform-update', { method: 'POST' }).finally(() => {
-                            setTimeout(() => window.location.reload(), 2000);
-                        });
-                    }
-                }, 1500);
-            }
-
-            async function createNewChatSession() {
-                const name = prompt("Nombre del nuevo chat:", `Nuevo Chat ${new Date().toLocaleTimeString()}`);
-                if (!name) return;
-                const id = 'sess_' + Date.now();
-                const res = await fetch('/api/sessions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, name, platform: 'web' })
-                });
-                if (res.ok) {
-                    window.currentSessionId = id;
-                    await loadSessions();
-                    await loadChatHistory();
-                }
-            }
-
-            async function loadSessions() {
-                try {
-                    const res = await fetch('/api/sessions');
-                    const data = await res.json();
-                    const select = document.getElementById('sessions_select');
-                    if (!select) return;
-
-                    select.innerHTML = '';
-                    data.sessions.forEach(s => {
-                        const opt = document.createElement('option');
-                        opt.value = s.id;
-
-                        let emoji = '🌐';
-                        if (s.platform === 'whatsapp' || s.id === 'whatsapp_default') emoji = '💬';
-                        if (s.platform === 'telegram' || s.id === 'telegram_default') emoji = '✈️';
-
-                        opt.textContent = `${emoji} ${s.name}`;
-                        if (s.id === window.currentSessionId) opt.selected = true;
-                        select.appendChild(opt);
+                    clearInterval(interval);
+                    // Petición al backend para actualizar de verdad
+                    fetch('/api/perform-update', { method: 'POST' }).finally(() => {
+                        setTimeout(() => window.location.reload(), 2000);
                     });
-
-                    // Sincronizar versión dinámicamente
-                    fetch('/api/check-update').then(r => r.json()).then(v => {
-                        const label = document.getElementById('ui_version_label');
-                        if (label) label.textContent = v.current || 'v0.2.12-beta';
-                    }).catch(() => { });
-
-                } catch (e) {
-                    console.error("Error cargando sesiones:", e);
                 }
-            }
+            }, 1500);
+        }
 
-            async function switchSession(id) {
+        async function createNewChatSession() {
+            const name = prompt("Nombre del nuevo chat:", `Nuevo Chat ${new Date().toLocaleTimeString()}`);
+            if (!name) return;
+            const id = 'sess_' + Date.now();
+            const res = await fetch('/api/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, name, platform: 'web' })
+            });
+            if (res.ok) {
                 window.currentSessionId = id;
-                loadChatHistory();
+                await loadSessions();
+                await loadChatHistory();
             }
-            window.fullAgentNameCache = 'Agente';
-            window.fullUserNameCache = 'Tú';
+        }
 
-            // Formateador seguro de texto a HTML usando Marked
-            function formatChatText(text) {
-                if (!text) return '';
-                try {
-                    if (typeof marked !== 'undefined') {
-                        marked.setOptions({
-                            breaks: true,
-                            gfm: true,
-                            headerIds: false,
-                            mangle: false
-                        });
-                        let formatted = marked.parse(text);
+        async function loadSessions() {
+            try {
+                const res = await fetch('/api/sessions');
+                const data = await res.json();
+                const select = document.getElementById('sessions_select');
+                if (!select) return;
 
-                        // Restablecer de capa de escape únicamente la caja del Audio generada por el agente
-                        formatted = formatted.replace(
-                            /\[AUDIO:\s*(\/media\/[^\]]+)\]/gi,
-                            '<audio src="$1" controls style="max-width: 100%; margin-top: 10px; display: block; border-radius: 20px; outline: none;"></audio>'
-                        );
+                select.innerHTML = '';
+                data.sessions.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
 
-                        return formatted;
-                    }
-                } catch (e) {
-                    logDebug(`Marked Error: ${e.message}`, 'error');
-                }
-                // Fallback: Escape básico
-                return text
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#039;")
-                    .replace(/\n/g, '<br>');
+                    let emoji = '🌐';
+                    if (s.platform === 'whatsapp' || s.id === 'whatsapp_default') emoji = '💬';
+                    if (s.platform === 'telegram' || s.id === 'telegram_default') emoji = '✈️';
+
+                    opt.textContent = `${emoji} ${s.name}`;
+                    if (s.id === window.currentSessionId) opt.selected = true;
+                    select.appendChild(opt);
+                });
+
+                // Sincronizar versión dinámicamente
+                fetch('/api/check-update').then(r => r.json()).then(v => {
+                    const label = document.getElementById('ui_version_label');
+                    if (label) label.textContent = v.current || 'v0.2.12-beta';
+                }).catch(() => { });
+
+            } catch (e) {
+                console.error("Error cargando sesiones:", e);
             }
+        }
 
-            // Cargar configuración actual
-            async function loadSettings() {
-                try {
-                    const r = await fetch('/api/settings');
-                    const data = await r.json();
-                    console.log('[Debug] Ajustes cargados de API:', data);
+        async function switchSession(id) {
+            window.currentSessionId = id;
+            loadChatHistory();
+        }
+        window.fullAgentNameCache = 'Agente';
+        window.fullUserNameCache = 'Tú';
 
-                    // Estos campos aún se cargan si existen en el modal o para compatibilidad
-                    if (document.getElementById('telegram_bot_token')) document.getElementById('telegram_bot_token').value = data.telegram_bot_token || '';
-                    if (document.getElementById('telegram_whitelist')) document.getElementById('telegram_whitelist').value = data.telegram_whitelist || '';
-
-                    // Populate hidden inputs for compatibility
-                    if (document.getElementById('model_provider')) document.getElementById('model_provider').value = data.model_provider || 'openai';
-                    if (document.getElementById('model_name')) document.getElementById('model_name').value = data.model_name || 'gpt-4o';
-                    if (document.getElementById('llm_api_key')) document.getElementById('llm_api_key').value = data.llm_api_key || '';
-
-                    // Herramientas
-                    const tools = ['get_current_time', 'read_file_local', 'write_file_local', 'list_dir_local', 'run_shell_local', 'run_ssh_command'];
-                    tools.forEach(t => {
-                        const el = document.getElementById('tool_' + t);
-                        if (el) el.checked = data['tool_' + t];
+        // Formateador seguro de texto a HTML usando Marked
+        function formatChatText(text) {
+            if (!text) return '';
+            try {
+                if (typeof marked !== 'undefined') {
+                    marked.setOptions({
+                        breaks: true,
+                        gfm: true,
+                        headerIds: false,
+                        mangle: false
                     });
+                    let formatted = marked.parse(text);
 
-                    if (data.agent_name) {
-                        window.agentNameCache = data.agent_name.substring(0, 2).toUpperCase();
-                        window.fullAgentNameCache = data.agent_name;
-                        const input = document.getElementById('chat_input');
-                        if (input) input.placeholder = `Pregúntale algo a ${data.agent_name}...`;
-                    }
-                    if (data.user_name) {
-                        window.userNameCache = data.user_name.substring(0, 2).toUpperCase();
-                        window.fullUserNameCache = data.user_name;
-                    }
+                    // Restablecer de capa de escape únicamente la caja del Audio generada por el agente
+                    formatted = formatted.replace(
+                        /\[AUDIO:\s*(\/media\/[^\]]+)\]/gi,
+                        '<audio src="$1" controls style="max-width: 100%; margin-top: 10px; display: block; border-radius: 20px; outline: none;"></audio>'
+                    );
 
-                    // Canales
-                    const botTg = document.getElementById('bot_telegram_enabled');
-                    if (botTg) botTg.checked = data.bot_telegram_enabled !== false;
-                    const botWa = document.getElementById('bot_whatsapp_enabled');
-                    if (botWa) botWa.checked = data.bot_whatsapp_enabled !== false;
-
-                    // Voz
-                    const voiceEn = document.getElementById('voice_enabled');
-                    if (voiceEn) voiceEn.checked = data.voice_enabled === true;
-                    const voiceEng = document.getElementById('voice_engine');
-                    if (voiceEng) voiceEng.value = data.voice_engine || 'openai';
-                    const openaiVoice = document.getElementById('openai_voice_id');
-                    if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
-                    const elevenLabsKey = document.getElementById('elevenlabs_api_key');
-                    if (elevenLabsKey) elevenLabsKey.value = data.elevenlabs_api_key || '';
-
-                    if (data.elevenlabs_voice_id && document.getElementById('elevenlabs_voice_id')) {
-                        const select = document.getElementById('elevenlabs_voice_id');
-                        if (!select.querySelector(`option[value="${data.elevenlabs_voice_id}"]`)) {
-                            const opt = document.createElement('option');
-                            opt.value = data.elevenlabs_voice_id;
-                            opt.text = "Voz Actual Guardada (Carga voces para ver resto)";
-                            select.appendChild(opt);
-                        }
-                        select.value = data.elevenlabs_voice_id;
-                    }
-
-                    // Actualizar estados de los cerebros (Cards)
-                    updateProviderStatus(data.model_provider, data.llm_api_key);
-
-                    window.settingsLoaded = true;
-
-                    // Ejecutar toggles iniciales
-                    if (typeof toggleTelegramConfig === 'function') toggleTelegramConfig();
-                    if (typeof toggleWhatsappConfig === 'function') toggleWhatsappConfig();
-                    if (typeof toggleVoiceMainConfig === 'function') toggleVoiceMainConfig();
-                    if (typeof updateVoiceEngineFields === 'function') updateVoiceEngineFields();
-
-                } catch (e) {
-                    console.error("Error cargando settings:", e);
-                    // Aseguramos que el sistema no se bloquee aunque falle la carga de ajustes
-                    window.settingsLoaded = true;
-                } finally {
-                    window.settingsLoaded = true;
+                    return formatted;
                 }
+            } catch (e) {
+                logDebug(`Marked Error: ${e.message}`, 'error');
             }
-            loadSettings();
+            // Fallback: Escape básico
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;")
+                .replace(/\n/g, '<br>');
+        }
 
-            // Cargar MCP Skills
-            function loadMCPSkills() {
-                fetch('/api/skills').then(r => r.json()).then(data => {
-                    const container = document.getElementById('mcp_skills_container');
-                    container.innerHTML = '';
-                    if (!data.skills || data.skills.length === 0) {
-                        container.innerHTML = '<span class="helper-text">No se hallaron archivos .zip de habilidades MCP en la carpeta base.</span>';
-                        return;
+        // Cargar configuración actual
+        async function loadSettings() {
+            try {
+                const r = await fetch('/api/settings');
+                const data = await r.json();
+                console.log('[Debug] Ajustes cargados de API:', data);
+
+                // Estos campos aún se cargan si existen en el modal o para compatibilidad
+                if (document.getElementById('telegram_bot_token')) document.getElementById('telegram_bot_token').value = data.telegram_bot_token || '';
+                if (document.getElementById('telegram_whitelist')) document.getElementById('telegram_whitelist').value = data.telegram_whitelist || '';
+
+                // Populate hidden inputs for compatibility
+                if (document.getElementById('model_provider')) document.getElementById('model_provider').value = data.model_provider || 'openai';
+                if (document.getElementById('model_name')) document.getElementById('model_name').value = data.model_name || 'gpt-4o';
+                if (document.getElementById('llm_api_key')) document.getElementById('llm_api_key').value = data.llm_api_key || '';
+
+                // Herramientas
+                const tools = ['get_current_time', 'read_file_local', 'write_file_local', 'list_dir_local', 'run_shell_local', 'run_ssh_command'];
+                tools.forEach(t => {
+                    const el = document.getElementById('tool_' + t);
+                    if (el) el.checked = data['tool_' + t];
+                });
+
+                if (data.agent_name) {
+                    window.agentNameCache = data.agent_name.substring(0, 2).toUpperCase();
+                    window.fullAgentNameCache = data.agent_name;
+                    const input = document.getElementById('chat_input');
+                    if (input) input.placeholder = `Pregúntale algo a ${data.agent_name}...`;
+                }
+                if (data.user_name) {
+                    window.userNameCache = data.user_name.substring(0, 2).toUpperCase();
+                    window.fullUserNameCache = data.user_name;
+                }
+
+                // Canales
+                const botTg = document.getElementById('bot_telegram_enabled');
+                if (botTg) botTg.checked = data.bot_telegram_enabled !== false;
+                const botWa = document.getElementById('bot_whatsapp_enabled');
+                if (botWa) botWa.checked = data.bot_whatsapp_enabled !== false;
+
+                // Voz
+                const voiceEn = document.getElementById('voice_enabled');
+                if (voiceEn) voiceEn.checked = data.voice_enabled === true;
+                const voiceEng = document.getElementById('voice_engine');
+                if (voiceEng) voiceEng.value = data.voice_engine || 'openai';
+                const openaiVoice = document.getElementById('openai_voice_id');
+                if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
+                const elevenLabsKey = document.getElementById('elevenlabs_api_key');
+                if (elevenLabsKey) elevenLabsKey.value = data.elevenlabs_api_key || '';
+
+                if (data.elevenlabs_voice_id && document.getElementById('elevenlabs_voice_id')) {
+                    const select = document.getElementById('elevenlabs_voice_id');
+                    if (!select.querySelector(`option[value="${data.elevenlabs_voice_id}"]`)) {
+                        const opt = document.createElement('option');
+                        opt.value = data.elevenlabs_voice_id;
+                        opt.text = "Voz Actual Guardada (Carga voces para ver resto)";
+                        select.appendChild(opt);
                     }
+                    select.value = data.elevenlabs_voice_id;
+                }
 
-                    data.skills.forEach(skill => {
-                        const card = document.createElement('div');
-                        card.className = `skill-card ${skill.enabled ? 'enabled' : ''}`;
-                        card.id = `card_${skill.id}`;
+                // Actualizar estados de los cerebros (Cards)
+                updateProviderStatus(data.model_provider, data.llm_api_key);
 
-                        card.innerHTML = `
+                window.settingsLoaded = true;
+
+                // Ejecutar toggles iniciales
+                if (typeof toggleTelegramConfig === 'function') toggleTelegramConfig();
+                if (typeof toggleWhatsappConfig === 'function') toggleWhatsappConfig();
+                if (typeof toggleVoiceMainConfig === 'function') toggleVoiceMainConfig();
+                if (typeof updateVoiceEngineFields === 'function') updateVoiceEngineFields();
+
+            } catch (e) {
+                console.error("Error cargando settings:", e);
+                // Aseguramos que el sistema no se bloquee aunque falle la carga de ajustes
+                window.settingsLoaded = true;
+            } finally {
+                window.settingsLoaded = true;
+            }
+        }
+        loadSettings();
+
+        // Cargar MCP Skills
+        function loadMCPSkills() {
+            fetch('/api/skills').then(r => r.json()).then(data => {
+                const container = document.getElementById('mcp_skills_container');
+                container.innerHTML = '';
+                if (!data.skills || data.skills.length === 0) {
+                    container.innerHTML = '<span class="helper-text">No se hallaron archivos .zip de habilidades MCP en la carpeta base.</span>';
+                    return;
+                }
+
+                data.skills.forEach(skill => {
+                    const card = document.createElement('div');
+                    card.className = `skill-card ${skill.enabled ? 'enabled' : ''}`;
+                    card.id = `card_${skill.id}`;
+
+                    card.innerHTML = `
                         <div class="skill-header">
                             <div class="skill-title-area">
                                 <div class="skill-emoji">${skill.emoji || 'ÔÜí'}</div>
@@ -2537,776 +2539,776 @@
                         </div>
                     `;
 
-                        // Lógica especial para GOG
-                        if (skill.id === 'gog.zip') {
-                            const configDiv = document.createElement('div');
-                            configDiv.id = `config_gog.zip`;
-                            configDiv.style.display = skill.enabled ? 'block' : 'none';
-                            configDiv.style.marginTop = '15px';
-                            configDiv.style.padding = '15px';
-                            configDiv.style.backgroundColor = 'rgba(0,0,0,0.1)';
-                            configDiv.style.borderRadius = '8px';
-                            configDiv.style.border = '1px solid var(--border)';
-                            configDiv.innerHTML = `
+                    // Lógica especial para GOG
+                    if (skill.id === 'gog.zip') {
+                        const configDiv = document.createElement('div');
+                        configDiv.id = `config_gog.zip`;
+                        configDiv.style.display = skill.enabled ? 'block' : 'none';
+                        configDiv.style.marginTop = '15px';
+                        configDiv.style.padding = '15px';
+                        configDiv.style.backgroundColor = 'rgba(0,0,0,0.1)';
+                        configDiv.style.borderRadius = '8px';
+                        configDiv.style.border = '1px solid var(--border)';
+                        configDiv.innerHTML = `
                             <label style="font-size: 13px; margin-bottom: 6px; display: block;">Ruta client_secret.json</label>
                             <input type="text" id="gog_client_secret" value="${window.gogSecretCache || ''}" style="margin-bottom: 10px; padding: 10px; font-size: 13px;" onchange="saveSettings()">
                             <label style="font-size: 13px; margin-bottom: 6px; display: block;">Email Gmail</label>
                             <input type="email" id="gog_email" value="${window.gogEmailCache || ''}" style="padding: 10px; font-size: 13px;" onchange="saveSettings()">
                         `;
-                            card.appendChild(configDiv);
-                        }
-
-                        container.appendChild(card);
-                    });
-
-                    // Inicializar caché para filtros
-                    window.allSkillsCache = data.skills;
-                }).catch(e => console.error("Error loading MCP abilities", e));
-            }
-
-            // Nueva función de filtrado
-            window.filterSkills = function (filterType) {
-                const container = document.getElementById('mcp_skills_container');
-                const search = document.getElementById('skill_search').value.toLowerCase();
-                const cards = container.querySelectorAll('.skill-card');
-
-                if (filterType) {
-                    // Actualizar botones activos
-                    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-                    const targetBtn = Array.from(document.querySelectorAll('.filter-btn')).find(b => b.getAttribute('onclick').includes(filterType));
-                    if (targetBtn) targetBtn.classList.add('active');
-                    window.currentFilter = filterType;
-                }
-
-                const activeFilter = window.currentFilter || 'all';
-
-                cards.forEach(card => {
-                    const title = card.querySelector('.skill-title').textContent.toLowerCase();
-                    const id = card.id.replace('card_', '').toLowerCase();
-                    const isEnabled = card.classList.contains('enabled');
-
-                    let matchesSearch = title.includes(search) || id.includes(search);
-                    let matchesFilter = true;
-
-                    if (activeFilter === 'active') matchesFilter = isEnabled;
-                    if (activeFilter === 'inactive') matchesFilter = !isEnabled;
-
-                    card.style.display = (matchesSearch && matchesFilter) ? 'flex' : 'none';
-                });
-            };
-
-            // Nueva función para manejar el UI del toggle de skills
-            window.toggleSkillUI = function (skillId) {
-                const isEnabled = document.getElementById('skill_enabled_' + skillId).checked;
-                const card = document.getElementById('card_' + skillId);
-                const badge = card.querySelector('.skill-status-badge');
-
-                if (isEnabled) {
-                    card.classList.add('enabled');
-                    badge.className = 'skill-status-badge badge-active';
-                    badge.textContent = 'Activa';
-                } else {
-                    card.classList.remove('enabled');
-                    badge.className = 'skill-status-badge badge-inactive';
-                    badge.textContent = 'Desactivada';
-                }
-
-                // Mostrar config si existe
-                const configEl = document.getElementById('config_' + skillId);
-                if (configEl) configEl.style.display = isEnabled ? 'block' : 'none';
-
-                // Auto-guardar
-                saveSettings();
-            };
-            loadMCPSkills();
-
-            // Cargar Historial de Chat y aplicar Polling
-            let lastMessageCount = 0;
-            let chatBusySending = false; // Flag para evitar que el polling destruya el DOM durante el envío
-
-            async function loadChatHistory() {
-                // Si estamos en medio de un envío, no tocar el DOM
-                if (chatBusySending) return;
-
-                try {
-                    const res = await fetch(`/api/chat-history?sessionId=${window.currentSessionId}`);
-                    const data = await res.json();
-                    const chat = document.getElementById('chat_history');
-
-                    if (data.messages) {
-                        const newCount = data.messages.length;
-                        const currentDOMCount = chat.querySelectorAll('.chat-message-wrapper').length;
-
-                        if (newCount !== currentDOMCount) {
-                            chat.innerHTML = '';
-
-                            if (newCount === 0) {
-                                // Chat vacío: no mostramos nada, esperamos al usuario
-                            } else {
-                                data.messages.forEach(msg => {
-                                    const wrapper = document.createElement('div');
-                                    wrapper.className = `chat-message-wrapper ${msg.role === 'user' ? 'user' : 'assistant'}`;
-
-                                    const avatar = document.createElement('div');
-                                    avatar.className = `avatar ${msg.role === 'user' ? 'user' : 'assistant'}`;
-                                    avatar.textContent = msg.role === 'user' ? window.userNameCache : window.agentNameCache;
-                                    avatar.title = msg.role === 'user' ? window.fullUserNameCache : window.fullAgentNameCache;
-
-                                    const contentWrapper = document.createElement('div');
-                                    contentWrapper.className = 'message-content';
-
-                                    const senderName = document.createElement('div');
-                                    senderName.className = 'sender-name';
-                                    senderName.textContent = msg.role === 'user' ? window.fullUserNameCache : window.fullAgentNameCache;
-
-                                    const bubble = document.createElement('div');
-                                    bubble.className = `chat-bubble ${msg.role === 'user' ? 'user' : 'assistant'}`;
-                                    bubble.innerHTML = formatChatText(msg.content);
-
-                                    contentWrapper.appendChild(senderName);
-                                    contentWrapper.appendChild(bubble);
-
-                                    wrapper.appendChild(avatar);
-                                    wrapper.appendChild(contentWrapper);
-                                    chat.appendChild(wrapper);
-                                });
-                            }
-                            setTimeout(() => chat.scrollTop = chat.scrollHeight, 100);
-                        }
+                        card.appendChild(configDiv);
                     }
-                } catch (e) {
-                    console.error("Error al refrescar historial", e);
-                }
-            }
 
-            // Carga inicial y encuesta de nuevos mensajes cada 3s por si se chatea desde Telegram/WA
-            loadSessions();
-            loadChatHistory();
-            setInterval(() => {
-                // Solo hacer polling si la pestaña activa es 'chat'
-                if (document.getElementById('chat').classList.contains('active')) {
-                    loadChatHistory();
-                }
-            }, 3000);
-
-            // Funciones para mostrar u ocultar la configuración según si están habilitados
-            function toggleTelegramConfig() {
-                const el = document.getElementById('bot_telegram_enabled');
-                const section = document.getElementById('telegram_config_section');
-                if (el && section) {
-                    const isEnabled = el.checked;
-                    section.style.display = isEnabled ? 'block' : 'none';
-                }
-                saveSettings();
-            }
-
-            function toggleVoiceMainConfig() {
-                const isEnabled = document.getElementById('voice_enabled').checked;
-                document.getElementById('voice_engine_section').style.display = isEnabled ? 'block' : 'none';
-                saveSettings();
-            }
-
-            function toggleWhatsappConfig() {
-                const el = document.getElementById('bot_whatsapp_enabled');
-                const section = document.getElementById('whatsapp_config_section');
-                if (el && section) {
-                    section.style.display = el.checked ? 'block' : 'none';
-                }
-                saveSettings();
-            }
-
-            function updateVoiceEngineFields() {
-                const engine = document.getElementById('voice_engine').value;
-                document.getElementById('openai_voice_config_area').style.display = engine === 'openai' ? 'block' : 'none';
-                document.getElementById('elevenlabs_voice_config_area').style.display = engine === 'elevenlabs' ? 'block' : 'none';
-            }
-
-            async function saveSettings() {
-                // No guardar si la configuración aún no se ha cargado del servidor
-                if (!window.settingsLoaded) return;
-
-                const payload = {
-                    model_provider: document.getElementById('model_provider')?.value || 'openai',
-                    model_name: document.getElementById('model_name')?.value || 'gpt-4o',
-                    llm_api_key: document.getElementById('llm_api_key')?.value || '',
-                    telegram_bot_token: document.getElementById('telegram_bot_token')?.value || '',
-                    telegram_whitelist: document.getElementById('telegram_whitelist')?.value || '',
-                    tool_get_current_time: document.getElementById('tool_get_current_time')?.checked || false,
-                    tool_read_file_local: document.getElementById('tool_read_file_local')?.checked || false,
-                    tool_write_file_local: document.getElementById('tool_write_file_local')?.checked || false,
-                    tool_list_dir_local: document.getElementById('tool_list_dir_local')?.checked || false,
-                    tool_run_shell_local: document.getElementById('tool_run_shell_local')?.checked || false,
-                    tool_run_ssh_command: document.getElementById('tool_run_ssh_command')?.checked || false,
-                    bot_telegram_enabled: document.getElementById('bot_telegram_enabled')?.checked || false,
-                    bot_whatsapp_enabled: document.getElementById('bot_whatsapp_enabled')?.checked || false,
-                    voice_enabled: document.getElementById('voice_enabled')?.checked || false,
-                    voice_engine: document.getElementById('voice_engine')?.value || 'openai',
-                    openai_voice_id: document.getElementById('openai_voice_id')?.value || 'alloy',
-                    elevenlabs_api_key: document.getElementById('elevenlabs_api_key')?.value || '',
-                    elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || ''
-                };
-
-                const gogClientEl = document.getElementById('gog_client_secret');
-                if (gogClientEl) payload.gog_client_secret = gogClientEl.value;
-                const gogEmailEl = document.getElementById('gog_email');
-                if (gogEmailEl) payload.gog_email = gogEmailEl.value;
-
-                // Recolectar switches de MCP Skills dinámicos
-                document.querySelectorAll('input[id^="skill_enabled_"]').forEach(input => {
-                    payload[input.id] = input.checked;
+                    container.appendChild(card);
                 });
 
-                const res = await fetch('/api/settings', {
+                // Inicializar caché para filtros
+                window.allSkillsCache = data.skills;
+            }).catch(e => console.error("Error loading MCP abilities", e));
+        }
+
+        // Nueva función de filtrado
+        window.filterSkills = function (filterType) {
+            const container = document.getElementById('mcp_skills_container');
+            const search = document.getElementById('skill_search').value.toLowerCase();
+            const cards = container.querySelectorAll('.skill-card');
+
+            if (filterType) {
+                // Actualizar botones activos
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                const targetBtn = Array.from(document.querySelectorAll('.filter-btn')).find(b => b.getAttribute('onclick').includes(filterType));
+                if (targetBtn) targetBtn.classList.add('active');
+                window.currentFilter = filterType;
+            }
+
+            const activeFilter = window.currentFilter || 'all';
+
+            cards.forEach(card => {
+                const title = card.querySelector('.skill-title').textContent.toLowerCase();
+                const id = card.id.replace('card_', '').toLowerCase();
+                const isEnabled = card.classList.contains('enabled');
+
+                let matchesSearch = title.includes(search) || id.includes(search);
+                let matchesFilter = true;
+
+                if (activeFilter === 'active') matchesFilter = isEnabled;
+                if (activeFilter === 'inactive') matchesFilter = !isEnabled;
+
+                card.style.display = (matchesSearch && matchesFilter) ? 'flex' : 'none';
+            });
+        };
+
+        // Nueva función para manejar el UI del toggle de skills
+        window.toggleSkillUI = function (skillId) {
+            const isEnabled = document.getElementById('skill_enabled_' + skillId).checked;
+            const card = document.getElementById('card_' + skillId);
+            const badge = card.querySelector('.skill-status-badge');
+
+            if (isEnabled) {
+                card.classList.add('enabled');
+                badge.className = 'skill-status-badge badge-active';
+                badge.textContent = 'Activa';
+            } else {
+                card.classList.remove('enabled');
+                badge.className = 'skill-status-badge badge-inactive';
+                badge.textContent = 'Desactivada';
+            }
+
+            // Mostrar config si existe
+            const configEl = document.getElementById('config_' + skillId);
+            if (configEl) configEl.style.display = isEnabled ? 'block' : 'none';
+
+            // Auto-guardar
+            saveSettings();
+        };
+        loadMCPSkills();
+
+        // Cargar Historial de Chat y aplicar Polling
+        let lastMessageCount = 0;
+        let chatBusySending = false; // Flag para evitar que el polling destruya el DOM durante el envío
+
+        async function loadChatHistory() {
+            // Si estamos en medio de un envío, no tocar el DOM
+            if (chatBusySending) return;
+
+            try {
+                const res = await fetch(`/api/chat-history?sessionId=${window.currentSessionId}`);
+                const data = await res.json();
+                const chat = document.getElementById('chat_history');
+
+                if (data.messages) {
+                    const newCount = data.messages.length;
+                    const currentDOMCount = chat.querySelectorAll('.chat-message-wrapper').length;
+
+                    if (newCount !== currentDOMCount) {
+                        chat.innerHTML = '';
+
+                        if (newCount === 0) {
+                            // Chat vacío: no mostramos nada, esperamos al usuario
+                        } else {
+                            data.messages.forEach(msg => {
+                                const wrapper = document.createElement('div');
+                                wrapper.className = `chat-message-wrapper ${msg.role === 'user' ? 'user' : 'assistant'}`;
+
+                                const avatar = document.createElement('div');
+                                avatar.className = `avatar ${msg.role === 'user' ? 'user' : 'assistant'}`;
+                                avatar.textContent = msg.role === 'user' ? window.userNameCache : window.agentNameCache;
+                                avatar.title = msg.role === 'user' ? window.fullUserNameCache : window.fullAgentNameCache;
+
+                                const contentWrapper = document.createElement('div');
+                                contentWrapper.className = 'message-content';
+
+                                const senderName = document.createElement('div');
+                                senderName.className = 'sender-name';
+                                senderName.textContent = msg.role === 'user' ? window.fullUserNameCache : window.fullAgentNameCache;
+
+                                const bubble = document.createElement('div');
+                                bubble.className = `chat-bubble ${msg.role === 'user' ? 'user' : 'assistant'}`;
+                                bubble.innerHTML = formatChatText(msg.content);
+
+                                contentWrapper.appendChild(senderName);
+                                contentWrapper.appendChild(bubble);
+
+                                wrapper.appendChild(avatar);
+                                wrapper.appendChild(contentWrapper);
+                                chat.appendChild(wrapper);
+                            });
+                        }
+                        setTimeout(() => chat.scrollTop = chat.scrollHeight, 100);
+                    }
+                }
+            } catch (e) {
+                console.error("Error al refrescar historial", e);
+            }
+        }
+
+        // Carga inicial y encuesta de nuevos mensajes cada 3s por si se chatea desde Telegram/WA
+        loadSessions();
+        loadChatHistory();
+        setInterval(() => {
+            // Solo hacer polling si la pestaña activa es 'chat'
+            if (document.getElementById('chat').classList.contains('active')) {
+                loadChatHistory();
+            }
+        }, 3000);
+
+        // Funciones para mostrar u ocultar la configuración según si están habilitados
+        function toggleTelegramConfig() {
+            const el = document.getElementById('bot_telegram_enabled');
+            const section = document.getElementById('telegram_config_section');
+            if (el && section) {
+                const isEnabled = el.checked;
+                section.style.display = isEnabled ? 'block' : 'none';
+            }
+            saveSettings();
+        }
+
+        function toggleVoiceMainConfig() {
+            const isEnabled = document.getElementById('voice_enabled').checked;
+            document.getElementById('voice_engine_section').style.display = isEnabled ? 'block' : 'none';
+            saveSettings();
+        }
+
+        function toggleWhatsappConfig() {
+            const el = document.getElementById('bot_whatsapp_enabled');
+            const section = document.getElementById('whatsapp_config_section');
+            if (el && section) {
+                section.style.display = el.checked ? 'block' : 'none';
+            }
+            saveSettings();
+        }
+
+        function updateVoiceEngineFields() {
+            const engine = document.getElementById('voice_engine').value;
+            document.getElementById('openai_voice_config_area').style.display = engine === 'openai' ? 'block' : 'none';
+            document.getElementById('elevenlabs_voice_config_area').style.display = engine === 'elevenlabs' ? 'block' : 'none';
+        }
+
+        async function saveSettings() {
+            // No guardar si la configuración aún no se ha cargado del servidor
+            if (!window.settingsLoaded) return;
+
+            const payload = {
+                model_provider: document.getElementById('model_provider')?.value || 'openai',
+                model_name: document.getElementById('model_name')?.value || 'gpt-4o',
+                llm_api_key: document.getElementById('llm_api_key')?.value || '',
+                telegram_bot_token: document.getElementById('telegram_bot_token')?.value || '',
+                telegram_whitelist: document.getElementById('telegram_whitelist')?.value || '',
+                tool_get_current_time: document.getElementById('tool_get_current_time')?.checked || false,
+                tool_read_file_local: document.getElementById('tool_read_file_local')?.checked || false,
+                tool_write_file_local: document.getElementById('tool_write_file_local')?.checked || false,
+                tool_list_dir_local: document.getElementById('tool_list_dir_local')?.checked || false,
+                tool_run_shell_local: document.getElementById('tool_run_shell_local')?.checked || false,
+                tool_run_ssh_command: document.getElementById('tool_run_ssh_command')?.checked || false,
+                bot_telegram_enabled: document.getElementById('bot_telegram_enabled')?.checked || false,
+                bot_whatsapp_enabled: document.getElementById('bot_whatsapp_enabled')?.checked || false,
+                voice_enabled: document.getElementById('voice_enabled')?.checked || false,
+                voice_engine: document.getElementById('voice_engine')?.value || 'openai',
+                openai_voice_id: document.getElementById('openai_voice_id')?.value || 'alloy',
+                elevenlabs_api_key: document.getElementById('elevenlabs_api_key')?.value || '',
+                elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || ''
+            };
+
+            const gogClientEl = document.getElementById('gog_client_secret');
+            if (gogClientEl) payload.gog_client_secret = gogClientEl.value;
+            const gogEmailEl = document.getElementById('gog_email');
+            if (gogEmailEl) payload.gog_email = gogEmailEl.value;
+
+            // Recolectar switches de MCP Skills dinámicos
+            document.querySelectorAll('input[id^="skill_enabled_"]').forEach(input => {
+                payload[input.id] = input.checked;
+            });
+
+            const res = await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const msg = document.getElementById('successMsg');
+                msg.style.display = 'block';
+                // Scroll arriba para ver el asomo verde
+                document.querySelector('.main-content').scrollTop = 0;
+                setTimeout(() => msg.style.display = 'none', 5000);
+            }
+        }
+
+        async function clearMemory() {
+            if (confirm("&iquest;Estás súper seguro de que quieres borrar de forma irreversible la memoria de tu agente?")) {
+                await fetch('/api/clear-memory', { method: 'POST' });
+                alert("Memoria borrada. El agente empezará de cero su hilo de conversación.");
+                document.getElementById('chat_history').innerHTML = '<div class="chat-bubble assistant">Memoria borrada. &iexcl;Hola de nuevo!</div>';
+            }
+        }
+
+        function handleChatEnter(e) {
+            if (e.key === 'Enter') sendChatMessage();
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat_input');
+            const text = input.value.trim();
+            if (!text) return;
+            console.log(`[Debug] sendChatMessage: sessionId=${window.currentSessionId}, messageLength=${text.length}`);
+
+            chatBusySending = true; // Evitar que el polling sobreescriba el DOM
+            const chat = document.getElementById('chat_history');
+
+            // Wrappers de chat
+            const userWrapper = document.createElement('div');
+            userWrapper.className = 'chat-message-wrapper user';
+
+            const userAvatar = document.createElement('div');
+            userAvatar.className = 'avatar user';
+            userAvatar.textContent = window.userNameCache;
+            userAvatar.title = window.fullUserNameCache;
+
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'message-content';
+
+            const senderName = document.createElement('div');
+            senderName.className = 'sender-name';
+            senderName.textContent = window.fullUserNameCache;
+
+            const userBubble = document.createElement('div');
+            userBubble.className = 'chat-bubble user';
+            userBubble.innerHTML = formatChatText(text);
+
+            contentWrapper.appendChild(senderName);
+            contentWrapper.appendChild(userBubble);
+
+            userWrapper.appendChild(userAvatar);
+            userWrapper.appendChild(contentWrapper);
+            chat.appendChild(userWrapper);
+
+            input.value = '';
+            chat.scrollTop = chat.scrollHeight;
+
+            // Indicación de carga estilo ChatGPT
+            const typingWrapper = document.createElement('div');
+            typingWrapper.className = 'chat-message-wrapper assistant';
+
+            const typingAvatar = document.createElement('div');
+            typingAvatar.className = 'avatar assistant';
+            typingAvatar.textContent = window.agentNameCache;
+            typingAvatar.title = window.fullAgentNameCache;
+
+            const typingContentWrapper = document.createElement('div');
+            typingContentWrapper.className = 'message-content';
+
+            const typingSenderName = document.createElement('div');
+            typingSenderName.className = 'sender-name';
+            typingSenderName.textContent = window.fullAgentNameCache;
+
+            const typingBubble = document.createElement('div');
+            typingBubble.className = 'chat-bubble assistant';
+            typingBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+
+            typingContentWrapper.appendChild(typingSenderName);
+            typingContentWrapper.appendChild(typingBubble);
+
+            typingWrapper.appendChild(typingAvatar);
+            typingWrapper.appendChild(typingContentWrapper);
+            chat.appendChild(typingWrapper);
+            chat.scrollTop = chat.scrollHeight;
+
+            try {
+                const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ message: text, sessionId: window.currentSessionId })
+                });
+
+                chat.removeChild(typingWrapper);
+
+                if (!res.ok) {
+                    const d = await res.json();
+                    throw new Error(d.error || 'Error del servidor');
+                }
+
+                const data = await res.json();
+
+                const botWrapper = document.createElement('div');
+                botWrapper.className = 'chat-message-wrapper assistant';
+
+                const botAvatar = document.createElement('div');
+                botAvatar.className = 'avatar assistant';
+                botAvatar.textContent = window.agentNameCache;
+                botAvatar.title = window.fullAgentNameCache;
+
+                const botContentWrapper = document.createElement('div');
+                botContentWrapper.className = 'message-content';
+
+                const botSenderName = document.createElement('div');
+                botSenderName.className = 'sender-name';
+                botSenderName.textContent = window.fullAgentNameCache;
+
+                const botBubble = document.createElement('div');
+                botBubble.className = 'chat-bubble assistant';
+                botBubble.innerHTML = formatChatText(data.reply);
+
+                botContentWrapper.appendChild(botSenderName);
+                botContentWrapper.appendChild(botBubble);
+
+                botWrapper.appendChild(botAvatar);
+                botWrapper.appendChild(botContentWrapper);
+                chat.appendChild(botWrapper);
+
+                chat.scrollTop = chat.scrollHeight;
+
+            } catch (e) {
+                chat.removeChild(typingWrapper);
+                const errWrapper = document.createElement('div');
+                errWrapper.className = 'chat-message-wrapper assistant';
+
+                const botAvatar = document.createElement('div');
+                botAvatar.className = 'avatar assistant';
+                botAvatar.textContent = window.agentNameCache;
+                botAvatar.title = window.fullAgentNameCache;
+
+                const errorContentWrapper = document.createElement('div');
+                errorContentWrapper.className = 'message-content';
+
+                const errorSenderName = document.createElement('div');
+                errorSenderName.className = 'sender-name';
+                errorSenderName.textContent = window.fullAgentNameCache;
+
+                const errorBubble = document.createElement('div');
+                errorBubble.className = 'chat-bubble assistant';
+                errorBubble.style.color = 'var(--danger)';
+                errorBubble.innerHTML = formatChatText("Error de red: " + e.message);
+
+                errorContentWrapper.appendChild(errorSenderName);
+                errorContentWrapper.appendChild(errorBubble);
+
+                errWrapper.appendChild(botAvatar);
+                errWrapper.appendChild(errorContentWrapper);
+                chat.appendChild(errWrapper);
+
+                chat.scrollTop = chat.scrollHeight;
+            }
+            chatBusySending = false; // Reanudar polling
+        }
+
+        async function loadModels() {
+            const provider = document.getElementById('model_provider').value;
+            const apiKey = document.getElementById('llm_api_key').value;
+            const statusEl = document.getElementById('models_status');
+
+            statusEl.textContent = "Consultando proveedor, por favor espera...";
+            statusEl.style.color = "var(--primary)";
+
+            try {
+                const res = await fetch('/api/models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, apiKey })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    statusEl.textContent = "Error: " + (err.error || "No se pudieron cargar los modelos");
+                    statusEl.style.color = "var(--danger)";
+                    return;
+                }
+
+                const data = await res.json();
+                const datalist = document.getElementById('model_list');
+                datalist.innerHTML = '';
+
+                if (data.models && data.models.length > 0) {
+                    data.models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id;
+                        opt.text = m.name;
+                        datalist.appendChild(opt);
+                    });
+
+                    document.getElementById('model_name').value = '';
+                    statusEl.textContent = `├ëxito. Se han sincronizado ${data.models.length} modelos. Abajo abre el selector para usar la lista.`;
+                    statusEl.style.color = "var(--success)";
+                } else {
+                    statusEl.textContent = "No se encontraron modelos. Verifica tu API Key o proveedor.";
+                    statusEl.style.color = "var(--danger)";
+                }
+            } catch (e) {
+                statusEl.textContent = "Error de red interno consultando.";
+                statusEl.style.color = "var(--danger)";
+            }
+        }
+
+        // --- SISTEMA DE CEREBRO V4 (LOGIN) ---
+        let currentModalProvider = '';
+
+        function openLoginModal(provider) {
+            currentModalProvider = provider;
+            const names = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google Gemini', groq: 'Groq', openrouter: 'OpenRouter' };
+            const helpLinks = {
+                openai: 'https://platform.openai.com/api-keys',
+                anthropic: 'https://console.anthropic.com/settings/keys',
+                google: 'https://aistudio.google.com/app/apikey',
+                groq: 'https://console.groq.com/keys',
+                openrouter: 'https://openrouter.ai/keys'
+            };
+
+            document.getElementById('modal_provider_title').textContent = `Conectar con ${names[provider] || provider}`;
+
+            const helpLink = document.getElementById('provider_help_link');
+            if (helpLink) helpLink.href = helpLinks[provider] || '#';
+
+            // Reset UI
+            document.getElementById('model_selection_area').style.display = 'none';
+            document.getElementById('manual_model_area').style.display = 'none';
+            document.getElementById('btn_test_conn').style.display = 'none';
+            document.getElementById('btn_verify_key').style.display = 'block';
+
+            // Re-etiquetar para Qwen
+            const label = document.getElementById('key_label');
+            if (label) label.textContent = (provider === 'qwen') ? 'DashScope API Key' : 'API Key';
+
+            // Mostrar OAuth si es OpenRouter
+            document.getElementById('oauth_container').style.display = (provider === 'openrouter') ? 'block' : 'none';
+
+            document.getElementById('llm_modal').style.display = 'flex';
+            document.getElementById('modal_status_msg').textContent = '';
+            document.getElementById('modal_api_key').value = '';
+            document.getElementById('modal_model_name').value = '';
+        }
+
+        function closeLoginModal() {
+            document.getElementById('llm_modal').style.display = 'none';
+        }
+
+        function toggleConnMethod() {
+            const method = document.getElementById('conn_method').value;
+            document.getElementById('method_key_section').style.display = method === 'key' ? 'block' : 'none';
+            document.getElementById('method_web_section').style.display = method === 'web' ? 'block' : 'none';
+            document.getElementById('btn_test_conn').style.display = method === 'key' ? 'block' : 'none';
+        }
+
+        function openAuthProvider() {
+            const url = `/auth-provider?p=${currentModalProvider}`;
+            window.open(url, '_blank', 'width=500,height=700');
+
+            // Polling para detectar login exitoso
+            const checkLogin = setInterval(async () => {
+                const r = await fetch('/api/settings');
+                const d = await r.json();
+                if (d.model_provider === currentModalProvider && d.llm_api_key) {
+                    clearInterval(checkLogin);
+                    closeLoginModal();
+                    updateProviderStatus(d.model_provider, d.llm_api_key);
+                }
+            }, 2000);
+            setTimeout(() => clearInterval(checkLogin), 60000);
+        }
+
+        async function verifyKeyOnly() {
+            const apiKey = document.getElementById('modal_api_key').value;
+            const statusMsg = document.getElementById('modal_status_msg');
+            const btn = document.getElementById('btn_verify_key');
+
+            if (!apiKey) {
+                statusMsg.textContent = '❌ Introduce una API Key';
+                statusMsg.style.color = 'var(--danger)';
+                return;
+            }
+
+            btn.disabled = true;
+            statusMsg.textContent = '⌛ Verificando clave...';
+            statusMsg.style.color = 'var(--primary)';
+
+            try {
+                const res = await fetch('/api/models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider: currentModalProvider, apiKey })
                 });
 
                 if (res.ok) {
-                    const msg = document.getElementById('successMsg');
-                    msg.style.display = 'block';
-                    // Scroll arriba para ver el asomo verde
-                    document.querySelector('.main-content').scrollTop = 0;
-                    setTimeout(() => msg.style.display = 'none', 5000);
-                }
-            }
-
-            async function clearMemory() {
-                if (confirm("&iquest;Estás súper seguro de que quieres borrar de forma irreversible la memoria de tu agente?")) {
-                    await fetch('/api/clear-memory', { method: 'POST' });
-                    alert("Memoria borrada. El agente empezará de cero su hilo de conversación.");
-                    document.getElementById('chat_history').innerHTML = '<div class="chat-bubble assistant">Memoria borrada. &iexcl;Hola de nuevo!</div>';
-                }
-            }
-
-            function handleChatEnter(e) {
-                if (e.key === 'Enter') sendChatMessage();
-            }
-
-            async function sendChatMessage() {
-                const input = document.getElementById('chat_input');
-                const text = input.value.trim();
-                if (!text) return;
-                console.log(`[Debug] sendChatMessage: sessionId=${window.currentSessionId}, messageLength=${text.length}`);
-
-                chatBusySending = true; // Evitar que el polling sobreescriba el DOM
-                const chat = document.getElementById('chat_history');
-
-                // Wrappers de chat
-                const userWrapper = document.createElement('div');
-                userWrapper.className = 'chat-message-wrapper user';
-
-                const userAvatar = document.createElement('div');
-                userAvatar.className = 'avatar user';
-                userAvatar.textContent = window.userNameCache;
-                userAvatar.title = window.fullUserNameCache;
-
-                const contentWrapper = document.createElement('div');
-                contentWrapper.className = 'message-content';
-
-                const senderName = document.createElement('div');
-                senderName.className = 'sender-name';
-                senderName.textContent = window.fullUserNameCache;
-
-                const userBubble = document.createElement('div');
-                userBubble.className = 'chat-bubble user';
-                userBubble.innerHTML = formatChatText(text);
-
-                contentWrapper.appendChild(senderName);
-                contentWrapper.appendChild(userBubble);
-
-                userWrapper.appendChild(userAvatar);
-                userWrapper.appendChild(contentWrapper);
-                chat.appendChild(userWrapper);
-
-                input.value = '';
-                chat.scrollTop = chat.scrollHeight;
-
-                // Indicación de carga estilo ChatGPT
-                const typingWrapper = document.createElement('div');
-                typingWrapper.className = 'chat-message-wrapper assistant';
-
-                const typingAvatar = document.createElement('div');
-                typingAvatar.className = 'avatar assistant';
-                typingAvatar.textContent = window.agentNameCache;
-                typingAvatar.title = window.fullAgentNameCache;
-
-                const typingContentWrapper = document.createElement('div');
-                typingContentWrapper.className = 'message-content';
-
-                const typingSenderName = document.createElement('div');
-                typingSenderName.className = 'sender-name';
-                typingSenderName.textContent = window.fullAgentNameCache;
-
-                const typingBubble = document.createElement('div');
-                typingBubble.className = 'chat-bubble assistant';
-                typingBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
-
-                typingContentWrapper.appendChild(typingSenderName);
-                typingContentWrapper.appendChild(typingBubble);
-
-                typingWrapper.appendChild(typingAvatar);
-                typingWrapper.appendChild(typingContentWrapper);
-                chat.appendChild(typingWrapper);
-                chat.scrollTop = chat.scrollHeight;
-
-                try {
-                    const res = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: text, sessionId: window.currentSessionId })
-                    });
-
-                    chat.removeChild(typingWrapper);
-
-                    if (!res.ok) {
-                        const d = await res.json();
-                        throw new Error(d.error || 'Error del servidor');
-                    }
-
                     const data = await res.json();
+                    statusMsg.textContent = '✅ Clave válida. Elige un modelo.';
+                    statusMsg.style.color = 'var(--success)';
 
-                    const botWrapper = document.createElement('div');
-                    botWrapper.className = 'chat-message-wrapper assistant';
-
-                    const botAvatar = document.createElement('div');
-                    botAvatar.className = 'avatar assistant';
-                    botAvatar.textContent = window.agentNameCache;
-                    botAvatar.title = window.fullAgentNameCache;
-
-                    const botContentWrapper = document.createElement('div');
-                    botContentWrapper.className = 'message-content';
-
-                    const botSenderName = document.createElement('div');
-                    botSenderName.className = 'sender-name';
-                    botSenderName.textContent = window.fullAgentNameCache;
-
-                    const botBubble = document.createElement('div');
-                    botBubble.className = 'chat-bubble assistant';
-                    botBubble.innerHTML = formatChatText(data.reply);
-
-                    botContentWrapper.appendChild(botSenderName);
-                    botContentWrapper.appendChild(botBubble);
-
-                    botWrapper.appendChild(botAvatar);
-                    botWrapper.appendChild(botContentWrapper);
-                    chat.appendChild(botWrapper);
-
-                    chat.scrollTop = chat.scrollHeight;
-
-                } catch (e) {
-                    chat.removeChild(typingWrapper);
-                    const errWrapper = document.createElement('div');
-                    errWrapper.className = 'chat-message-wrapper assistant';
-
-                    const botAvatar = document.createElement('div');
-                    botAvatar.className = 'avatar assistant';
-                    botAvatar.textContent = window.agentNameCache;
-                    botAvatar.title = window.fullAgentNameCache;
-
-                    const errorContentWrapper = document.createElement('div');
-                    errorContentWrapper.className = 'message-content';
-
-                    const errorSenderName = document.createElement('div');
-                    errorSenderName.className = 'sender-name';
-                    errorSenderName.textContent = window.fullAgentNameCache;
-
-                    const errorBubble = document.createElement('div');
-                    errorBubble.className = 'chat-bubble assistant';
-                    errorBubble.style.color = 'var(--danger)';
-                    errorBubble.innerHTML = formatChatText("Error de red: " + e.message);
-
-                    errorContentWrapper.appendChild(errorSenderName);
-                    errorContentWrapper.appendChild(errorBubble);
-
-                    errWrapper.appendChild(botAvatar);
-                    errWrapper.appendChild(errorContentWrapper);
-                    chat.appendChild(errWrapper);
-
-                    chat.scrollTop = chat.scrollHeight;
-                }
-                chatBusySending = false; // Reanudar polling
-            }
-
-            async function loadModels() {
-                const provider = document.getElementById('model_provider').value;
-                const apiKey = document.getElementById('llm_api_key').value;
-                const statusEl = document.getElementById('models_status');
-
-                statusEl.textContent = "Consultando proveedor, por favor espera...";
-                statusEl.style.color = "var(--primary)";
-
-                try {
-                    const res = await fetch('/api/models', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ provider, apiKey })
-                    });
-
-                    if (!res.ok) {
-                        const err = await res.json();
-                        statusEl.textContent = "Error: " + (err.error || "No se pudieron cargar los modelos");
-                        statusEl.style.color = "var(--danger)";
-                        return;
-                    }
-
-                    const data = await res.json();
-                    const datalist = document.getElementById('model_list');
-                    datalist.innerHTML = '';
+                    const select = document.getElementById('modal_model_select');
+                    select.innerHTML = '';
 
                     if (data.models && data.models.length > 0) {
                         data.models.forEach(m => {
                             const opt = document.createElement('option');
                             opt.value = m.id;
-                            opt.text = m.name;
-                            datalist.appendChild(opt);
+                            opt.textContent = m.name;
+                            select.appendChild(opt);
                         });
-
-                        document.getElementById('model_name').value = '';
-                        statusEl.textContent = `├ëxito. Se han sincronizado ${data.models.length} modelos. Abajo abre el selector para usar la lista.`;
-                        statusEl.style.color = "var(--success)";
+                        document.getElementById('model_selection_area').style.display = 'block';
                     } else {
-                        statusEl.textContent = "No se encontraron modelos. Verifica tu API Key o proveedor.";
-                        statusEl.style.color = "var(--danger)";
+                        document.getElementById('manual_model_area').style.display = 'block';
                     }
-                } catch (e) {
-                    statusEl.textContent = "Error de red interno consultando.";
-                    statusEl.style.color = "var(--danger)";
+
+                    btn.style.display = 'none';
+                    document.getElementById('btn_test_conn').style.display = 'block';
+                } else {
+                    const data = await res.json();
+                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Clave inválida');
+                    statusMsg.style.color = 'var(--danger)';
+                }
+            } catch (e) {
+                statusMsg.textContent = '❌ Error de red';
+                statusMsg.style.color = 'var(--danger)';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function testConnection() {
+            const apiKey = document.getElementById('modal_api_key').value;
+            const modelSelect = document.getElementById('modal_model_select');
+            const modelManual = document.getElementById('modal_model_name');
+            let model = (modelSelect && modelSelect.value) || (modelManual && modelManual.value);
+
+            // Evitar desajustes: si no hay modelo o es incongruente, poner default
+            if (!model || model === 'n/a' || (currentModalProvider === 'openai' && model.includes('openrouter'))) {
+                if (currentModalProvider === 'openai') model = 'gpt-4o-mini';
+                else if (currentModalProvider === 'groq') model = 'llama-3.3-70b-versatile';
+                else if (currentModalProvider === 'anthropic') model = 'claude-3-5-sonnet-20241022';
+                else if (currentModalProvider === 'google') model = 'gemini-1.5-flash';
+                else if (currentModalProvider === 'openrouter') model = 'openrouter/free';
+            }
+
+            const statusMsg = document.getElementById('modal_status_msg');
+            const btn = document.getElementById('btn_test_conn');
+
+            btn.disabled = true;
+            statusMsg.textContent = '⌛ Guardando configuración...';
+
+            try {
+                const res = await fetch('/api/verify-llm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider: currentModalProvider, apiKey, model })
+                });
+
+                if (res.ok) {
+                    statusMsg.textContent = '✅ &iexcl;Conectado con éxito!';
+                    statusMsg.style.color = 'var(--success)';
+                    setTimeout(() => {
+                        closeLoginModal();
+                        updateProviderStatus(currentModalProvider, apiKey);
+                    }, 1500);
+                } else {
+                    const data = await res.json();
+                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Fallo al verificar');
+                    statusMsg.style.color = 'var(--danger)';
+                }
+            } catch (e) {
+                statusMsg.textContent = '❌ Error de red';
+                statusMsg.style.color = 'var(--danger)';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function updateProviderStatus(activeProvider, apiKey) {
+            document.querySelectorAll('.provider-badge').forEach(b => {
+                b.textContent = b.id === 'badge_anthropic' ? 'Próximamente' : 'Desconectado';
+                b.className = b.id === 'badge_anthropic' ? 'provider-badge pending' : 'provider-badge disconnected';
+            });
+            document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--border)');
+
+            if (activeProvider && apiKey) {
+                const badge = document.getElementById(`badge_${activeProvider}`);
+                const card = document.getElementById(`card_${activeProvider}`);
+                if (badge) {
+                    badge.textContent = 'Conectado';
+                    badge.className = 'provider-badge connected';
+                }
+                if (card) {
+                    card.style.borderColor = 'var(--success)';
                 }
             }
+        }
 
-            // --- SISTEMA DE CEREBRO V4 (LOGIN) ---
-            let currentModalProvider = '';
+        function startOAuthLogin() {
+            const callback = window.location.origin + '/auth-provider?p=openrouter&oauth=true';
+            window.open(`https://openrouter.ai/auth?callback_url=${encodeURIComponent(callback)}`, '_blank', 'width=500,height=700');
+        }
 
-            function openLoginModal(provider) {
-                currentModalProvider = provider;
-                const names = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google Gemini', groq: 'Groq', openrouter: 'OpenRouter' };
-                const helpLinks = {
-                    openai: 'https://platform.openai.com/api-keys',
-                    anthropic: 'https://console.anthropic.com/settings/keys',
-                    google: 'https://aistudio.google.com/app/apikey',
-                    groq: 'https://console.groq.com/keys',
-                    openrouter: 'https://openrouter.ai/keys'
-                };
 
-                document.getElementById('modal_provider_title').textContent = `Conectar con ${names[provider] || provider}`;
 
-                const helpLink = document.getElementById('provider_help_link');
-                if (helpLink) helpLink.href = helpLinks[provider] || '#';
+        async function loadTokenUsage() {
+            try {
+                const r = await fetch('/api/tokens/today');
+                const data = await r.json();
+                const container = document.getElementById('token_usage_stats');
+                container.innerHTML = '';
 
-                // Reset UI
-                document.getElementById('model_selection_area').style.display = 'none';
-                document.getElementById('manual_model_area').style.display = 'none';
-                document.getElementById('btn_test_conn').style.display = 'none';
-                document.getElementById('btn_verify_key').style.display = 'block';
-
-                // Re-etiquetar para Qwen
-                const label = document.getElementById('key_label');
-                if (label) label.textContent = (provider === 'qwen') ? 'DashScope API Key' : 'API Key';
-
-                // Mostrar OAuth si es OpenRouter
-                document.getElementById('oauth_container').style.display = (provider === 'openrouter') ? 'block' : 'none';
-
-                document.getElementById('llm_modal').style.display = 'flex';
-                document.getElementById('modal_status_msg').textContent = '';
-                document.getElementById('modal_api_key').value = '';
-                document.getElementById('modal_model_name').value = '';
-            }
-
-            function closeLoginModal() {
-                document.getElementById('llm_modal').style.display = 'none';
-            }
-
-            function toggleConnMethod() {
-                const method = document.getElementById('conn_method').value;
-                document.getElementById('method_key_section').style.display = method === 'key' ? 'block' : 'none';
-                document.getElementById('method_web_section').style.display = method === 'web' ? 'block' : 'none';
-                document.getElementById('btn_test_conn').style.display = method === 'key' ? 'block' : 'none';
-            }
-
-            function openAuthProvider() {
-                const url = `/auth-provider?p=${currentModalProvider}`;
-                window.open(url, '_blank', 'width=500,height=700');
-
-                // Polling para detectar login exitoso
-                const checkLogin = setInterval(async () => {
-                    const r = await fetch('/api/settings');
-                    const d = await r.json();
-                    if (d.model_provider === currentModalProvider && d.llm_api_key) {
-                        clearInterval(checkLogin);
-                        closeLoginModal();
-                        updateProviderStatus(d.model_provider, d.llm_api_key);
-                    }
-                }, 2000);
-                setTimeout(() => clearInterval(checkLogin), 60000);
-            }
-
-            async function verifyKeyOnly() {
-                const apiKey = document.getElementById('modal_api_key').value;
-                const statusMsg = document.getElementById('modal_status_msg');
-                const btn = document.getElementById('btn_verify_key');
-
-                if (!apiKey) {
-                    statusMsg.textContent = '❌ Introduce una API Key';
-                    statusMsg.style.color = 'var(--danger)';
+                if (data.length === 0) {
+                    container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;">Sin consumo registrado hoy.</div>';
                     return;
                 }
 
-                btn.disabled = true;
-                statusMsg.textContent = '⌛ Verificando clave...';
-                statusMsg.style.color = 'var(--primary)';
-
-                try {
-                    const res = await fetch('/api/models', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ provider: currentModalProvider, apiKey })
-                    });
-
-                    if (res.ok) {
-                        const data = await res.json();
-                        statusMsg.textContent = '✅ Clave válida. Elige un modelo.';
-                        statusMsg.style.color = 'var(--success)';
-
-                        const select = document.getElementById('modal_model_select');
-                        select.innerHTML = '';
-
-                        if (data.models && data.models.length > 0) {
-                            data.models.forEach(m => {
-                                const opt = document.createElement('option');
-                                opt.value = m.id;
-                                opt.textContent = m.name;
-                                select.appendChild(opt);
-                            });
-                            document.getElementById('model_selection_area').style.display = 'block';
-                        } else {
-                            document.getElementById('manual_model_area').style.display = 'block';
-                        }
-
-                        btn.style.display = 'none';
-                        document.getElementById('btn_test_conn').style.display = 'block';
-                    } else {
-                        const data = await res.json();
-                        statusMsg.textContent = '❌ Error: ' + (data.error || 'Clave inválida');
-                        statusMsg.style.color = 'var(--danger)';
-                    }
-                } catch (e) {
-                    statusMsg.textContent = '❌ Error de red';
-                    statusMsg.style.color = 'var(--danger)';
-                } finally {
-                    btn.disabled = false;
-                }
-            }
-
-            async function testConnection() {
-                const apiKey = document.getElementById('modal_api_key').value;
-                const modelSelect = document.getElementById('modal_model_select');
-                const modelManual = document.getElementById('modal_model_name');
-                let model = (modelSelect && modelSelect.value) || (modelManual && modelManual.value);
-
-                // Evitar desajustes: si no hay modelo o es incongruente, poner default
-                if (!model || model === 'n/a' || (currentModalProvider === 'openai' && model.includes('openrouter'))) {
-                    if (currentModalProvider === 'openai') model = 'gpt-4o-mini';
-                    else if (currentModalProvider === 'groq') model = 'llama-3.3-70b-versatile';
-                    else if (currentModalProvider === 'anthropic') model = 'claude-3-5-sonnet-20241022';
-                    else if (currentModalProvider === 'google') model = 'gemini-1.5-flash';
-                    else if (currentModalProvider === 'openrouter') model = 'openrouter/free';
-                }
-
-                const statusMsg = document.getElementById('modal_status_msg');
-                const btn = document.getElementById('btn_test_conn');
-
-                btn.disabled = true;
-                statusMsg.textContent = '⌛ Guardando configuración...';
-
-                try {
-                    const res = await fetch('/api/verify-llm', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ provider: currentModalProvider, apiKey, model })
-                    });
-
-                    if (res.ok) {
-                        statusMsg.textContent = '✅ &iexcl;Conectado con éxito!';
-                        statusMsg.style.color = 'var(--success)';
-                        setTimeout(() => {
-                            closeLoginModal();
-                            updateProviderStatus(currentModalProvider, apiKey);
-                        }, 1500);
-                    } else {
-                        const data = await res.json();
-                        statusMsg.textContent = '❌ Error: ' + (data.error || 'Fallo al verificar');
-                        statusMsg.style.color = 'var(--danger)';
-                    }
-                } catch (e) {
-                    statusMsg.textContent = '❌ Error de red';
-                    statusMsg.style.color = 'var(--danger)';
-                } finally {
-                    btn.disabled = false;
-                }
-            }
-
-            function updateProviderStatus(activeProvider, apiKey) {
-                document.querySelectorAll('.provider-badge').forEach(b => {
-                    b.textContent = b.id === 'badge_anthropic' ? 'Próximamente' : 'Desconectado';
-                    b.className = b.id === 'badge_anthropic' ? 'provider-badge pending' : 'provider-badge disconnected';
-                });
-                document.querySelectorAll('.provider-card').forEach(c => c.style.borderColor = 'var(--border)');
-
-                if (activeProvider && apiKey) {
-                    const badge = document.getElementById(`badge_${activeProvider}`);
-                    const card = document.getElementById(`card_${activeProvider}`);
-                    if (badge) {
-                        badge.textContent = 'Conectado';
-                        badge.className = 'provider-badge connected';
-                    }
-                    if (card) {
-                        card.style.borderColor = 'var(--success)';
-                    }
-                }
-            }
-
-            function startOAuthLogin() {
-                const callback = window.location.origin + '/auth-provider?p=openrouter&oauth=true';
-                window.open(`https://openrouter.ai/auth?callback_url=${encodeURIComponent(callback)}`, '_blank', 'width=500,height=700');
-            }
-
-
-
-            async function loadTokenUsage() {
-                try {
-                    const r = await fetch('/api/tokens/today');
-                    const data = await r.json();
-                    const container = document.getElementById('token_usage_stats');
-                    container.innerHTML = '';
-
-                    if (data.length === 0) {
-                        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;">Sin consumo registrado hoy.</div>';
-                        return;
-                    }
-
-                    data.forEach(stat => {
-                        const box = document.createElement('div');
-                        box.style = 'text-align: center; padding: 15px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border); transition: transform 0.2s;';
-                        box.innerHTML = `
+                data.forEach(stat => {
+                    const box = document.createElement('div');
+                    box.style = 'text-align: center; padding: 15px; background: var(--input-bg); border-radius: 12px; border: 1px solid var(--border); transition: transform 0.2s;';
+                    box.innerHTML = `
                         <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">${stat.provider}</div>
                         <div style="font-size: 18px; font-weight: 700; color: var(--primary);">${stat.total.toLocaleString()}</div>
                         <div style="font-size: 9px; color: var(--text-muted); margin-top: 4px;">Tokens</div>
                     `;
-                        container.appendChild(box);
-                    });
-                } catch (e) { }
-            }
-
-            async function saveMultiTierSettings() {
-                const p1 = document.getElementById('llm_primary_fallback').value;
-                const p2 = document.getElementById('llm_secondary_fallback').value;
-                const p3 = document.getElementById('llm_tertiary_fallback').value;
-
-                await fetch('/api/settings', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        llm_primary_provider: p1,
-                        llm_secondary_provider: p2,
-                        llm_tertiary_provider: p3
-                    })
+                    container.appendChild(box);
                 });
-                showSuccess();
+            } catch (e) { }
+        }
+
+        async function saveMultiTierSettings() {
+            const p1 = document.getElementById('llm_primary_fallback').value;
+            const p2 = document.getElementById('llm_secondary_fallback').value;
+            const p3 = document.getElementById('llm_tertiary_fallback').value;
+
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    llm_primary_provider: p1,
+                    llm_secondary_provider: p2,
+                    llm_tertiary_provider: p3
+                })
+            });
+            showSuccess();
+        }
+
+        async function loadElevenLabsVoices() {
+            const apiKey = document.getElementById('elevenlabs_api_key').value;
+            const statusEl = document.getElementById('voices_status');
+
+            if (!apiKey) {
+                statusEl.textContent = "Introduce primero tu API Key arriba.";
+                statusEl.style.color = "var(--danger)";
+                return;
             }
 
-            async function loadElevenLabsVoices() {
-                const apiKey = document.getElementById('elevenlabs_api_key').value;
-                const statusEl = document.getElementById('voices_status');
+            statusEl.textContent = "Consultando voces, por favor espera...";
+            statusEl.style.color = "var(--primary)";
 
-                if (!apiKey) {
-                    statusEl.textContent = "Introduce primero tu API Key arriba.";
-                    statusEl.style.color = "var(--danger)";
-                    return;
-                }
+            try {
+                const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+                    headers: { 'xi-api-key': apiKey }
+                });
 
-                statusEl.textContent = "Consultando voces, por favor espera...";
-                statusEl.style.color = "var(--primary)";
+                if (!res.ok) throw new Error('Error validando API Key');
 
-                try {
-                    const res = await fetch('https://api.elevenlabs.io/v1/voices', {
-                        headers: { 'xi-api-key': apiKey }
+                const data = await res.json();
+                const select = document.getElementById('elevenlabs_voice_id');
+                select.innerHTML = '';
+
+                if (data.voices && data.voices.length > 0) {
+                    data.voices.forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v.voice_id;
+                        opt.text = v.name;
+                        select.appendChild(opt);
                     });
 
-                    if (!res.ok) throw new Error('Error validando API Key');
+                    statusEl.textContent = `├ëxito. Se cargaron ${data.voices.length} voces.`;
+                    statusEl.style.color = "var(--success)";
+                }
+            } catch (e) {
+                console.error(e);
+                statusEl.textContent = "Error consultando ElevenLabs. Revisa la clave o comprueba tu conexión de red.";
+                statusEl.style.color = "var(--danger)";
+            }
+        }
 
-                    const data = await res.json();
-                    const select = document.getElementById('elevenlabs_voice_id');
-                    select.innerHTML = '';
+        // WhatsApp QR Polling
+        let qrCodeInstance = null;
+        let lastQrString = '';
 
-                    if (data.voices && data.voices.length > 0) {
-                        data.voices.forEach(v => {
-                            const opt = document.createElement('option');
-                            opt.value = v.voice_id;
-                            opt.text = v.name;
-                            select.appendChild(opt);
+        async function checkWhatsappStatus() {
+            try {
+                const res = await fetch('/api/whatsapp/status');
+                const data = await res.json();
+
+                const badge = document.getElementById('wa_status_badge');
+                const qrSection = document.getElementById('wa_qr_section');
+                const connectedMsg = document.getElementById('wa_connected_msg');
+
+                if (data.status === 'connected') {
+                    badge.className = 'badge connected';
+                    badge.textContent = 'En Línea';
+                    qrSection.style.display = 'none';
+                    connectedMsg.style.display = 'block';
+                } else if (data.status === 'qr_ready') {
+                    badge.className = 'badge pending';
+                    badge.textContent = 'Pendiente de Escaneo';
+                    qrSection.style.display = 'block';
+                    connectedMsg.style.display = 'none';
+
+                    if (data.qr !== lastQrString) {
+                        lastQrString = data.qr;
+                        const container = document.getElementById('qrcode_container');
+                        container.innerHTML = '';
+                        qrCodeInstance = new QRCode(container, {
+                            text: data.qr,
+                            width: 256,
+                            height: 256,
+                            colorDark: "#0f172a",
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.M
                         });
-
-                        statusEl.textContent = `├ëxito. Se cargaron ${data.voices.length} voces.`;
-                        statusEl.style.color = "var(--success)";
                     }
-                } catch (e) {
-                    console.error(e);
-                    statusEl.textContent = "Error consultando ElevenLabs. Revisa la clave o comprueba tu conexión de red.";
-                    statusEl.style.color = "var(--danger)";
+                } else {
+                    badge.className = 'badge disconnected';
+                    badge.textContent = 'Desconectado / Iniciando Server...';
+                    qrSection.style.display = 'none';
+                    connectedMsg.style.display = 'none';
                 }
+            } catch (e) {
+                console.log("Servidor ocupado o apagado...");
             }
+        }
 
-            // WhatsApp QR Polling
-            let qrCodeInstance = null;
-            let lastQrString = '';
-
-            async function checkWhatsappStatus() {
-                try {
-                    const res = await fetch('/api/whatsapp/status');
-                    const data = await res.json();
-
-                    const badge = document.getElementById('wa_status_badge');
-                    const qrSection = document.getElementById('wa_qr_section');
-                    const connectedMsg = document.getElementById('wa_connected_msg');
-
-                    if (data.status === 'connected') {
-                        badge.className = 'badge connected';
-                        badge.textContent = 'En Línea';
-                        qrSection.style.display = 'none';
-                        connectedMsg.style.display = 'block';
-                    } else if (data.status === 'qr_ready') {
-                        badge.className = 'badge pending';
-                        badge.textContent = 'Pendiente de Escaneo';
-                        qrSection.style.display = 'block';
-                        connectedMsg.style.display = 'none';
-
-                        if (data.qr !== lastQrString) {
-                            lastQrString = data.qr;
-                            const container = document.getElementById('qrcode_container');
-                            container.innerHTML = '';
-                            qrCodeInstance = new QRCode(container, {
-                                text: data.qr,
-                                width: 256,
-                                height: 256,
-                                colorDark: "#0f172a",
-                                colorLight: "#ffffff",
-                                correctLevel: QRCode.CorrectLevel.M
-                            });
-                        }
-                    } else {
-                        badge.className = 'badge disconnected';
-                        badge.textContent = 'Desconectado / Iniciando Server...';
-                        qrSection.style.display = 'none';
-                        connectedMsg.style.display = 'none';
-                    }
-                } catch (e) {
-                    console.log("Servidor ocupado o apagado...");
-                }
-            }
-
-            setInterval(checkWhatsappStatus, 2500);
-            checkWhatsappStatus();
+        setInterval(checkWhatsappStatus, 2500);
+        checkWhatsappStatus();
     </script>
 </body>
 
