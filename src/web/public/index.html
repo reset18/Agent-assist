@@ -1889,7 +1889,7 @@
         <div class="modal">
             <h3 style="border:none; margin-bottom: 10px;">Añadir Cuenta de IA</h3>
             <p style="font-size: 14px; color: var(--text-muted); margin-bottom:24px;">Selecciona el proveedor y asigna
-                un nombre para identificar esta cuenta (Ej: "OpenAI Personal").</p>
+                un nombre para identificar esta cuenta.</p>
 
             <div class="form-group">
                 <label>Proveedor</label>
@@ -1900,7 +1900,7 @@
                     <option value="openrouter">OpenRouter</option>
                     <option value="groq">Groq</option>
                     <option value="qwen">Alibaba Qwen</option>
-                    <option value="xai">xAI</option>
+                    <option value="xai">xAI (Grok)</option>
                 </select>
             </div>
 
@@ -1923,15 +1923,31 @@
 
             <div id="method_key_section">
                 <div class="form-group">
-                    <label>API Key Pura</label>
-                    <input type="password" id="modal_api_key" placeholder="Pega tu clave (sk_...) aquí..." />
+                    <label id="key_label">API Key</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="password" id="modal_api_key" placeholder="Pega tu clave (sk_...) aquí..."
+                            style="flex: 1;" />
+                        <button class="secondary-btn" id="btn_verify_key" onclick="verifyKeyAndLoadModels()"
+                            style="padding: 0 15px;">Verificar</button>
+                    </div>
+                </div>
+                <!-- Link de ayuda para obtener API Key -->
+                <div id="help_link_container" style="margin-top: -10px; margin-bottom: 20px;">
+                    <a id="provider_help_link" href="#" target="_blank"
+                        style="font-size: 12px; color: var(--primary); text-decoration: none;">¿No tienes una
+                        clave? Consíguela aquí →</a>
+                </div>
+
+                <div class="form-group" id="model_selection_area" style="display: none;">
+                    <label>Modelo Preferido</label>
+                    <select id="modal_model_select"></select>
                 </div>
             </div>
 
             <div style="display: flex; gap: 12px; margin-top:32px;">
                 <button class="secondary-btn" style="flex:1" onclick="closeLoginModal()">Cancelar</button>
-                <button class="primary-btn" style="flex:1" id="btn_test_conn" onclick="testAndSaveAccount()">Añadir
-                    Cuenta</button>
+                <button class="primary-btn" style="flex:1; display: none;" id="btn_test_conn"
+                    onclick="testAndSaveAccount()">Añadir Cuenta</button>
             </div>
             <div id="modal_status_msg" style="margin-top: 15px; font-size: 13px; text-align: center;"></div>
         </div>
@@ -2411,6 +2427,7 @@
                 if (document.getElementById('model_provider')) document.getElementById('model_provider').value = data.model_provider || 'openai';
                 if (document.getElementById('model_name')) document.getElementById('model_name').value = data.model_name || 'gpt-4o';
                 if (document.getElementById('llm_api_key')) document.getElementById('llm_api_key').value = data.llm_api_key || '';
+                window._lastLlmApiKey = data.llm_api_key || '';
 
                 if (document.getElementById('agent_name')) document.getElementById('agent_name').value = data.agent_name || '';
                 if (document.getElementById('user_name')) document.getElementById('user_name').value = data.user_name || '';
@@ -3075,12 +3092,25 @@
             }
         }
 
+        const providerHelpLinks = {
+            openai: 'https://platform.openai.com/api-keys',
+            anthropic: 'https://console.anthropic.com/settings/keys',
+            google: 'https://aistudio.google.com/app/apikey',
+            groq: 'https://console.groq.com/keys',
+            openrouter: 'https://openrouter.ai/keys',
+            qwen: 'https://dashscope.console.aliyun.com/',
+            xai: 'https://console.x.ai/'
+        };
+
         function openAddAccountModal() {
             document.getElementById('llm_modal').style.display = 'flex';
             document.getElementById('modal_status_msg').textContent = '';
             document.getElementById('modal_api_key').value = '';
             document.getElementById('modal_account_name').value = '';
             document.getElementById('modal_provider_select').value = 'openai';
+            document.getElementById('model_selection_area').style.display = 'none';
+            document.getElementById('btn_test_conn').style.display = 'none';
+            document.getElementById('btn_verify_key').style.display = 'block';
             updateAccountModalUI();
         }
         // Alias para compatibilidad
@@ -3091,6 +3121,19 @@
             const oauthContainer = document.getElementById('oauth_container');
             const btnChatGPT = document.getElementById('btn_oauth_chatgpt');
             const orSep = document.getElementById('or_separator');
+            const helpLink = document.getElementById('provider_help_link');
+
+            // Actualizar link de ayuda
+            if (helpLink) helpLink.href = providerHelpLinks[provider] || '#';
+
+            // Re-etiquetar para Qwen
+            const label = document.getElementById('key_label');
+            if (label) label.textContent = (provider === 'qwen') ? 'DashScope API Key' : 'API Key';
+
+            // Reset model area on provider change
+            document.getElementById('model_selection_area').style.display = 'none';
+            document.getElementById('btn_test_conn').style.display = 'none';
+            document.getElementById('btn_verify_key').style.display = 'block';
 
             // Solo mostrar OAuth para OpenAI
             if (provider === 'openai') {
@@ -3106,18 +3149,71 @@
             document.getElementById('llm_modal').style.display = 'none';
         }
 
-        async function testAndSaveAccount() {
+        async function verifyKeyAndLoadModels() {
             const provider = document.getElementById('modal_provider_select').value;
             const apiKey = document.getElementById('modal_api_key').value;
-            const name = document.getElementById('modal_account_name').value.trim();
             const statusMsg = document.getElementById('modal_status_msg');
-            const btn = document.getElementById('btn_test_conn');
+            const btn = document.getElementById('btn_verify_key');
 
             if (!apiKey) {
                 statusMsg.textContent = '❌ Introduce una API Key';
                 statusMsg.style.color = 'var(--danger)';
                 return;
             }
+
+            btn.disabled = true;
+            statusMsg.textContent = '⌛ Verificando clave...';
+            statusMsg.style.color = 'var(--primary)';
+
+            try {
+                const res = await fetch('/api/models', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ provider, apiKey })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    statusMsg.textContent = '✅ Clave válida. Elige un modelo y guarda la cuenta.';
+                    statusMsg.style.color = 'var(--success)';
+
+                    const select = document.getElementById('modal_model_select');
+                    select.innerHTML = '';
+
+                    if (data.models && data.models.length > 0) {
+                        data.models.forEach(m => {
+                            const opt = document.createElement('option');
+                            opt.value = m.id;
+                            opt.textContent = m.name || m.id;
+                            select.appendChild(opt);
+                        });
+                        document.getElementById('model_selection_area').style.display = 'block';
+                    }
+
+                    btn.style.display = 'none';
+                    document.getElementById('btn_test_conn').style.display = 'block';
+                } else {
+                    const data = await res.json();
+                    statusMsg.textContent = '❌ Error: ' + (data.error || 'Clave inválida');
+                    statusMsg.style.color = 'var(--danger)';
+                }
+            } catch (e) {
+                statusMsg.textContent = '❌ Error de red';
+                statusMsg.style.color = 'var(--danger)';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function testAndSaveAccount() {
+            const provider = document.getElementById('modal_provider_select').value;
+            const apiKey = document.getElementById('modal_api_key').value;
+            const name = document.getElementById('modal_account_name').value.trim();
+            const modelSelect = document.getElementById('modal_model_select');
+            const selectedModel = modelSelect ? modelSelect.value : '';
+            const statusMsg = document.getElementById('modal_status_msg');
+            const btn = document.getElementById('btn_test_conn');
+
             if (!name) {
                 statusMsg.textContent = '❌ Ponle un nombre identificador a esta cuenta';
                 statusMsg.style.color = 'var(--danger)';
@@ -3132,7 +3228,7 @@
                 const res = await fetch('/api/accounts/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider, name, apiKey })
+                    body: JSON.stringify({ provider, name, apiKey, model: selectedModel })
                 });
 
                 if (res.ok) {
@@ -3170,16 +3266,25 @@
                     btn.innerHTML = '⌛ Esperando login...';
 
                     const prevCount = (window._llmAccounts || []).length;
+                    const prevKey = window._lastLlmApiKey || '';
+                    console.log('[OAuth Poll] Inicio polling. prevCount:', prevCount, 'prevKey:', prevKey ? prevKey.substring(0, 8) + '...' : '(vacía)');
                     const checkLogin = setInterval(async () => {
                         try {
                             const r = await fetch('/api/settings');
                             const d = await r.json();
-                            if ((d.llm_accounts || []).length > prevCount) {
+                            const newCount = (d.llm_accounts || []).length;
+                            const newKey = d.llm_api_key || '';
+                            console.log('[OAuth Poll] newCount:', newCount, 'newKey:', newKey ? newKey.substring(0, 8) + '...' : '(vacía)');
+                            // Detectar éxito: más cuentas en el array O cambio en la API key legacy
+                            if (newCount > prevCount || (newKey && newKey !== prevKey)) {
+                                console.log('[OAuth Poll] ¡Login detectado! Cerrando modal...');
                                 clearInterval(checkLogin);
                                 closeLoginModal();
+                                btn.disabled = false;
+                                btn.innerHTML = originalText;
                                 await loadSettings();
                             }
-                        } catch (e) { }
+                        } catch (e) { console.warn('[OAuth Poll] Error en el polling:', e); }
                     }, 2000);
 
                     setTimeout(() => {

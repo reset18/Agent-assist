@@ -76,7 +76,7 @@ app.get('/api/settings', (req, res) => {
 
 app.post('/api/accounts/add', (req, res) => {
     try {
-        const { provider, name, apiKey } = req.body;
+        const { provider, name, apiKey, model } = req.body;
         if (!provider || !name || !apiKey) {
             return res.status(400).json({ success: false, error: 'Faltan campos' });
         }
@@ -90,7 +90,8 @@ app.post('/api/accounts/add', (req, res) => {
                 name,
                 apiKey,
                 isOauth: false,
-                refreshToken: null
+                refreshToken: null,
+                model: model || ''
             });
             res.json({ success: true, id });
         });

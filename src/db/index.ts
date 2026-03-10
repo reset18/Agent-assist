@@ -135,6 +135,7 @@ export interface LLMAccount {
     apiKey: string;
     isOauth: boolean;
     refreshToken: string | null;
+    model?: string;
 }
 
 export function getLLMAccounts(): LLMAccount[] {
