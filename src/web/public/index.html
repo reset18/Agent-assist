@@ -1976,15 +1976,15 @@
                 a usar este cerebro.</p>
 
             <div class="form-group" id="oauth_container" style="display: none; margin-bottom: 20px;">
-                <button class="primary-btn" style="width: 100%; background: #000; border-color: #333;"
-                    onclick="startOAuthLogin()">
-                    <img src="https://openrouter.ai/favicon.ico"
-                        style="width: 16px; margin-right: 8px; vertical-align: middle;">
-                    Hacer Login Directo
+                <button class="primary-btn" id="btn_oauth_openrouter" style="width: 100%; background: #000; border-color: #333; display: none;" onclick="openAuthProvider()">
+                    <img src="https://openrouter.ai/favicon.ico" style="width: 16px; margin-right: 8px; vertical-align: middle;">
+                    Hacer Login Directo (OpenRouter)
                 </button>
-                <div
-                    style="text-align: center; margin: 15px 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
-                    o usa el método manual</div>
+                <button class="primary-btn" id="btn_oauth_chatgpt" style="width: 100%; background: #10a37f; border-color: #10a37f; display: none;" onclick="startChatGPTWebLogin()">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">
+                    Vincular ChatGPT (Gratis / Plus)
+                </button>
+                <div style="text-align: center; margin: 15px 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">o usa el método manual</div>
             </div>
 
             <div id="method_key_section">
@@ -3098,8 +3098,12 @@
             const label = document.getElementById('key_label');
             if (label) label.textContent = (provider === 'qwen') ? 'DashScope API Key' : 'API Key';
 
-            // Mostrar OAuth si es OpenRouter
-            document.getElementById('oauth_container').style.display = (provider === 'openrouter') ? 'block' : 'none';
+            // Mostrar botones OAuth correspondientes
+            document.getElementById('oauth_container').style.display = (provider === 'openrouter' || provider === 'openai') ? 'block' : 'none';
+            const btnOpenRouter = document.getElementById('btn_oauth_openrouter');
+            const btnChatGPT = document.getElementById('btn_oauth_chatgpt');
+            if (btnOpenRouter) btnOpenRouter.style.display = (provider === 'openrouter') ? 'block' : 'none';
+            if (btnChatGPT) btnChatGPT.style.display = (provider === 'openai') ? 'block' : 'none';
 
             document.getElementById('llm_modal').style.display = 'flex';
             document.getElementById('modal_status_msg').textContent = '';
@@ -3133,6 +3137,51 @@
                 }
             }, 2000);
             setTimeout(() => clearInterval(checkLogin), 60000);
+        }
+
+        async function startChatGPTWebLogin() {
+            const btn = document.getElementById('btn_oauth_chatgpt');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⌛ Iniciando...';
+            
+            try {
+                const res = await fetch('/api/auth/chatgpt/start');
+                const data = await res.json();
+                
+                if (data.success && data.url) {
+                    window.open(data.url, '_blank', 'width=500,height=700');
+                    btn.innerHTML = '⌛ Esperando login...';
+                    
+                    const checkLogin = setInterval(async () => {
+                        try {
+                            const r = await fetch('/api/settings');
+                            const d = await r.json();
+                            if (d.model_provider === 'openai' && d.llm_api_key && d.llm_api_key.length > 50) {
+                                clearInterval(checkLogin);
+                                closeLoginModal();
+                                updateProviderStatus('openai', d.llm_api_key);
+                            }
+                        } catch(e) {}
+                    }, 2000);
+                    
+                    setTimeout(() => {
+                        clearInterval(checkLogin);
+                        if(btn.disabled) {
+                            btn.disabled = false;
+                            btn.innerHTML = originalText;
+                        }
+                    }, 300000); // 5 min timeout
+                } else {
+                    alert("❌ Error: " + (data.error || "No se pudo iniciar auth"));
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            } catch (err) {
+                alert("❌ Error de red.");
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
         }
 
         async function verifyKeyOnly() {

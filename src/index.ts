@@ -2,6 +2,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import { initDb, getSetting, setSetting } from './db/index.js';
 import { startWebServer } from './web/server.js';
+import { initMemoryFiles } from './agent/memory.js';
 import { startTelegramBot } from './bots/telegram.js';
 import { startWhatsappBot } from './bots/whatsapp.js';
 import { initMCPClient } from './mcp/client.js';
@@ -15,6 +16,9 @@ async function main() {
     setSetting('agent_version', pkg.version);
     const agentName = getSetting('agent_name');
     console.log(`[Core] Nombre del agente: ${agentName}`);
+
+    // 1.5 Inicializar Sistema de Memoria Avanzada
+    initMemoryFiles();
 
     // 2. Iniciar servidor web local
     startWebServer();

@@ -10,7 +10,7 @@ export const update_setting_def = {
             properties: {
                 setting_key: {
                     type: "string",
-                    description: "La clave del parámetro a guardar. Valores permitidos comunes: 'openai_api_key_audio', 'elevenlabs_api_key', 'llm_api_key', 'model_provider', 'telegram_bot_token', 'agent_name'."
+                    description: "La clave del parámetro a guardar. Puedes inventar claves nuevas para almacenar logins o memorias importantes del usuario."
                 },
                 setting_value: {
                     type: "string",
@@ -25,22 +25,6 @@ export const update_setting_def = {
 
 export async function execute_update_setting(args: { setting_key: string, setting_value: string }) {
     const { setting_key, setting_value } = args;
-
-    // Lista blanca de configuraciones permitidas por seguridad para que el LLM no rompa la base de datos
-    const allowedKeys = [
-        'openai_api_key_audio', 'elevenlabs_api_key', 'elevenlabs_voice_id',
-        'openai_voice_id', 'voice_engine', 'voice_enabled',
-        'llm_api_key', 'model_provider', 'model_name',
-        'telegram_bot_token', 'telegram_whitelist',
-        'agent_name', 'user_name', 'agent_personality', 'agent_function'
-    ];
-
-    if (!allowedKeys.includes(setting_key)) {
-        return {
-            success: false,
-            message: `Acceso denegado: no tienes permisos para modificar la configuración '${setting_key}'. Usa solo configuraciones de API keys, voz o modelo.`
-        };
-    }
 
     try {
         setSetting(setting_key, setting_value);

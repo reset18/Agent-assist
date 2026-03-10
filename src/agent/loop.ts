@@ -1,5 +1,6 @@
 import { chatCompletion } from './llm.js';
 import { getSetting, setSetting, getRecentMessages, addMessage } from '../db/index.js';
+import { getMemoryPrompt } from './memory.js';
 import { getActiveTools, executeToolCall } from './tools.js';
 import { getMCPTools, executeMCPTool } from '../mcp/client.js';
 import fs from 'fs';
@@ -127,6 +128,9 @@ Se te han otorgado herramientas para interactuar con sistemas locales de manera 
         .replace('{agent_personality}', personalityToUse)
         .replace('{agent_function}', functionToUse);
 
+    // Inyectar contexto de Memoria Avanzada (Fase 8)
+    fullSystemPrompt += getMemoryPrompt();
+
     // Instrucciones dinámicas para el uso de VOZ y Hosting
     const voiceContext = isAudio
         ? "EL USUARIO TE HA ENVIADO UNA NOTA DE VOZ. Debes responderle usando la herramienta 'speak_message'."
@@ -140,6 +144,7 @@ ${voiceContext}
 
 2. USO DE HERRAMIENTAS ACTIVAS:
 - NUNCA respondas que no puedes hacer algo sin verificar primero el listado explícito de funciones que se te ha entregado en este turno.
+- MEMORIA A LARGO PLAZO: Si el usuario te indica un dato importante, te pide recordar un hecho, o establece una regla que debe aplicar en el futuro, SIEMPRE usa OBLIGATORIAMENTE la herramienta 'update_memory' para asegurar que lo recuerdas. Las cosas no se guardan solas.
 - CONFIGURACIÓN DEL SISTEMA: Si el usuario te dicta o pide guardar una API Key (ej. de OpenAI, Anthropic, ElevenLabs, etc.) o te pide cambiar un proveedor, DEBES usar OBLIGATORIAMENTE la herramienta 'update_setting' para guardar instantáneamente la clave en la base de datos de Horus en vez de intentar usar scripts de Bash locales.
 - ANÁLISIS DE CÓDIGO LOCAL: Usa bash para 'grep', lectura rápida, o scripting en python/node.
 - ESCRITURA: Para escribir código que te pida el usuario, USA UNICAMENTE 'write_file_local' indicando TODA la ruta absoluta correcta.

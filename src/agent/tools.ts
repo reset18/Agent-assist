@@ -6,6 +6,7 @@ import { package_skill_def, execute_package_skill } from './tools/package_skill.
 import { toggle_skill_def, execute_toggle_skill } from './tools/toggle_skill.js';
 import { list_skills_def, execute_list_skills } from './tools/list_skills.js';
 import { update_setting_def, execute_update_setting } from './tools/update_setting.js';
+import { update_memory_details as update_memory_def, execute_update_memory } from './tools/update_memory.js';
 import { isToolEnabled, getSetting } from '../db/index.js';
 
 const AVAILABLE_TOOLS = {
@@ -52,6 +53,10 @@ const AVAILABLE_TOOLS = {
     update_setting: {
         def: update_setting_def,
         execute: execute_update_setting
+    },
+    update_memory: {
+        def: update_memory_def,
+        execute: execute_update_memory
     }
 };
 
@@ -67,6 +72,11 @@ export function getActiveTools() {
         }
 
         if (key === 'update_setting') {
+            tools.push(tool.def);
+            continue;
+        }
+
+        if (key === 'update_memory') {
             tools.push(tool.def);
             continue;
         }

@@ -110,6 +110,71 @@ async function startTempAuthServer(provider: string): Promise<string> {
     });
 }
 
+// --- Inicio ChatGPT Auth ---
+async function startChatGPTAuthCLI(): Promise<string> {
+    const crypto = await import('crypto');
+    const clientId = 'app_EMoamEEZ73f0CkXaXp7hrann';
+    const redirectUri = 'http://localhost:1455/auth/callback';
+
+    const verifier = crypto.randomBytes(32).toString('base64url');
+    const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+
+    const authUrl = `https://auth.openai.com/oauth/authorize?response_type=code` +
+        `&client_id=${clientId}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&scope=openid+profile+email+offline_access` +
+        `&code_challenge=${challenge}` +
+        `&code_challenge_method=S256` +
+        `&state=1` +
+        `&id_token_add_organizations=true` +
+        `&codex_cli_simplified_flow=true` +
+        `&originator=pi`;
+
+    console.log(chalk.cyan(`\n🌐 Configurando ChatGPT / OpenAI Auth...`));
+    console.log(chalk.yellow('Haz clic o copia esta URL en tu navegador:'));
+    console.log(chalk.white(`\n${chalk.underline(authUrl)}\n`));
+
+    return new Promise((resolve) => {
+        const app = express();
+        const server = createServer(app);
+
+        app.get('/auth/callback', async (req, res) => {
+            const code = req.query.code as string;
+            if (!code) {
+                res.send('<h1>❌ Error. Cierra ventana y reintenta.</h1>');
+                return;
+            }
+            try {
+                const tokenRes = await axios.post('https://auth.openai.com/oauth/token', {
+                    grant_type: 'authorization_code',
+                    client_id: clientId,
+                    code: code,
+                    redirect_uri: redirectUri,
+                    code_verifier: verifier
+                });
+                const accessToken = tokenRes.data.access_token;
+                res.send('<h1>✅ ChatGPT Vinculado con éxito. Puedes cerrar esta ventana y volver al instalador.</h1>');
+                server.close(() => resolve(accessToken));
+            } catch (err: any) {
+                console.error("Error OAuth:", err.response?.data || err.message);
+                res.send('<h1>❌ Error canjeando token de OpenAI. Revisa la consola.</h1>');
+                server.close(() => resolve(''));
+            }
+        });
+
+        server.listen(1455, () => {
+            console.log(chalk.yellow('Esperando confirmación de Login en el navegador... (Timeout: 5 min)'));
+        });
+
+        setTimeout(() => {
+            server.close();
+            console.log(chalk.red('\nTimeout esperando el login de ChatGPT.'));
+            resolve('');
+        }, 5 * 60 * 1000);
+    });
+}
+// --- Fin ChatGPT Auth ---
+
 async function validateApiKey(provider: string, apiKey: string) {
     const spinner = ora(`Validando API Key para ${provider}...`).start();
     try {
@@ -244,7 +309,11 @@ async function startSetup() {
         aiConfig.provider = selection.provider;
 
         if (selection.method === 'web') {
-            aiConfig.apiKey = await startTempAuthServer(selection.provider);
+            if (aiConfig.provider === 'openai') {
+                aiConfig.apiKey = await startChatGPTAuthCLI();
+            } else {
+                aiConfig.apiKey = await startTempAuthServer(selection.provider);
+            }
         } else {
             const manual = await prompts([
                 {
@@ -260,7 +329,17 @@ async function startSetup() {
         if (!aiConfig.apiKey) process.exit(1);
     }
 
-    const models = await validateApiKey(aiConfig.provider, aiConfig.apiKey);
+    let models = await validateApiKey(aiConfig.provider, aiConfig.apiKey);
+
+    if (!models && aiConfig.provider === 'openai' && aiConfig.apiKey.length > 50) {
+        console.log(chalk.yellow('Aviso: Token OAuth detectado. Omitiendo validación estricta de modelos.'));
+        models = [
+            { title: 'gpt-4o', value: 'gpt-4o' },
+            { title: 'gpt-4o-mini', value: 'gpt-4o-mini' },
+            { title: 'chatgpt-4o-latest', value: 'chatgpt-4o-latest' }
+        ];
+    }
+
     if (!models) {
         console.log(chalk.red('\nNo se pudo verificar la API Key. Por favor, reinicia el instalador con una clave válida.'));
         process.exit(1);

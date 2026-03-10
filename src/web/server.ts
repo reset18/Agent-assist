@@ -112,6 +112,123 @@ app.post('/api/verify-llm', async (req, res) => {
     }
 });
 
+// --- Integración ChatGPT OAuth (OpenClaw style) ---
+import crypto from 'crypto';
+import type { Server } from 'http';
+
+let oauthServer: Server | null = null;
+let currentCodeVerifier: string = '';
+
+function generatePKCE() {
+    const verifier = crypto.randomBytes(32).toString('base64url');
+    const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+    return { verifier, challenge };
+}
+
+app.post('/api/auth/chatgpt/start', (req, res) => {
+    try {
+        if (oauthServer) {
+            oauthServer.close();
+            oauthServer = null;
+        }
+
+        const { verifier, challenge } = generatePKCE();
+        currentCodeVerifier = verifier;
+
+        const clientId = 'app_EMoamEEZ73f0CkXaXp7hrann'; // OpenClaw Client ID
+        const redirectUri = 'http://localhost:1455/auth/callback';
+        const stateStr = crypto.randomBytes(16).toString('hex');
+
+        const authUrl = `https://auth.openai.com/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid+profile+email+offline_access&code_challenge=${challenge}&code_challenge_method=S256&state=${stateStr}&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=pi`;
+
+        // Levantar interceptor en puerto 1455
+        const express = require('express');
+        const interceptor = express();
+
+        interceptor.get('/auth/callback', async (cbReq: any, cbRes: any) => {
+            const code = cbReq.query.code;
+            if (!code) {
+                return cbRes.send('<h1>❌ Error: No se recibió ningún código de autorización. Puedes cerrar esta ventana.</h1>');
+            }
+
+            try {
+                // Intercambiar Code por Token
+                const tokenRes = await fetch('https://auth.openai.com/oauth/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        grant_type: 'authorization_code',
+                        client_id: clientId,
+                        code: code,
+                        redirect_uri: redirectUri,
+                        code_verifier: currentCodeVerifier
+                    })
+                });
+
+                if (!tokenRes.ok) {
+                    const err = await tokenRes.text();
+                    console.error("[OAuth] Error canjeando token:", err);
+                    return cbRes.send('<h1>❌ Error canjeando el token con OpenAI. Puedes cerrar esta ventana.</h1>');
+                }
+
+                const tokenData = await tokenRes.json();
+                const accessToken = tokenData.access_token;
+                const refreshToken = tokenData.refresh_token;
+
+                // Guardar en Agent-assist memory DB
+                setSetting('model_provider', 'openai');
+                setSetting('llm_api_key', accessToken);
+                if (refreshToken) setSetting('chatgpt_refresh_token', refreshToken);
+
+                // Actualizar .env para portabilidad
+                updateEnv('LLM_PROVIDER', 'openai');
+                updateEnv('OPENAI_API_KEY', accessToken);
+
+                cbRes.send(`
+                    <html>
+                        <body style="font-family: sans-serif; background: #1a1b26; color: #a9b1d6; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;">
+                            <h1 style="color: #9ece6a;">✅ ¡Conectado con Éxito a ChatGPT!</h1>
+                            <p>Tu cuenta se ha vinculado a Agent-assist. Ya puedes cerrar esta ventana y volver al panel.</p>
+                            <script>setTimeout(() => window.close(), 3000);</script>
+                        </body>
+                    </html>
+                `);
+
+                // Auto apagar interceptor tras triunfo
+                setTimeout(() => {
+                    if (oauthServer) {
+                        oauthServer.close();
+                        oauthServer = null;
+                        console.log("[OAuth] Interceptor 1455 cerrado automáticamente tras éxito.");
+                    }
+                }, 2000);
+
+            } catch (e: any) {
+                console.error("[OAuth] Excepción:", e);
+                cbRes.send('<h1>❌ Error interno. Revisa la consola de Agent-assist.</h1>');
+            }
+        });
+
+        oauthServer = interceptor.listen(1455, () => {
+            console.log("[OAuth] Interceptor escuchando en puerto 1455 esperando el Callback de Auth0...");
+        });
+
+        // Timeout seguridad: apagar tras 5 minutos si el user abandona
+        setTimeout(() => {
+            if (oauthServer) {
+                oauthServer.close();
+                oauthServer = null;
+                console.log("[OAuth] Interceptor 1455 apagado por Timeout (5 mins).");
+            }
+        }, 5 * 60 * 1000);
+
+        res.json({ success: true, url: authUrl });
+
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.get('/auth-provider', (req, res) => {
     res.sendFile(join(__dirname, 'public', 'auth.html'));
 });
