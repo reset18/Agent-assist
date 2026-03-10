@@ -154,6 +154,20 @@ app.get('/api/status', (req, res) => {
     const tgEnabled = getSetting('bot_telegram_enabled') !== '0';
     const waEnabled = getSetting('bot_whatsapp_enabled') === '1';
 
+    const provider = getSetting('model_provider') || process.env.LLM_PROVIDER || 'openrouter';
+    let model = getSetting('model_name') || process.env.MODEL_NAME || 'n/a';
+
+    // Lógica de modelo efectivo para reportar info correcta
+    if (provider === 'openai' && (model.includes('openrouter') || model === 'n/a')) {
+        model = 'gpt-4o-mini';
+    } else if (provider === 'groq' && (model.includes('openrouter') || model === 'n/a')) {
+        model = 'llama-3.3-70b-versatile';
+    } else if (provider === 'anthropic' && (model.includes('openrouter') || model === 'n/a')) {
+        model = 'claude-3-5-sonnet-20241022';
+    } else if (provider === 'google' && (model.includes('openrouter') || model === 'n/a')) {
+        model = 'gemini-1.5-flash';
+    }
+
     res.json({
         server: {
             status: 'online',
@@ -166,11 +180,11 @@ app.get('/api/status', (req, res) => {
         },
         telegram: {
             enabled: tgEnabled,
-            status: 'online' // Si el servidor corre, el bot de Telegram (polling) debería estar activo si está enabled
+            status: 'online'
         },
         llm: {
-            provider: getSetting('model_provider') || process.env.LLM_PROVIDER || 'openrouter',
-            model: getSetting('model_name') || process.env.MODEL_NAME || 'n/a',
+            provider: provider,
+            model: model,
             primary: getSetting('llm_primary_provider'),
             secondary: getSetting('llm_secondary_provider'),
             tertiary: getSetting('llm_tertiary_provider')

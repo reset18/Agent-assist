@@ -3033,7 +3033,16 @@
             const apiKey = document.getElementById('modal_api_key').value;
             const modelSelect = document.getElementById('modal_model_select');
             const modelManual = document.getElementById('modal_model_name');
-            const model = (modelSelect && modelSelect.value) || (modelManual && modelManual.value);
+            let model = (modelSelect && modelSelect.value) || (modelManual && modelManual.value);
+
+            // Evitar desajustes: si no hay modelo o es incongruente, poner default
+            if (!model || model === 'n/a' || (currentModalProvider === 'openai' && model.includes('openrouter'))) {
+                if (currentModalProvider === 'openai') model = 'gpt-4o-mini';
+                else if (currentModalProvider === 'groq') model = 'llama-3.3-70b-versatile';
+                else if (currentModalProvider === 'anthropic') model = 'claude-3-5-sonnet-20241022';
+                else if (currentModalProvider === 'google') model = 'gemini-1.5-flash';
+                else if (currentModalProvider === 'openrouter') model = 'openrouter/free';
+            }
 
             const statusMsg = document.getElementById('modal_status_msg');
             const btn = document.getElementById('btn_test_conn');
