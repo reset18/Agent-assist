@@ -118,14 +118,21 @@ app.get('/auth-provider', (req, res) => {
 app.get('/api/check-update', async (req, res) => {
     try {
         const pkg = JSON.parse(fs.readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
-        const currentVersion = pkg.version;
-        const fetchRemote = await fetch('https://raw.githubusercontent.com/reset18/Agent-assist/main/package.json');
+        const currentVersion = pkg.version.trim().replace(/^v/, '');
+
+        // Cache buster for GitHub
+        const fetchRemote = await fetch('https://raw.githubusercontent.com/reset18/Agent-assist/main/package.json?t=' + Date.now());
         const githubPkg: any = await fetchRemote.json();
-        const remoteVersion = githubPkg.version;
+        const remoteVersion = githubPkg.version.trim().replace(/^v/, '');
+
+        const updateAvailable = remoteVersion !== currentVersion;
+
+        console.log(`[UpdateCheck] Local: ${currentVersion}, Remote: ${remoteVersion}, Available: ${updateAvailable}`);
+
         res.json({
             current: currentVersion,
             remote: remoteVersion,
-            updateAvailable: remoteVersion !== currentVersion
+            updateAvailable: updateAvailable
         });
     } catch (e) {
         const pkg = JSON.parse(fs.readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
