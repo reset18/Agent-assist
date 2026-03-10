@@ -65,15 +65,15 @@ export async function processUserMessage(userId: string, source: string, message
     if (setupDone !== '1') {
         if (setupStep === 0) {
             setSetting('agent_setup_step', '1');
-            return "¡Hola! Soy un nuevo agente de Inteligencia Artificial recién encendido en tu máquina. Para calibrar mi sistema, te haré 4 preguntas rápidas.\n\nPara empezar: **¿Cómo te llamas (el usuario)?**";
+            return "¡Hola! Soy un nuevo agente de Inteligencia Artificial recién encendido en tu máquina. Para calibrar mi sistema, te haré 4 preguntas rápidas.\n\nPara empezar: **¿Qué nombre te gustaría ponerme a mí (tu agente)?**";
         } else if (setupStep === 1) {
-            setSetting('user_name', message.trim());
-            setSetting('agent_setup_step', '2');
-            return `¡Encantado de conocerte, ${message.trim()}! Segunda pregunta: **¿Qué nombre te gustaría ponerme a mí (tu agente)?**`;
-        } else if (setupStep === 2) {
             setSetting('agent_name', message.trim());
+            setSetting('agent_setup_step', '2');
+            return `¡Me gusta el nombre ${message.trim()}! Segunda pregunta: **¿Cómo te llamas tú (mi usuario)?**`;
+        } else if (setupStep === 2) {
+            setSetting('user_name', message.trim());
             setSetting('agent_setup_step', '3');
-            return `¡Me gusta el acrónimo ${message.trim()}! Tercera pregunta: **¿Qué carácter o personalidad quieres que tenga al responderte?** (Ej: "Serio y corto", "Sarcástico y divertido", "Didáctico y amigable", etc)`;
+            return `¡Encantado de conocerte, ${message.trim()}! Tercera pregunta: **¿Qué carácter o personalidad quieres que tenga al responderte?** (Ej: "Serio y corto", "Sarcástico y divertido", "Didáctico y amigable", etc)`;
         } else if (setupStep === 3) {
             setSetting('agent_personality', message.trim());
             setSetting('agent_setup_step', '4');
