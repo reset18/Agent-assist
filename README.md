@@ -30,12 +30,17 @@ sudo pm2 stop agent-assist || true; sudo pkill -9 node || true; cd ..; sudo rm -
 *Este comando hará TODO por ti: instalar dependencias, configurar tu IA, vincular tu WhatsApp/Telegram y encender el servidor en el puerto **3005**.*
 
 #### 🛠️ Agent-Assist CLI (Gestión Pro)
-Una vez instalado, gestiona tu agente con comandos globales:
-- `agent-assist status` - Ver si el agente está vivo.
+Una vez instalado, gestiona tu agente con comandos globales desde la terminal:
+- `agent-assist status` - Ver el estado del agente y servicios vinculados.
 - `agent-assist logs` - Ver lo que está pensando el agente en tiempo real.
-- `agent-assist restart` - Reiniciar el sistema.
-- `agent-assist doctor` - Diagnóstico y auto-reparación.
-- `agent-assist uninstall` - Desinstalación limpia.
+- `agent-assist restart` - Reiniciar el sistema y recargar procesos.
+- `agent-assist stop` - Detener el agente completamente.
+- `agent-assist update` - Descargar la última versión desde GitHub y actualizar automáticamente.
+- `agent-assist doctor` - Diagnóstico del sistema y auto-reparación.
+- `agent-assist uninstall` - Desinstalación limpia del sistema.
+
+> [!TIP]
+> **Actualizaciones Inteligentes**: También puedes actualizar tu agente directamente desde la interfaz web pulsando el botón "Buscar actualizaciones" en el menú lateral. El sistema se encargará de descargar los cambios y reiniciarse solo.
 
 ### Método 2: Manual / Docker
 1. **Clonar el repositorio**:
