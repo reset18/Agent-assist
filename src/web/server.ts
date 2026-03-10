@@ -145,24 +145,35 @@ app.get('/api/auth/chatgpt/start', (req, res) => {
         const interceptor = express();
 
         interceptor.get('/auth/callback', async (cbReq: any, cbRes: any) => {
+            console.log("[OAuth] Recibida petición en /auth/callback. Query:", cbReq.query);
             const code = cbReq.query.code;
             if (!code) {
+                console.error("[OAuth] No hay código en la URL.");
                 return cbRes.send('<h1>❌ Error: No se recibió ningún código de autorización. Puedes cerrar esta ventana.</h1>');
             }
 
             try {
+                console.log("[OAuth] Iniciando intercambio de code por Token...");
+                console.log("[OAuth] Code:", code.substring(0, 15) + "...");
+                console.log("[OAuth] Verifier:", currentCodeVerifier.substring(0, 15) + "...");
+
+                const bodyParams = new URLSearchParams();
+                bodyParams.append('grant_type', 'authorization_code');
+                bodyParams.append('client_id', clientId);
+                bodyParams.append('code', code);
+                bodyParams.append('redirect_uri', redirectUri);
+                bodyParams.append('code_verifier', currentCodeVerifier);
+
+                console.log("[OAuth] Parámetros payload:", bodyParams.toString());
+
                 // Intercambiar Code por Token
                 const tokenRes = await fetch('https://auth.openai.com/oauth/token', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        grant_type: 'authorization_code',
-                        client_id: clientId,
-                        code: code,
-                        redirect_uri: redirectUri,
-                        code_verifier: currentCodeVerifier
-                    })
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: bodyParams
                 });
+
+                console.log("[OAuth] Token Exchange Response Status:", tokenRes.status);
 
                 if (!tokenRes.ok) {
                     const err = await tokenRes.text();
@@ -173,6 +184,9 @@ app.get('/api/auth/chatgpt/start', (req, res) => {
                 const tokenData = await tokenRes.json();
                 const accessToken = tokenData.access_token;
                 const refreshToken = tokenData.refresh_token;
+
+                console.log("[OAuth] Tokens recibidos correctamente!");
+                console.log("[OAuth] Access Token length:", accessToken ? accessToken.length : 0);
 
                 // Guardar en Agent-assist memory DB
                 setSetting('model_provider', 'openai');

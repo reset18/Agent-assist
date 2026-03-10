@@ -3166,7 +3166,7 @@
                         try {
                             const r = await fetch('/api/settings');
                             const d = await r.json();
-                            if (d.model_provider === 'openai' && d.llm_api_key && d.llm_api_key.length > 50) {
+                            if (d.model_provider === 'openai' && d.llm_api_key && d.llm_api_key !== '') {
                                 clearInterval(checkLogin);
                                 closeLoginModal();
                                 updateProviderStatus('openai', d.llm_api_key);
