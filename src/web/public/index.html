@@ -1363,8 +1363,8 @@
 
         <!-- Canales -->
         <div id="channels" class="page-content">
-            <h2 class="page-title">Canales</h2>
-            <div class="sub-tabs">
+            <h2 class="page-title">Canales y Bots</h2>
+            <div class="sub-tabs" style="margin-bottom: 24px;">
                 <button class="sub-tab-btn active" onclick="switchChannelTab('tab_telegram', this)">Telegram</button>
                 <button class="sub-tab-btn" onclick="switchChannelTab('tab_whatsapp', this)">WhatsApp</button>
             </div>
@@ -1458,7 +1458,7 @@
                 durante el razonamiento.</p>
 
             <!-- SubTabs para Skills -->
-            <div class="sub-tabs">
+            <div class="sub-tabs" style="margin-bottom: 24px;">
                 <button class="sub-tab-btn active" onclick="switchSkillTab('tab_skills_natives', this)">Nativas</button>
                 <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_mcp', this)">Externas (MCP)</button>
                 <button class="sub-tab-btn" onclick="switchSkillTab('tab_skills_voice', this)">Voz
@@ -2163,6 +2163,99 @@
         window.currentSessionId = 'default';
         window.settingsLoaded = false; // Guard para evitar que saveSettings() se dispare antes de que la config se cargue
 
+        // Variables de versionado
+        let currentVersion = 'v0.2.11-beta';
+        let remoteVersion = '';
+
+        async function checkForUpdates() {
+            try {
+                const r = await fetch('/api/check-update');
+                const d = await r.json();
+                remoteVersion = d.remote;
+                currentVersion = d.current;
+                if (d.updateAvailable) {
+                    const updateNotification = document.getElementById('update_notification');
+                    if (updateNotification) updateNotification.style.display = 'flex';
+                    const updateVersionText = document.getElementById('update_version_text');
+                    if (updateVersionText) updateVersionText.textContent = `v${d.remote} disponible`;
+                    const btnSearch = document.getElementById('btn_search_updates');
+                    if (btnSearch) btnSearch.style.display = 'none';
+                }
+            } catch (e) { }
+        }
+
+        async function checkForUpdatesManually() {
+            const btn = document.getElementById('btn_search_updates');
+            if (!btn) return;
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '⌛ Buscando...';
+
+            await checkForUpdates();
+
+            const updateNotification = document.getElementById('update_notification');
+            if (updateNotification && updateNotification.style.display === 'flex') {
+                openUpdateModal();
+            } else {
+                btn.innerHTML = '✅ Al día';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }, 3000);
+            }
+        }
+
+        function openUpdateModal() {
+            const currentBadge = document.getElementById('current_version_badge');
+            const newBadge = document.getElementById('new_version_badge');
+            if (currentBadge) currentBadge.textContent = `v${currentVersion}`;
+            if (newBadge) newBadge.textContent = `v${remoteVersion}`;
+            const updateModal = document.getElementById('update_modal');
+            if (updateModal) updateModal.style.display = 'flex';
+        }
+
+        function closeUpdateModal() {
+            const progressArea = document.getElementById('update_progress_area');
+            if (progressArea && progressArea.style.display === 'block') return;
+            const updateModal = document.getElementById('update_modal');
+            if (updateModal) updateModal.style.display = 'none';
+        }
+
+        async function startUpdateProcess() {
+            const actionsArea = document.getElementById('update_actions_area');
+            const updateNote = document.getElementById('update_note');
+            const progressArea = document.getElementById('update_progress_area');
+            if (actionsArea) actionsArea.style.display = 'none';
+            if (updateNote) updateNote.style.display = 'none';
+            if (progressArea) progressArea.style.display = 'block';
+
+            const bar = document.getElementById('update_progress_bar');
+            const txt = document.getElementById('update_status_text');
+
+            const steps = [
+                { p: 10, t: "Obteniendo cambios de GitHub..." },
+                { p: 30, t: "Sincronizando archivos del código..." },
+                { p: 50, t: "Iniciando compilación (npm install)..." },
+                { p: 75, t: "Construyendo interfaz (rebuild)..." },
+                { p: 90, t: "Reiniciando servidor de Horus..." }
+            ];
+
+            let stepIdx = 0;
+            const interval = setInterval(() => {
+                if (stepIdx < steps.length) {
+                    if (bar) bar.style.width = steps[stepIdx].p + "%";
+                    if (txt) txt.textContent = steps[stepIdx].t;
+                    stepIdx++;
+                } else {
+                    clearInterval(interval);
+                    // Petición al backend para actualizar de verdad
+                    fetch('/api/perform-update', { method: 'POST' }).finally(() => {
+                        setTimeout(() => window.location.reload(), 2000);
+                    });
+                }
+            }, 1500);
+        }
+
         async function createNewChatSession() {
             const name = prompt("Nombre del nuevo chat:", `Nuevo Chat ${new Date().toLocaleTimeString()}`);
             if (!name) return;
@@ -2203,7 +2296,7 @@
                 // Sincronizar versi├│n dinámicamente
                 fetch('/api/check-update').then(r => r.json()).then(v => {
                     const label = document.getElementById('ui_version_label');
-                    if (label) label.textContent = v.current || 'v0.2.10-beta';
+                    if (label) label.textContent = v.current || 'vv0.2.11-beta';
                 }).catch(() => { });
 
             } catch (e) {
