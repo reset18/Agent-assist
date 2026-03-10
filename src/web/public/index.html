@@ -229,9 +229,9 @@
         }
 
         .page-container {
-            max-width: 1600px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 40px 24px;
+            padding: 40px 60px;
             width: 100%;
             box-sizing: border-box;
         }
@@ -734,7 +734,7 @@
             display: flex;
             flex-direction: column;
             width: 100%;
-            /* Eliminamos max-width para que el scroll est├® a la derecha */
+            /* Eliminamos max-width para que el scroll esté a la derecha */
             background-color: var(--bg);
             position: relative;
             overflow: hidden;
@@ -776,7 +776,7 @@
             flex: 1;
             padding: 24px;
             padding-top: 30px;
-            /* Ya no necesitamos tanto padding-top porque est├í en su propio contenedor main */
+            /* Ya no necesitamos tanto padding-top porque está en su propio contenedor main */
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -904,7 +904,7 @@
             padding-top: 8px;
         }
 
-        /* Animaci├│n "Pensando" estilo iMessage / Moderno */
+        /* Animación "Pensando" estilo iMessage / Moderno */
         .typing-indicator {
             display: flex;
             gap: 5px;
@@ -970,7 +970,7 @@
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
             border-radius: 20px;
             padding: 16px 60px 16px 20px;
-            /* Padding derecho para el bot├│n */
+            /* Padding derecho para el botón */
             background-color: var(--card);
             color: var(--fg);
             font-size: 15px;
@@ -1035,7 +1035,7 @@
 
 <body>
 
-    <!-- Men├║ Lateral (Sidebar) -->
+    <!-- Menú Lateral (Sidebar) -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <h1>AgentAssist</h1>
@@ -1141,7 +1141,7 @@
             </div>
         </header>
 
-        <!-- Chat Web (Redise├▒ado Centrado) -->
+        <!-- Chat Web (Rediseñado Centrado) -->
         <div id="chat" class="page-content active"
             style="padding: 0; height: calc(100vh - 72px); border-top: 1px solid var(--border);">
             <div class="chat-container">
@@ -1454,7 +1454,7 @@
         <div id="skills" class="page-content">
             <h2 class="page-title">Habilidades Autónomas (Tools)</h2>
             <p class="page-subtitle">Las habilidades activas permiten al Agente ejecutar código
-                de forma aut├│noma
+                de forma autónoma
                 durante el razonamiento.</p>
 
             <!-- SubTabs para Skills -->
@@ -1514,7 +1514,7 @@
                                 <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
                                     Escribir Archivo (write_file_local)</div>
                                 <span class="helper-text" style="margin-top: 0;">Escritura o
-                                    alteración del c├│digo y
+                                    alteración del código y
                                     contenido de archivos locales.</span>
                             </div>
                             <label class="toggle-switch">
@@ -1529,7 +1529,7 @@
                             <div>
                                 <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
                                     Listar Directorio (list_dir_local)</div>
-                                <span class="helper-text" style="margin-top: 0;">Inspecci├│n del
+                                <span class="helper-text" style="margin-top: 0;">Inspección del
                                     árbol de archivos en
                                     base a una ruta local dada.</span>
                             </div>
@@ -1562,7 +1562,7 @@
                             <div>
                                 <div style="font-weight: 600; font-size: 15px; color: var(--fg); margin-bottom: 4px;">
                                     Túnel SSH Remoto (run_ssh_command)</div>
-                                <span class="helper-text" style="margin-top: 0;">Conexi├│n y
+                                <span class="helper-text" style="margin-top: 0;">Conexión y
                                     ejecución de comandos
                                     SSH en Host externos usando sus credenciales seguras.</span>
                             </div>
@@ -1879,7 +1879,7 @@
     <div class="modal-overlay" id="llm_modal">
         <div class="modal">
             <h3 id="modal_provider_title" style="border:none; margin-bottom: 10px;">Configurar OpenAI</h3>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom:24px;">Configura tu conexi├│n para
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom:24px;">Configura tu conexión para
                 empezar
                 a usar este cerebro.</p>
 
@@ -1896,7 +1896,7 @@
             </div>
 
             <div class="form-group">
-                <label>M├®todo de Conexi├│n</label>
+                <label>Método de Conexión</label>
                 <select id="conn_method" onchange="toggleConnMethod()">
                     <option value="key">API Key Manual</option>
                     <option value="web">Login Asistido</option>
@@ -1907,7 +1907,7 @@
                 <div class="form-group">
                     <label id="key_label">API Key</label>
                     <div style="display: flex; gap: 8px;">
-                        <input type="password" id="modal_api_key" placeholder="Pega tu clave aqu├¡..."
+                        <input type="password" id="modal_api_key" placeholder="Pega tu clave aquí..."
                             style="flex: 1;" />
                         <button class="secondary-btn" id="btn_verify_key" onclick="verifyKeyOnly()"
                             style="padding: 0 15px;">Verificar</button>
@@ -1926,7 +1926,7 @@
 
             <div id="method_web_section"
                 style="display: none; text-align: center; padding: 20px; background: var(--input-bg); border-radius: 8px; border: 1px dashed var(--border);">
-                <p style="font-size: 13px; margin-bottom: 15px;">Se abrir├í un portal guiado para ayudarte a obtener tu
+                <p style="font-size: 13px; margin-bottom: 15px;">Se abrirá un portal guiado para ayudarte a obtener tu
                     clave.</p>
                 <button class="secondary-btn" onclick="openAuthProvider()">Abrir Portal de Login</button>
             </div>
@@ -1940,7 +1940,7 @@
         </div>
     </div>
 
-    <!-- Modal de Actualizaci├│n Premium -->
+    <!-- Modal de Actualización Premium -->
     <div class="modal-overlay" id="update_modal">
         <div class="modal" style="max-width: 450px; text-align: center;">
             <div
@@ -1952,8 +1952,9 @@
                     </path>
                 </svg>
             </div>
-            <h3 style="border:none; margin-bottom: 8px; text-align: center; width: 100%;">Actualizaci├│n del Sistema
-            </h3>
+            <h3
+                style="border:none; margin-bottom: 8px; text-align: center; width: 100%; display: flex; justify-content: center; align-items: center;">
+                Actualizaci&oacute;n del Sistema</h3>
             <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">Hay una nueva versión de
                 AgentAssist disponible.</p>
 
@@ -1962,8 +1963,8 @@
                 <div style="text-align: center;">
                     <div
                         style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">
-                        Tu Versi├│n</div>
-                    <div id="current_version_badge" style="font-weight: 700; color: var(--fg);">v2.0.0</div>
+                        Tu Versi&oacute;n</div>
+                    <div id="current_version_badge" style="font-weight: 700; color: var(--fg);">v0.2.12-beta</div>
                 </div>
                 <div style="color: var(--text-muted);">
                     <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1974,8 +1975,8 @@
                 <div style="text-align: center;">
                     <div
                         style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">
-                        Nueva Versi├│n</div>
-                    <div id="new_version_badge" style="font-weight: 700; color: var(--success);">v2.2.0</div>
+                        Nueva Versi&oacute;n</div>
+                    <div id="new_version_badge" style="font-weight: 700; color: var(--success);">v0.2.12-beta</div>
                 </div>
             </div>
 
@@ -1990,17 +1991,17 @@
             </div>
 
             <div style="display: flex; gap: 12px;" id="update_actions_area">
-                <button class="secondary-btn" style="flex:1" onclick="closeUpdateModal()">M├ís tarde</button>
+                <button class="secondary-btn" style="flex:1" onclick="closeUpdateModal()">M&aacute;s tarde</button>
                 <button class="primary-btn" style="flex:1" onclick="startUpdateProcess()">Actualizar Ahora</button>
             </div>
 
             <p id="update_note" style="margin-top: 15px; font-size: 11px; color: var(--text-muted);">El sistema se
-                reiniciar├í autom├íticamente al finalizar.</p>
+                reiniciar&aacute; autom&aacute;ticamente al finalizar.</p>
         </div>
     </div>
 
     <script>
-        // Sistema de Registro de Errores Cr├¡ticos (Detecci├│n para el usuario)
+        // Sistema de Registro de Errores Críticos (Detección para el usuario)
         // --- SISTEMA DE DIAGN├ôSTICO VISUAL ---
         const debugBox = document.getElementById('debug_box');
         const debugContent = document.getElementById('debug_content');
@@ -2027,7 +2028,7 @@
             setTimeout(() => errBox.remove(), 8000);
         };
 
-        // L├│gica del Tema (Auto / Claro / Oscuro)
+        // Lógica del Tema (Auto / Claro / Oscuro)
         function getSystemTheme() {
             return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
@@ -2060,12 +2061,12 @@
 
         initTheme();
 
-        // Control de Men├║ Sidebar
+        // Control de Menú Sidebar
         const sidebar = document.getElementById('sidebar');
         function toggleSidebar() {
             sidebar.classList.toggle('collapsed');
 
-            // Para m├│viles, abrir el sidebar es una clase diferente si no estorba el grid
+            // Para móviles, abrir el sidebar es una clase diferente si no estorba el grid
             if (window.innerWidth <= 768) {
                 sidebar.classList.toggle('mobile-open');
             }
@@ -2079,7 +2080,7 @@
                 // Quitar clase activa del sidebar
                 document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
 
-                // Activar nueva p├ígina
+                // Activar nueva página
                 const targetPage = document.getElementById(pageId);
                 if (targetPage) {
                     targetPage.classList.add('active');
@@ -2164,7 +2165,7 @@
         window.settingsLoaded = false; // Guard para evitar que saveSettings() se dispare antes de que la config se cargue
 
         // Variables de versionado
-        let currentVersion = 'v0.2.11-beta';
+        let currentVersion = '0.2.12-beta';
         let remoteVersion = '';
 
         async function checkForUpdates() {
@@ -2208,8 +2209,8 @@
         function openUpdateModal() {
             const currentBadge = document.getElementById('current_version_badge');
             const newBadge = document.getElementById('new_version_badge');
-            if (currentBadge) currentBadge.textContent = `v${currentVersion}`;
-            if (newBadge) newBadge.textContent = `v${remoteVersion}`;
+            if (currentBadge) currentBadge.textContent = currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`;
+            if (newBadge) newBadge.textContent = remoteVersion.startsWith('v') ? remoteVersion : `v${remoteVersion}`;
             const updateModal = document.getElementById('update_modal');
             if (updateModal) updateModal.style.display = 'flex';
         }
@@ -2293,10 +2294,10 @@
                     select.appendChild(opt);
                 });
 
-                // Sincronizar versi├│n dinámicamente
+                // Sincronizar versión dinámicamente
                 fetch('/api/check-update').then(r => r.json()).then(v => {
                     const label = document.getElementById('ui_version_label');
-                    if (label) label.textContent = v.current || 'v0.2.11-beta';
+                    if (label) label.textContent = v.current || 'v0.2.12-beta';
                 }).catch(() => { });
 
             } catch (e) {
@@ -2309,7 +2310,7 @@
             loadChatHistory();
         }
         window.fullAgentNameCache = 'Agente';
-        window.fullUserNameCache = 'T├║';
+        window.fullUserNameCache = 'Tú';
 
         // Formateador seguro de texto a HTML usando Marked
         function formatChatText(text) {
@@ -2324,7 +2325,7 @@
                     });
                     let formatted = marked.parse(text);
 
-                    // Restablecer de capa de escape ├║nicamente la caja del Audio generada por el agente
+                    // Restablecer de capa de escape únicamente la caja del Audio generada por el agente
                     formatted = formatted.replace(
                         /\[AUDIO:\s*(\/media\/[^\]]+)\]/gi,
                         '<audio src="$1" controls style="max-width: 100%; margin-top: 10px; display: block; border-radius: 20px; outline: none;"></audio>'
@@ -2335,7 +2336,7 @@
             } catch (e) {
                 logDebug(`Marked Error: ${e.message}`, 'error');
             }
-            // Fallback: Escape b├ísico
+            // Fallback: Escape básico
             return text
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
@@ -2345,14 +2346,14 @@
                 .replace(/\n/g, '<br>');
         }
 
-        // Cargar configuraci├│n actual
+        // Cargar configuración actual
         async function loadSettings() {
             try {
                 const r = await fetch('/api/settings');
                 const data = await r.json();
                 console.log('[Debug] Ajustes cargados de API:', data);
 
-                // Estos campos a├║n se cargan si existen en el modal o para compatibilidad
+                // Estos campos aún se cargan si existen en el modal o para compatibilidad
                 if (document.getElementById('telegram_bot_token')) document.getElementById('telegram_bot_token').value = data.telegram_bot_token || '';
                 if (document.getElementById('telegram_whitelist')) document.getElementById('telegram_whitelist').value = data.telegram_whitelist || '';
 
@@ -2467,7 +2468,7 @@
                         </div>
                     `;
 
-                    // L├│gica especial para GOG
+                    // Lógica especial para GOG
                     if (skill.id === 'gog.zip') {
                         const configDiv = document.createElement('div');
                         configDiv.id = `config_gog.zip`;
@@ -2489,12 +2490,12 @@
                     container.appendChild(card);
                 });
 
-                // Inicializar cach├® para filtros
+                // Inicializar caché para filtros
                 window.allSkillsCache = data.skills;
             }).catch(e => console.error("Error loading MCP abilities", e));
         }
 
-        // Nueva funci├│n de filtrado
+        // Nueva función de filtrado
         window.filterSkills = function (filterType) {
             const container = document.getElementById('mcp_skills_container');
             const search = document.getElementById('skill_search').value.toLowerCase();
@@ -2525,7 +2526,7 @@
             });
         };
 
-        // Nueva funci├│n para manejar el UI del toggle de skills
+        // Nueva función para manejar el UI del toggle de skills
         window.toggleSkillUI = function (skillId) {
             const isEnabled = document.getElementById('skill_enabled_' + skillId).checked;
             const card = document.getElementById('card_' + skillId);
@@ -2552,10 +2553,10 @@
 
         // Cargar Historial de Chat y aplicar Polling
         let lastMessageCount = 0;
-        let chatBusySending = false; // Flag para evitar que el polling destruya el DOM durante el env├¡o
+        let chatBusySending = false; // Flag para evitar que el polling destruya el DOM durante el envío
 
         async function loadChatHistory() {
-            // Si estamos en medio de un env├¡o, no tocar el DOM
+            // Si estamos en medio de un envío, no tocar el DOM
             if (chatBusySending) return;
 
             try {
@@ -2571,7 +2572,7 @@
                         chat.innerHTML = '';
 
                         if (newCount === 0) {
-                            // Chat vac├¡o: no mostramos nada, esperamos al usuario
+                            // Chat vacío: no mostramos nada, esperamos al usuario
                         } else {
                             data.messages.forEach(msg => {
                                 const wrapper = document.createElement('div');
@@ -2613,13 +2614,13 @@
         loadSessions();
         loadChatHistory();
         setInterval(() => {
-            // Solo hacer polling si la pesta├▒a activa es 'chat'
+            // Solo hacer polling si la pestaña activa es 'chat'
             if (document.getElementById('chat').classList.contains('active')) {
                 loadChatHistory();
             }
         }, 3000);
 
-        // Funciones para mostrar u ocultar la configuraci├│n seg├║n si est├ín habilitados
+        // Funciones para mostrar u ocultar la configuración según si están habilitados
         function toggleTelegramConfig() {
             const el = document.getElementById('bot_telegram_enabled');
             const section = document.getElementById('telegram_config_section');
@@ -2652,7 +2653,7 @@
         }
 
         async function saveSettings() {
-            // No guardar si la configuraci├│n a├║n no se ha cargado del servidor
+            // No guardar si la configuración aún no se ha cargado del servidor
             if (!window.settingsLoaded) return;
 
             const payload = {
@@ -2681,7 +2682,7 @@
             const gogEmailEl = document.getElementById('gog_email');
             if (gogEmailEl) payload.gog_email = gogEmailEl.value;
 
-            // Recolectar switches de MCP Skills din├ímicos
+            // Recolectar switches de MCP Skills dinámicos
             document.querySelectorAll('input[id^="skill_enabled_"]').forEach(input => {
                 payload[input.id] = input.checked;
             });
@@ -2702,10 +2703,10 @@
         }
 
         async function clearMemory() {
-            if (confirm("┬┐Est├ís s├║per seguro de que quieres borrar de forma irreversible la memoria de tu agente?")) {
+            if (confirm("&iquest;Estás súper seguro de que quieres borrar de forma irreversible la memoria de tu agente?")) {
                 await fetch('/api/clear-memory', { method: 'POST' });
-                alert("Memoria borrada. El agente empezar├í de cero su hilo de conversaci├│n.");
-                document.getElementById('chat_history').innerHTML = '<div class="chat-bubble assistant">Memoria borrada. ┬íHola de nuevo!</div>';
+                alert("Memoria borrada. El agente empezará de cero su hilo de conversación.");
+                document.getElementById('chat_history').innerHTML = '<div class="chat-bubble assistant">Memoria borrada. &iexcl;Hola de nuevo!</div>';
             }
         }
 
@@ -2752,7 +2753,7 @@
             input.value = '';
             chat.scrollTop = chat.scrollHeight;
 
-            // Indicaci├│n de carga estilo ChatGPT
+            // Indicación de carga estilo ChatGPT
             const typingWrapper = document.createElement('div');
             typingWrapper.className = 'chat-message-wrapper assistant';
 
@@ -3037,7 +3038,7 @@
                 });
 
                 if (res.ok) {
-                    statusMsg.textContent = '✅ ¡Conectado con éxito!';
+                    statusMsg.textContent = '✅ &iexcl;Conectado con éxito!';
                     statusMsg.style.color = 'var(--success)';
                     setTimeout(() => {
                         closeLoginModal();
@@ -3162,7 +3163,7 @@
                 }
             } catch (e) {
                 console.error(e);
-                statusEl.textContent = "Error consultando ElevenLabs. Revisa la clave o comprueba tu conexi├│n de red.";
+                statusEl.textContent = "Error consultando ElevenLabs. Revisa la clave o comprueba tu conexión de red.";
                 statusEl.style.color = "var(--danger)";
             }
         }
@@ -3182,7 +3183,7 @@
 
                 if (data.status === 'connected') {
                     badge.className = 'badge connected';
-                    badge.textContent = 'En L├¡nea';
+                    badge.textContent = 'En Línea';
                     qrSection.style.display = 'none';
                     connectedMsg.style.display = 'block';
                 } else if (data.status === 'qr_ready') {

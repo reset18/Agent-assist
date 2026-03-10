@@ -115,24 +115,25 @@ app.get('/auth-provider', (req, res) => {
     res.sendFile(join(__dirname, 'public', 'auth.html'));
 });
 
-const APP_VERSION = '2.1.0';
-
 app.get('/api/check-update', async (req, res) => {
     try {
+        const pkg = JSON.parse(fs.readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
+        const currentVersion = pkg.version;
         const fetchRemote = await fetch('https://raw.githubusercontent.com/reset18/Agent-assist/main/package.json');
         const githubPkg: any = await fetchRemote.json();
         const remoteVersion = githubPkg.version;
         res.json({
-            current: APP_VERSION,
+            current: currentVersion,
             remote: remoteVersion,
-            updateAvailable: remoteVersion !== APP_VERSION
+            updateAvailable: remoteVersion !== currentVersion
         });
     } catch (e) {
-        res.json({ current: APP_VERSION, remote: APP_VERSION, updateAvailable: false });
+        const pkg = JSON.parse(fs.readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
+        res.json({ current: pkg.version, remote: pkg.version, updateAvailable: false });
     }
 });
 
-app.post('/api/run-update', async (req, res) => {
+app.post('/api/perform-update', async (req, res) => {
     const { exec } = await import('child_process');
     exec('npx ts-node scripts/updater.ts', (error, stdout, stderr) => {
         if (error) {
@@ -369,21 +370,7 @@ app.get('/api/tokens/today', (req, res) => {
     }
 });
 
-app.get('/api/check-update', (req, res) => {
-    const pkg = JSON.parse(fs.readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
-    const currentVersion = pkg.version;
-    // Simulamos un backend de actualizaciones. 
-    // Si la versión es 0.2.3, diremos que hay una 0.2.4 disponible (para probar el modal)
-    // O simplemente devolvemos la misma si ya estamos en la última.
-    const latestVersion = "0.2.9";
 
-    res.json({
-        current: currentVersion,
-        latest: latestVersion,
-        updateAvailable: currentVersion !== latestVersion,
-        changelog: "Mejoras en el sistema de voz, multi-tier LLM y seguimiento de tokens (v5.0 Enterprise)."
-    });
-});
 
 app.get('/api/skills', (req, res) => {
     try {
