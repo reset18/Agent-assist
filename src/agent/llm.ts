@@ -96,7 +96,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         body.instructions = systemInstruction;
     }
 
-    console.log(`[LLM/OAuth] Calling Codex Responses API (Streaming): model=${model}, tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth v0.2.47] Calling Codex Responses API (Streaming): model=${model}, tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',

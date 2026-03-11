@@ -448,7 +448,7 @@ function updateEnv(key: string, value: string) {
 }
 
 app.post('/api/settings', (req, res) => {
-    console.log(`[Web] Recibida actualización de ajustes:`, JSON.stringify({
+    console.log(`[Web v0.2.47] Recibida actualización de ajustes:`, JSON.stringify({
         ...req.body,
         llm_api_key: req.body.llm_api_key ? 'RECIBIDA (' + req.body.llm_api_key.substring(0, 5) + '...)' : 'VACÍA',
         elevenlabs_api_key: req.body.elevenlabs_api_key ? 'RECIBIDA' : 'VACÍA'
@@ -463,14 +463,16 @@ app.post('/api/settings', (req, res) => {
         gog_client_secret, gog_email,
         voice_enabled, voice_engine, openai_voice_id, openai_api_key_audio,
         elevenlabs_api_key, elevenlabs_voice_id,
-        llm_primary_provider, llm_secondary_provider, llm_tertiary_provider,
-        llm_secondary_model, llm_tertiary_model
+        llm_primary_account_id, llm_primary_model,
+        llm_secondary_account_id, llm_secondary_model,
+        llm_tertiary_account_id, llm_tertiary_model
     } = req.body;
 
-    if (llm_primary_provider !== undefined) setSetting('llm_primary_provider', llm_primary_provider);
-    if (llm_secondary_provider !== undefined) setSetting('llm_secondary_provider', llm_secondary_provider);
-    if (llm_tertiary_provider !== undefined) setSetting('llm_tertiary_provider', llm_tertiary_provider);
+    if (llm_primary_account_id !== undefined) setSetting('llm_primary_account_id', llm_primary_account_id);
+    if (llm_primary_model !== undefined) setSetting('llm_primary_model', llm_primary_model);
+    if (llm_secondary_account_id !== undefined) setSetting('llm_secondary_account_id', llm_secondary_account_id);
     if (llm_secondary_model !== undefined) setSetting('llm_secondary_model', llm_secondary_model);
+    if (llm_tertiary_account_id !== undefined) setSetting('llm_tertiary_account_id', llm_tertiary_account_id);
     if (llm_tertiary_model !== undefined) setSetting('llm_tertiary_model', llm_tertiary_model);
 
     // Guardar dinámicamente cualquier skill enviada
