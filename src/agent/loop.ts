@@ -183,7 +183,7 @@ ${voiceContext}
 
             const needsVoice = isAudio || message.toLowerCase().includes('háblame') || message.toLowerCase().includes('audio') || message.toLowerCase().includes('voz');
             if (!needsVoice) {
-                tools = tools.filter(t => t.function.name !== 'speak_message');
+                tools = tools.filter(t => (t.function?.name || t.name) !== 'speak_message');
             }
 
             const responseMessage = await chatCompletion(model, provider, thread, tools);
@@ -203,7 +203,7 @@ ${voiceContext}
                         continue;
                     }
                     let functionResult;
-                    const isMCPTool = mcpTools.some(t => t.function.name === toolCall.function.name);
+                    const isMCPTool = mcpTools.some(t => (t.function?.name || t.name) === toolCall.function.name);
                     if (isMCPTool) {
                         functionResult = await executeMCPTool(toolCall.function.name, JSON.parse(toolCall.function.arguments || '{}'));
                     } else {
