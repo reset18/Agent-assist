@@ -142,7 +142,8 @@ app.post('/api/test-llm', async (req, res) => {
     try {
         const { chatCompletion } = await import('../agent/llm.js');
         // Prueba mínima: un mensaje de 1 token para validar
-        await chatCompletion(model || 'gpt-4o-mini', provider, [{ role: 'user', content: 'test connection' }]);
+        // IMPORTANTE: forzar el test contra ESTA credencial (sin fallback multi-tier)
+        await chatCompletion(model || 'gpt-4o-mini', provider, [{ role: 'user', content: 'test connection' }], [], apiKey);
         res.json({ success: true });
     } catch (error: any) {
         res.status(401).json({ success: false, error: error.message });

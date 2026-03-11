@@ -140,11 +140,6 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         }
     }
 
-    // Codex requiere identificadores específicos
-    // - **v0.2.56**: Eliminado remapeo de gpt-4o/auto. Se permite el paso directo de nombres modernos (GPT-5).
-    // - **v0.2.55**: Cambiado fallback de gpt-4o a 'auto' para evitar Error 400 en Codex.
-    // - **v0.2.53**: Fix error 400 Codex (missing tools[0].name) mediante flattening a functions.
-    // - **v0.2.52**: Añadido Copilot como proveedor y fallback de entrada manual para IDs de modelos (v0.2.52).
     let effectiveModel = model;
 
     const normalized = normalizeTools(tools);
@@ -166,7 +161,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         }));
     }
 
-    console.log(`[LLM/OAuth v0.2.68] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth v0.2.69] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
@@ -191,6 +186,50 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     const decoder = new TextDecoder();
     let buffer = '';
 
+    // Algunos streams devuelven el texto final en un objeto response al final.
+    // Guardamos la última respuesta completa por si no hubo deltas.
+    let lastResponseObject: any = null;
+
+    const appendText = (t: any) => {
+        if (!t) return;
+        if (typeof t === 'string') fullText += t;
+        else if (typeof t === 'object') {
+            if (typeof t.text === 'string') fullText += t.text;
+            else if (typeof t.content === 'string') fullText += t.content;
+            else if (typeof t.delta === 'string') fullText += t.delta;
+        }
+    };
+
+    const extractTextFromResponseObject = (resp: any) => {
+        // Intentar extraer texto del objeto final (varía por implementación)
+        if (!resp || typeof resp !== 'object') return '';
+
+        // 1) output_text (si existiera)
+        if (typeof resp.output_text === 'string') return resp.output_text;
+
+        // 2) output[] -> content[] -> { type: 'output_text', text }
+        const out = resp.output;
+        if (Array.isArray(out)) {
+            let t = '';
+            for (const item of out) {
+                const content = item?.content;
+                if (Array.isArray(content)) {
+                    for (const c of content) {
+                        if (typeof c?.text === 'string') t += c.text;
+                        else if (typeof c?.content === 'string') t += c.content;
+                    }
+                }
+                if (typeof item?.text === 'string') t += item.text;
+            }
+            if (t) return t;
+        }
+
+        // 3) message/content
+        if (typeof resp.message?.content === 'string') return resp.message.content;
+
+        return '';
+    };
+
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -208,19 +247,31 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
 
             try {
                 const data = JSON.parse(dataStr);
-                // console.log(`[Codex SSE Debug] Type: ${data.type}`); // Descomentar para debug profundo
 
-                // Formato OpenResponses / Codex SSE
-                // Capturar texto de múltiples variantes de eventos
-                if ((data.type === 'response.output_text.delta' || data.type === 'response.text.delta' || data.type === 'response.delta' || data.type === 'response.message.delta') && data.delta) {
-                    if (typeof data.delta === 'string') {
-                        fullText += data.delta;
-                    } else if (data.delta.content) {
-                        fullText += data.delta.content;
-                    } else if (data.delta.text) {
-                        fullText += data.delta.text;
+                // Guardar respuesta completa si viene en eventos tipo completed
+                if (data?.type === 'response.completed' && data.response) {
+                    lastResponseObject = data.response;
+                    if (data.response?.usage) {
+                        const usage = data.response.usage;
+                        addTokenUsage('openai', (usage.input_tokens || 0) + (usage.output_tokens || 0));
                     }
-                } 
+                }
+
+                // Capturar texto (muchas variantes)
+                if (
+                    (data.type === 'response.output_text.delta' || data.type === 'response.text.delta' || data.type === 'response.delta' || data.type === 'response.message.delta')
+                ) {
+                    // Algunos eventos usan data.delta, otros data.text
+                    if (data.delta !== undefined) appendText(data.delta);
+                    else if (data.text !== undefined) appendText(data.text);
+                    else if (data?.message?.delta !== undefined) appendText(data.message.delta);
+                }
+
+                // Algunas implementaciones envían eventos done con texto final
+                else if (data.type === 'response.output_text.done' || data.type === 'response.text.done') {
+                    if (data.text !== undefined) appendText(data.text);
+                }
+
                 // Capturar inicio de llamada a herramienta
                 else if ((data.type === 'response.tool_call.added' || data.type === 'response.part.added') && (data.tool_call || data.part)) {
                     const tc = data.tool_call || data.part;
@@ -228,13 +279,14 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
                         toolCallsMap.set(tc.id, {
                             id: tc.id,
                             type: 'function',
-                            function: { 
-                                name: tc.function?.name || '', 
-                                arguments: tc.function?.arguments || '' 
+                            function: {
+                                name: tc.function?.name || '',
+                                arguments: tc.function?.arguments || ''
                             }
                         });
                     }
-                } 
+                }
+
                 // Capturar deltas de argumentos de herramientas
                 else if ((data.type === 'response.tool_call.arguments.delta' || data.type === 'response.tool_call.delta' || data.type === 'response.part.delta') && data.delta) {
                     const tcIdx = data.tool_call_id || data.part_id || (data.tool_call && data.tool_call.id);
@@ -246,12 +298,8 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
                             tc.function.arguments += data.delta.arguments;
                         }
                     }
-                } else if (data.type === 'response.completed' && data.response?.usage) {
-                    const usage = data.response.usage;
-                    addTokenUsage('openai', (usage.input_tokens || 0) + (usage.output_tokens || 0));
                 }
             } catch (e) {
-                // Log de diagnóstico para eventos no reconocidos o malformados
                 console.warn(`[Codex SSE Diagnostic] Evento no reconocido o error: ${trimmedLine}`);
             }
         }
@@ -259,8 +307,15 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
 
     const toolCalls = Array.from(toolCallsMap.values());
 
+    // Fallback: si no hubo deltas pero sí vino un objeto response al final, extraer texto
+    if (!fullText && lastResponseObject) {
+        fullText = extractTextFromResponseObject(lastResponseObject);
+    }
+
     if (!fullText && toolCalls.length === 0) {
-        throw new Error("La respuesta del stream está vacía");
+        // Diagnóstico un pelín más útil
+        const lastKeys = lastResponseObject ? Object.keys(lastResponseObject).slice(0, 20).join(',') : 'null';
+        throw new Error(`La respuesta del stream está vacía (response keys: ${lastKeys})`);
     }
 
     return {
@@ -285,9 +340,9 @@ export async function chatCompletion(model: string, provider: string, messages: 
     if (testApiKey) {
         const isJwtToken = (key: string) => key.startsWith('eyJ');
         const effectiveOAuth = isJwtToken(testApiKey) || provider === 'copilot';
-        
+
         console.log(`[LLM] Intento directo (${provider}${effectiveOAuth ? '/OAuth' : ''}) -> ${model}`);
-        
+
         if (effectiveOAuth && (provider === 'openai' || provider === 'copilot')) {
             return await _responsesApiCompletion(model, messages, testApiKey, tools);
         }
@@ -339,7 +394,7 @@ export async function chatCompletion(model: string, provider: string, messages: 
 
     for (let i = 0; i < tiers.length; i++) {
         const tier = tiers[i];
-        
+
         // Estabilización: Añadir un pequeño retardo entre intentos si no es el primero
         if (i > 0) {
             console.log(`[LLM] Esperando 1.5s antes de reintentar con Tier ${i + 1}...`);
