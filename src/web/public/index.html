@@ -3144,6 +3144,7 @@
                     </div>
                     <h3 style="margin:0 0 4px">${acc.name}</h3>
                     <p style="font-size:12px;color:var(--text-muted);margin:0 0 4px">${providerNames[acc.provider] || acc.provider}${acc.isOauth ? ' (OAuth)' : ' (API Key)'}</p>
+                    <p style="font-size:12px;color:var(--primary);font-weight:600;margin:0 0 4px">${acc.model || 'Sin modelo'}</p>
                     <p style="font-size:11px;color:var(--text-muted);margin:0 0 16px;font-family:monospace">ID: ${acc.id}</p>
                     <button class="secondary-btn" style="width:100%;color:var(--danger);border-color:var(--danger)" onclick="removeAccount('${acc.id}')">Desvincular</button>
                 `;
@@ -3166,7 +3167,8 @@
                     const opt = document.createElement('option');
                     opt.value = acc.id;
                     opt.setAttribute('data-model', acc.model || '');
-                    opt.textContent = `${acc.name} (${providerNames[acc.provider] || acc.provider})${acc.model ? ' — ' + acc.model : ''}`;
+                    const modelLabel = acc.model ? ` — ${acc.model}` : '';
+                    opt.textContent = `${acc.name} (${providerNames[acc.provider] || acc.provider})${modelLabel}`;
                     sel.appendChild(opt);
                 });
                 sel.value = currentVal;
@@ -3504,14 +3506,14 @@
                             <strong>✅ Cuenta vinculada.</strong> Elige el modelo de OpenAI que quieres usar:
                         </p>
                         <select id="oauth_model_select" style="width: 100%; margin-bottom: 10px;">
-                            <option value="gpt-5.4" selected>GPT-5.4</option>
-                            <option value="gpt-5.4-mini">GPT-5.4 Mini</option>
-                            <option value="gpt-5">GPT-5</option>
-                            <option value="o4">o4</option>
-                            <option value="o4-mini">o4-mini</option>
-                            <option value="o4-pro">o4-pro</option>
-                            <option value="gpt-4.5-preview">GPT-4.5 Preview</option>
-                            <option value="gpt-4o">GPT-4o</option>
+                            <option value="gpt-4o" selected>GPT-4o (Recomendado)</option>
+                            <option value="gpt-4o-mini">GPT-4o Mini</option>
+                            <option value="o1">o1 (Razonamiento)</option>
+                            <option value="o1-mini">o1 Mini</option>
+                            <option value="gpt-4-mobile">GPT-4 (Mobile)</option>
+                            <option value="auto">Selección Automática (Codex)</option>
+                            <option value="gpt-5.4">GPT-5.4 (Experimental)</option>
+                            <option value="o4">o4 (Experimental)</option>
                         </select>
                         <button class="primary-btn" onclick="saveOAuthModel('${data.accountId}')" style="width: 100%;">Guardar modelo</button>
                         <p id="oauth_model_status" style="font-size: 12px; margin: 8px 0 0; text-align: center;"></p>
