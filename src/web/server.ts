@@ -4,7 +4,7 @@ import { dirname, join } from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import AdmZip from 'adm-zip';
-import { getSetting, setSetting, getLLMAccounts, saveLLMAccount, removeLLMAccount, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, getTokenUsageHistory } from '../db/index.js';
+import { getSetting, setSetting, getLLMAccounts, saveLLMAccount, removeLLMAccount, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, deleteSession, getTokenUsageHistory } from '../db/index.js';
 import { whatsappGlobalState } from '../bots/whatsapp.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -235,7 +235,7 @@ app.get('/api/auth/chatgpt/start', (req, res) => {
         currentCodeVerifier = verifier;
         const stateStr = crypto.randomBytes(16).toString('hex');
 
-        const authUrl = `https://auth.openai.com/oauth/authorize?response_type=code&client_id=${OAUTH_CLIENT_ID}&redirect_uri=${encodeURIComponent(OAUTH_REDIRECT_URI)}&scope=openid+profile+email+offline_access+model.request+model.read&code_challenge=${challenge}&code_challenge_method=S256&state=${stateStr}&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=pi`;
+        const authUrl = `https://auth.openai.com/oauth/authorize?response_type=code&client_id=${OAUTH_CLIENT_ID}&redirect_uri=${encodeURIComponent(OAUTH_REDIRECT_URI)}&scope=openid+profile+email+offline_access+model.request+model.read&code_challenge=${challenge}&code_challenge_method=S256&state=${stateStr}&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=pi&prompt=login`;
 
         console.log(`[OAuth] Auth URL generada. redirect_uri: ${OAUTH_REDIRECT_URI}`);
         res.json({ success: true, url: authUrl });
@@ -709,6 +709,16 @@ app.post('/api/sessions', (req, res) => {
     if (!id || !name) return res.status(400).json({ error: 'ID o Nombre faltante' });
     try {
         createSession(id, name, platform || 'web');
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.delete('/api/sessions/:id', (req, res) => {
+    const { id } = req.params;
+    try {
+        deleteSession(id);
         res.json({ success: true });
     } catch (e: any) {
         res.status(500).json({ error: e.message });

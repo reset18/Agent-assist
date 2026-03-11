@@ -81,6 +81,11 @@ export function createSession(id: string, name: string, platform = 'web') {
     stmt.run(id, name, platform);
 }
 
+export function deleteSession(id: string) {
+    db.prepare('DELETE FROM messages WHERE session_id = ?').run(id);
+    db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
+}
+
 export function getSessions() {
     return db.prepare('SELECT id, name, platform FROM sessions ORDER BY timestamp DESC').all() as { id: string, name: string, platform: string }[];
 }

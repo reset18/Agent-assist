@@ -1134,8 +1134,17 @@
         <div id="chat" class="page-content active" style="padding: 0; height: 100vh;">
             <div class="chat-container">
                 <div
-                    style="display: flex; justify-content: flex-end; align-items: center; padding: 12px 24px; border-bottom: 1px solid var(--border); background-color: var(--bg); position: sticky; top: 0; z-index: 10;">
-                    <div class="top-bar-actions">
+                    style="display: flex; justify-content: flex-end; align-items: center; width: 100%; padding: 12px 24px; border-bottom: 1px solid var(--border); background-color: var(--bg); position: sticky; top: 0; z-index: 10;">
+                    <div class="top-bar-actions" style="margin-left: auto;">
+                        <button id="delete_chat_btn" class="secondary-btn" onclick="deleteCurrentSession()"
+                            style="display: none; border-radius: 12px; padding: 8px 14px; font-weight: 600; font-size: 13px; color: var(--danger); border-color: rgba(239,68,68,0.3);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                style="width:14px; height:14px; margin-right:6px; vertical-align:middle;">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Borrar Chat
+                        </button>
                         <button id="new_chat_btn" class="secondary-btn" onclick="createNewChatSession()"
                             style="display: none; border-radius: 12px; padding: 8px 14px; font-weight: 600; font-size: 13px;">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -1156,6 +1165,13 @@
                     <div class="chat-history" id="chat_history">
                         <!-- Mensajes de la sesión activa -->
                     </div>
+                    <button id="scroll_to_bottom_btn" class="secondary-btn" onclick="scrollToBottomFunc()"
+                        style="display: none; position: absolute; bottom: 90px; right: 30px; border-radius: 50%; width: 40px; height: 40px; padding: 0; justify-content: center; box-shadow: var(--shadow-md); z-index: 100;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                            style="width: 20px; height: 20px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
+                    </button>
                     <div class="chat-input-area">
                         <div class="chat-input-container">
                             <input type="text" id="chat_input" placeholder="Pregúntale algo a tu agente..."
@@ -1909,19 +1925,29 @@
                 <input type="text" id="modal_account_name" placeholder="Ej: Mi cuenta de Anthropic Trabajo" />
             </div>
 
-            <div class="form-group" id="oauth_container" style="margin-bottom: 20px;">
-                <button class="primary-btn" id="btn_oauth_chatgpt"
-                    style="width: 100%; background: #10a37f; border-color: #10a37f;" onclick="startChatGPTWebLogin()">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
-                        style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">
-                    Vincular ChatGPT (Sesión Web Gratuita/Plus)
-                </button>
-                <div id="or_separator"
-                    style="text-align: center; margin: 15px 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
-                    O USA EL MÉTODO DE API KEY MANUAL</div>
+            <div id="openai_method_toggle"
+                style="margin-bottom: 20px; display: flex; gap: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="radio" name="openai_method" value="oauth" checked onchange="toggleAuthMethodUI()">
+                    Sesión Web (Gratis/Plus)
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="radio" name="openai_method" value="apikey" onchange="toggleAuthMethodUI()"> API Key de
+                    Desarrollador
+                </label>
             </div>
 
-            <div id="method_key_section">
+            <div class="form-group" id="oauth_container" style="margin-bottom: 20px;">
+                <button class="primary-btn" id="btn_oauth_chatgpt"
+                    style="width: 100%; background: #10a37f; border-color: #10a37f; justify-content: center;"
+                    onclick="startChatGPTWebLogin()">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
+                        style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">
+                    Vincular cuenta con OpenAI
+                </button>
+            </div>
+
+            <div id="method_key_section" style="display: none;">
                 <div class="form-group">
                     <label id="key_label">API Key</label>
                     <div style="display: flex; gap: 8px;">
@@ -2339,6 +2365,23 @@
             }
         }
 
+        async function deleteCurrentSession() {
+            if (window.currentSessionId === 'default' || window.currentSessionId === 'whatsapp_default' || window.currentSessionId === 'telegram_default') {
+                alert("No puedes borrar la sesión principal por defecto de Web, WhatsApp o Telegram. Solo puedes crear nuevas o borrar las personalizadas.");
+                return;
+            }
+            if (!confirm("¿Estás seguro de que quieres borrar este chat y todo su historial?")) return;
+
+            const res = await fetch(`/api/sessions/${window.currentSessionId}`, { method: 'DELETE' });
+            if (res.ok) {
+                window.currentSessionId = 'default';
+                await loadSessions();
+                await loadChatHistory();
+            } else {
+                alert("Error borrando sesión.");
+            }
+        }
+
         async function loadSessions() {
             try {
                 const res = await fetch('/api/sessions');
@@ -2360,6 +2403,8 @@
                     select.appendChild(opt);
                 });
 
+                updateDeleteButtonVisibility();
+
                 // Sincronizar versión dinámicamente
                 fetch('/api/check-update').then(r => r.json()).then(v => {
                     const label = document.getElementById('ui_version_label');
@@ -2373,10 +2418,26 @@
 
         async function switchSession(id) {
             window.currentSessionId = id;
+            document.getElementById('chat_history').innerHTML = ''; // Force DOM reset to ensure reload even if message count matches
+            updateDeleteButtonVisibility();
             loadChatHistory();
         }
         window.fullAgentNameCache = 'Agente';
         window.fullUserNameCache = 'Tú';
+
+        function updateDeleteButtonVisibility() {
+            const btn = document.getElementById('delete_chat_btn');
+            if (!btn) return;
+            const isDefault = (window.currentSessionId === 'default' || window.currentSessionId === 'whatsapp_default' || window.currentSessionId === 'telegram_default');
+            btn.style.display = isDefault ? 'none' : 'flex';
+        }
+
+        function scrollToBottomFunc() {
+            const chat = document.getElementById('chat_history');
+            if (chat) {
+                chat.scrollTop = chat.scrollHeight;
+            }
+        }
 
         // Formateador seguro de texto a HTML usando Marked
         function formatChatText(text) {
@@ -2702,6 +2763,18 @@
                 console.error("Error al refrescar historial", e);
             }
         }
+
+        // Mostrar/Ocultar botón de scroll basado en la posición
+        document.getElementById('chat_history').addEventListener('scroll', function () {
+            const chat = this;
+            const btn = document.getElementById('scroll_to_bottom_btn');
+            // Si el scroll está a más de 50px del fondo, muestra el botón
+            if (chat.scrollHeight - chat.scrollTop - chat.clientHeight > 50) {
+                btn.style.display = 'flex';
+            } else {
+                btn.style.display = 'none';
+            }
+        });
 
         // Carga inicial y encuesta de nuevos mensajes cada 3s por si se chatea desde Telegram/WA
         loadSessions();
@@ -3102,6 +3175,20 @@
             xai: 'https://console.x.ai/'
         };
 
+        function toggleAuthMethodUI() {
+            const method = document.querySelector('input[name="openai_method"]:checked').value;
+            const oauthContainer = document.getElementById('oauth_container');
+            const keySection = document.getElementById('method_key_section');
+
+            if (method === 'oauth') {
+                oauthContainer.style.display = 'block';
+                keySection.style.display = 'none';
+            } else {
+                oauthContainer.style.display = 'none';
+                keySection.style.display = 'block';
+            }
+        }
+
         function openAddAccountModal() {
             document.getElementById('llm_modal').style.display = 'flex';
             document.getElementById('modal_status_msg').textContent = '';
@@ -3111,6 +3198,11 @@
             document.getElementById('model_selection_area').style.display = 'none';
             document.getElementById('btn_test_conn').style.display = 'none';
             document.getElementById('btn_verify_key').style.display = 'block';
+
+            // Default to OAuth for fresh modal
+            const radios = document.getElementsByName('openai_method');
+            if (radios.length > 0) radios[0].checked = true;
+
             updateAccountModalUI();
         }
         // Alias para compatibilidad
@@ -3118,9 +3210,9 @@
 
         function updateAccountModalUI() {
             const provider = document.getElementById('modal_provider_select').value;
+            const toggleContainer = document.getElementById('openai_method_toggle');
             const oauthContainer = document.getElementById('oauth_container');
-            const btnChatGPT = document.getElementById('btn_oauth_chatgpt');
-            const orSep = document.getElementById('or_separator');
+            const keySection = document.getElementById('method_key_section');
             const helpLink = document.getElementById('provider_help_link');
 
             // Actualizar link de ayuda
@@ -3135,13 +3227,14 @@
             document.getElementById('btn_test_conn').style.display = 'none';
             document.getElementById('btn_verify_key').style.display = 'block';
 
-            // Solo mostrar OAuth para OpenAI
+            // Solo mostrar OAuth toggle para OpenAI
             if (provider === 'openai') {
-                if (oauthContainer) oauthContainer.style.display = 'block';
-                if (btnChatGPT) btnChatGPT.style.display = 'block';
-                if (orSep) orSep.style.display = 'block';
+                if (toggleContainer) toggleContainer.style.display = 'flex';
+                toggleAuthMethodUI(); // Aplicar la selección del radio button
             } else {
+                if (toggleContainer) toggleContainer.style.display = 'none';
                 if (oauthContainer) oauthContainer.style.display = 'none';
+                if (keySection) keySection.style.display = 'block';
             }
         }
 
