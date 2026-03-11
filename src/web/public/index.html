@@ -3340,12 +3340,14 @@
                             <strong>✅ Cuenta vinculada.</strong> Elige el modelo de OpenAI que quieres usar:
                         </p>
                         <select id="oauth_model_select" style="width: 100%; margin-bottom: 10px;">
+                            <option value="gpt-5.4" selected>GPT-5.4</option>
+                            <option value="gpt-5.4-mini">GPT-5.4 Mini</option>
+                            <option value="gpt-5">GPT-5</option>
+                            <option value="o4">o4</option>
+                            <option value="o4-mini">o4-mini</option>
+                            <option value="o4-pro">o4-pro</option>
                             <option value="gpt-4.5-preview">GPT-4.5 Preview</option>
-                            <option value="gpt-4o" selected>GPT-4o</option>
-                            <option value="gpt-4o-mini">GPT-4o Mini</option>
-                            <option value="o1">o1</option>
-                            <option value="o1-mini">o1-mini</option>
-                            <option value="o3-mini">o3-mini</option>
+                            <option value="gpt-4o">GPT-4o</option>
                         </select>
                         <button class="primary-btn" onclick="saveOAuthModel('${data.accountId}')" style="width: 100%;">Guardar modelo</button>
                         <p id="oauth_model_status" style="font-size: 12px; margin: 8px 0 0; text-align: center;"></p>
