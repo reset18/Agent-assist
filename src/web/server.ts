@@ -117,6 +117,23 @@ app.post('/api/accounts/remove', (req, res) => {
     }
 });
 
+app.post('/api/accounts/update-model', (req, res) => {
+    try {
+        const { id, model } = req.body;
+        if (!id || !model) return res.status(400).json({ success: false, error: 'Falta ID o modelo' });
+
+        const accounts = getLLMAccounts();
+        const acc = accounts.find((a: any) => a.id === id);
+        if (!acc) return res.status(404).json({ success: false, error: 'Cuenta no encontrada' });
+
+        acc.model = model;
+        saveLLMAccount(acc);
+        res.json({ success: true });
+    } catch (err: any) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // Endpoint para probar una API Key antes de guardarla
 app.post('/api/test-llm', async (req, res) => {
     const { provider, apiKey, model } = req.body;

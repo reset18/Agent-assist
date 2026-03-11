@@ -3492,7 +3492,14 @@
             statusEl.style.color = 'var(--primary)';
 
             try {
-                // Actualizar el modelo en la cuenta y los settings
+                // 1. Actualizar el modelo en el registro de la cuenta
+                await fetch('/api/accounts/update-model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: accountId, model })
+                });
+
+                // 2. Actualizar settings globales
                 await fetch('/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
