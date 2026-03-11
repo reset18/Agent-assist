@@ -1135,16 +1135,13 @@
             <div class="chat-container">
                 <div
                     style="display: flex; justify-content: flex-end; align-items: center; width: 100%; padding: 12px 24px; border-bottom: 1px solid var(--border); background-color: var(--bg); position: sticky; top: 0; z-index: 10;">
-                    <div class="top-bar-actions" style="margin-left: auto;">
-                        <button id="delete_chat_btn" class="secondary-btn" onclick="deleteCurrentSession()"
-                            style="display: none; border-radius: 12px; padding: 8px 14px; font-weight: 600; font-size: 13px; color: var(--danger); border-color: rgba(239,68,68,0.3);">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                                style="width:14px; height:14px; margin-right:6px; vertical-align:middle;">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Borrar Chat
-                        </button>
+                    <div class="top-bar-actions" style="margin-left: auto; gap: 8px;">
+                        <div id="sessions_nav" class="sessions-dropdown-container" style="display: none;">
+                            <select id="sessions_select" class="sessions-select" onchange="switchSession(this.value)"
+                                style="padding: 8px 30px 8px 14px; font-size: 13px;">
+                                <!-- Sesiones cargadas dinámicamente -->
+                            </select>
+                        </div>
                         <button id="new_chat_btn" class="secondary-btn" onclick="createNewChatSession()"
                             style="display: none; border-radius: 12px; padding: 8px 14px; font-weight: 600; font-size: 13px;">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -1153,12 +1150,15 @@
                             </svg>
                             Nuevo Chat
                         </button>
-                        <div id="sessions_nav" class="sessions-dropdown-container" style="display: none;">
-                            <select id="sessions_select" class="sessions-select" onchange="switchSession(this.value)"
-                                style="padding: 8px 30px 8px 14px; font-size: 13px;">
-                                <!-- Sesiones cargadas dinámicamente -->
-                            </select>
-                        </div>
+                        <button id="delete_chat_btn" class="secondary-btn" onclick="deleteCurrentSession()"
+                            style="display: none; border-radius: 12px; padding: 8px 14px; font-weight: 600; font-size: 13px; color: var(--danger); border-color: rgba(239,68,68,0.3); margin-right: 8px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                style="width:14px; height:14px; margin-right:6px; vertical-align:middle;">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Borrar Chat
+                        </button>
                     </div>
                 </div>
                 <div class="chat-main">
@@ -1256,24 +1256,21 @@
                                 <select id="llm_primary_account_id" onchange="saveSettings()">
                                     <option value="">-- Seleccionar --</option>
                                 </select>
-                                <input type="text" id="llm_primary_model" placeholder="Modelo (ej: gpt-4o-mini)"
-                                    style="margin-top: 5px;" onchange="saveSettings()" />
+                                <input type="hidden" id="llm_primary_model" />
                             </div>
                             <div class="form-group">
                                 <label>2. Primer Respaldo</label>
                                 <select id="llm_secondary_account_id" onchange="saveSettings()">
                                     <option value="">-- Seleccionar --</option>
                                 </select>
-                                <input type="text" id="llm_secondary_model" placeholder="Modelo (ej: claude-3-haiku)"
-                                    style="margin-top: 5px;" onchange="saveSettings()" />
+                                <input type="hidden" id="llm_secondary_model" />
                             </div>
                             <div class="form-group">
                                 <label>3. Red de Seguridad Final</label>
                                 <select id="llm_tertiary_account_id" onchange="saveSettings()">
                                     <option value="">-- Seleccionar --</option>
                                 </select>
-                                <input type="text" id="llm_tertiary_model" placeholder="Modelo (ej: gemini-1.5-flash)"
-                                    style="margin-top: 5px;" onchange="saveSettings()" />
+                                <input type="hidden" id="llm_tertiary_model" />
                             </div>
                         </div>
                     </div>
@@ -3151,7 +3148,12 @@
         }
 
         function populateFallbackSelects(accounts) {
-            ['llm_primary_account_id', 'llm_secondary_account_id', 'llm_tertiary_account_id'].forEach(selectId => {
+            const pairs = [
+                ['llm_primary_account_id', 'llm_primary_model'],
+                ['llm_secondary_account_id', 'llm_secondary_model'],
+                ['llm_tertiary_account_id', 'llm_tertiary_model']
+            ];
+            pairs.forEach(([selectId, modelId]) => {
                 const sel = document.getElementById(selectId);
                 if (!sel) return;
                 const currentVal = sel.value;
@@ -3159,10 +3161,21 @@
                 (accounts || []).forEach(acc => {
                     const opt = document.createElement('option');
                     opt.value = acc.id;
-                    opt.textContent = `${acc.name} (${providerNames[acc.provider] || acc.provider})`;
+                    opt.setAttribute('data-model', acc.model || '');
+                    opt.textContent = `${acc.name} (${providerNames[acc.provider] || acc.provider})${acc.model ? ' — ' + acc.model : ''}`;
                     sel.appendChild(opt);
                 });
                 sel.value = currentVal;
+
+                // Al cambiar selección, auto-rellenar modelo oculto
+                sel.onchange = function () {
+                    const selected = sel.options[sel.selectedIndex];
+                    const modelInput = document.getElementById(modelId);
+                    if (modelInput && selected) {
+                        modelInput.value = selected.getAttribute('data-model') || '';
+                    }
+                    saveSettings();
+                };
             });
         }
 

@@ -70,13 +70,75 @@ async function _internalCompletion(model: string, provider: string, messages: an
     return response.choices[0].message;
 }
 
+// ---------- Responses API para tokens OAuth (Codex) ----------
+async function _responsesApiCompletion(model: string, messages: any[], apiKey: string) {
+    // Convertir messages en el formato "input" del Responses API
+    const input: any[] = [];
+    let systemInstruction: string | undefined;
+
+    for (const msg of messages) {
+        if (msg.role === 'system') {
+            systemInstruction = msg.content;
+        } else if (msg.role === 'user') {
+            input.push({ role: 'user', content: msg.content });
+        } else if (msg.role === 'assistant') {
+            input.push({ role: 'assistant', content: msg.content });
+        }
+    }
+
+    const body: any = {
+        model,
+        input,
+    };
+    if (systemInstruction) {
+        body.instructions = systemInstruction;
+    }
+
+    const res = await fetch('https://api.openai.com/v1/responses', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`${res.status} ${errText}`);
+    }
+
+    const data: any = await res.json();
+
+    if (data.usage) {
+        addTokenUsage('openai', (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0));
+    }
+
+    // Extraer el texto de la respuesta del Responses API
+    let text = '';
+    if (data.output) {
+        for (const item of data.output) {
+            if (item.type === 'message' && item.content) {
+                for (const part of item.content) {
+                    if (part.type === 'output_text') text += part.text;
+                }
+            }
+        }
+    }
+
+    return {
+        role: 'assistant' as const,
+        content: text || data.output_text || ''
+    };
+}
+
 // ---------- RESOLVER UNA CUENTA POR ID ----------
-function resolveAccount(accountId: string): { provider: string, apiKey: string } | null {
+function resolveAccount(accountId: string): { provider: string, apiKey: string, isOauth: boolean, model?: string } | null {
     if (!accountId) return null;
     const accounts = getLLMAccounts();
     const acc = accounts.find(a => a.id === accountId);
     if (!acc) return null;
-    return { provider: acc.provider, apiKey: acc.apiKey };
+    return { provider: acc.provider, apiKey: acc.apiKey, isOauth: acc.isOauth || false, model: acc.model };
 }
 
 export async function chatCompletion(model: string, provider: string, messages: any[], tools: any[] = [], testApiKey?: string) {
@@ -88,7 +150,7 @@ export async function chatCompletion(model: string, provider: string, messages: 
     }
 
     // Sistema Multi-tier v6.0 (basado en IDs de cuenta)
-    interface Tier { p: string; m: string; key?: string }
+    interface Tier { p: string; m: string; key?: string; isOauth?: boolean }
     const tiers: Tier[] = [];
 
     // Tier 1: Cuenta principal (por ID de cuenta)
@@ -97,7 +159,7 @@ export async function chatCompletion(model: string, provider: string, messages: 
     if (primaryAccountId) {
         const acc = resolveAccount(primaryAccountId);
         if (acc) {
-            tiers.push({ p: acc.provider, m: primaryModel || model, key: acc.apiKey });
+            tiers.push({ p: acc.provider, m: primaryModel || acc.model || model, key: acc.apiKey, isOauth: acc.isOauth });
         }
     }
     // Si no hay cuenta primaria seleccionada, usar los valores legacy como primer tier
@@ -111,7 +173,7 @@ export async function chatCompletion(model: string, provider: string, messages: 
     if (secondaryAccountId) {
         const acc = resolveAccount(secondaryAccountId);
         if (acc && secondaryModel) {
-            tiers.push({ p: acc.provider, m: secondaryModel, key: acc.apiKey });
+            tiers.push({ p: acc.provider, m: secondaryModel, key: acc.apiKey, isOauth: acc.isOauth });
         }
     }
 
@@ -121,7 +183,7 @@ export async function chatCompletion(model: string, provider: string, messages: 
     if (tertiaryAccountId) {
         const acc = resolveAccount(tertiaryAccountId);
         if (acc && tertiaryModel) {
-            tiers.push({ p: acc.provider, m: tertiaryModel, key: acc.apiKey });
+            tiers.push({ p: acc.provider, m: tertiaryModel, key: acc.apiKey, isOauth: acc.isOauth });
         }
     }
 
@@ -130,7 +192,10 @@ export async function chatCompletion(model: string, provider: string, messages: 
     for (let i = 0; i < tiers.length; i++) {
         const tier = tiers[i];
         try {
-            console.log(`[LLM] Intento Tier ${i + 1} (${tier.p}) -> ${tier.m}`);
+            console.log(`[LLM] Intento Tier ${i + 1} (${tier.p}${tier.isOauth ? '/OAuth' : ''}) -> ${tier.m}`);
+            if (tier.isOauth && tier.p === 'openai' && tier.key) {
+                return await _responsesApiCompletion(tier.m, messages, tier.key);
+            }
             return await _internalCompletion(tier.m, tier.p, messages, tools, tier.key);
         } catch (error: any) {
             console.warn(`[LLM] Fallo en Tier ${i + 1} (${tier.p}): ${error.message}`);
