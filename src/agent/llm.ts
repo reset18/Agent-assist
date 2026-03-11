@@ -90,12 +90,13 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         model,
         input,
         store: false,
+        stream: true
     };
     if (systemInstruction) {
         body.instructions = systemInstruction;
     }
 
-    console.log(`[LLM/OAuth] Calling Codex Responses API: model=${model}, tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth] Calling Codex Responses API (Streaming): model=${model}, tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
@@ -111,27 +112,53 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         throw new Error(`${res.status} ${errText}`);
     }
 
-    const data: any = await res.json();
+    // Procesar el stream SSE para reconstruir la respuesta completa
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error("No se pudo obtener el reader del stream");
 
-    if (data.usage) {
-        addTokenUsage('openai', (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0));
-    }
+    let fullText = '';
+    const decoder = new TextDecoder();
+    let buffer = '';
 
-    // Extraer el texto de la respuesta del Responses API
-    let text = '';
-    if (data.output) {
-        for (const item of data.output) {
-            if (item.type === 'message' && item.content) {
-                for (const part of item.content) {
-                    if (part.type === 'output_text') text += part.text;
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
+
+            const dataStr = trimmedLine.replace('data: ', '');
+            if (dataStr === '[DONE]') break;
+
+            try {
+                const data = JSON.parse(dataStr);
+
+                // Formato OpenResponses / Codex SSE
+                if (data.type === 'response.output_text.delta' && data.delta) {
+                    fullText += data.delta;
+                } else if (data.type === 'response.completed' && data.response?.usage) {
+                    // Capturar uso de tokens si está disponible al final
+                    const usage = data.response.usage;
+                    addTokenUsage('openai', (usage.input_tokens || 0) + (usage.output_tokens || 0));
                 }
+            } catch (e) {
+                // Ignorar errores de parseo de líneas parciales o eventos no JSON
             }
         }
     }
 
+    if (!fullText) {
+        throw new Error("La respuesta del stream está vacía");
+    }
+
     return {
         role: 'assistant' as const,
-        content: text || data.output_text || ''
+        content: fullText
     };
 }
 
