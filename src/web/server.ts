@@ -369,6 +369,27 @@ app.get('/api/check-update', async (req, res) => {
     }
 });
 
+// Proxy para obtener modelos de ChatGPT Codex (v0.2.51)
+app.get('/api/auth/chatgpt/models', async (req, res) => {
+    const accountId = req.query.accountId as string;
+    if (!accountId) return res.status(400).json({ error: 'accountId required' });
+
+    const accounts = getLLMAccounts();
+    const acc = accounts.find(a => a.id === accountId);
+    if (!acc || !acc.apiKey) return res.status(404).json({ error: 'Account not found or no token' });
+
+    try {
+        const fetchModels = await fetch('https://chatgpt.com/backend-api/models', {
+            headers: { 'Authorization': `Bearer ${acc.apiKey}` }
+        });
+        const data: any = await fetchModels.json();
+        // El formato suele ser { models: [...] }
+        res.json(data);
+    } catch (e: any) {
+        res.status(500).json({ error: 'Error fetching models: ' + e.message });
+    }
+});
+
 app.post('/api/perform-update', async (req, res) => {
     const { exec } = await import('child_process');
     exec('npx ts-node scripts/updater.ts', (error, stdout, stderr) => {

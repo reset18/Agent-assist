@@ -1377,6 +1377,7 @@
                     <button class="sub-tab-btn active"
                         onclick="switchChannelTab('tab_telegram', this)">Telegram</button>
                     <button class="sub-tab-btn" onclick="switchChannelTab('tab_whatsapp', this)">WhatsApp</button>
+                    <button class="sub-tab-btn" onclick="switchChannelTab('tab_copilot', this)">Copilot</button>
                 </div>
                 <div id="tab_telegram" class="sub-tab-content active">
                     <div class="card">
@@ -1398,6 +1399,26 @@
                                 <label for="telegram_whitelist">Whitelisted IDs</label>
                                 <input type="text" id="telegram_whitelist" onchange="saveSettings()" />
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Copilot -->
+                <div id="tab_copilot" class="sub-tab-content" style="display:none;">
+                    <div class="card">
+                        <div
+                            style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
+                            <h3 style="margin: 0; border: none; padding: 0;">Microsoft Copilot</h3>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="bot_copilot_enabled" onchange="saveSettings()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div style="text-align:center; padding: 20px;">
+                            <p style="font-size:14px; color:var(--text-muted);">Integración con Copilot avanzada
+                                (Login).</p>
+                            <button class="secondary-btn" disabled style="opacity:0.6; cursor:not-allowed;">⌛
+                                Próximamente</button>
                         </div>
                     </div>
                 </div>
@@ -3496,28 +3517,42 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    statusEl.textContent = '✅ ¡Vinculada! Selecciona un modelo:';
+                    statusEl.textContent = '✅ ¡Vinculada! Obteniendo modelos...';
                     statusEl.style.color = 'var(--success)';
 
-                    // Mostrar selección de modelo para la cuenta recién creada
-                    const pasteArea = document.getElementById('oauth_paste_area');
-                    pasteArea.innerHTML = `
-                        <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 8px;">
-                            <strong>✅ Cuenta vinculada.</strong> Elige el modelo de OpenAI que quieres usar:
-                        </p>
-                        <select id="oauth_model_select" style="width: 100%; margin-bottom: 10px;">
-                            <option value="gpt-4o" selected>GPT-4o (Recomendado)</option>
-                            <option value="gpt-4o-mini">GPT-4o Mini</option>
-                            <option value="o1">o1 (Razonamiento)</option>
-                            <option value="o1-mini">o1 Mini</option>
-                            <option value="gpt-4-mobile">GPT-4 (Mobile)</option>
-                            <option value="auto">Selección Automática (Codex)</option>
-                            <option value="gpt-5.4">GPT-5.4 (Experimental)</option>
-                            <option value="o4">o4 (Experimental)</option>
-                        </select>
-                        <button class="primary-btn" onclick="saveOAuthModel('${data.accountId}')" style="width: 100%;">Guardar modelo</button>
-                        <p id="oauth_model_status" style="font-size: 12px; margin: 8px 0 0; text-align: center;"></p>
-                    `;
+                    // 1. Obtener modelos dinámicamente (v0.2.51)
+                    try {
+                        const modRes = await fetch(`/api/auth/chatgpt/models?accountId=${data.accountId}`);
+                        const modData = await modRes.json();
+
+                        const selectHtml = (modData.models || [])
+                            .map(m => `<option value="${m.slug}">${m.title} (${m.slug})</option>`)
+                            .join('') || '<option value="gpt-4o">GPT-4o (Fallback)</option>';
+
+                        const pasteArea = document.getElementById('oauth_paste_area');
+                        pasteArea.innerHTML = `
+                                <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 8px;">
+                                    <strong>✅ Cuenta vinculada.</strong> Estos son los modelos disponibles en tu cuenta:
+                                </p>
+                                <select id="oauth_model_select" style="width: 100%; margin-bottom: 10px;">
+                                    ${selectHtml}
+                                </select>
+                                <button class="primary-btn" onclick="saveOAuthModel('${data.accountId}')" style="width: 100%;">Guardar selección</button>
+                                <p id="oauth_model_status" style="font-size: 12px; margin: 8px 0 0; text-align: center;"></p>
+                            `;
+                    } catch (err) {
+                        console.error("Error fetching models", err);
+                        // Fallback si falla la obtención de modelos
+                        const pasteArea = document.getElementById('oauth_paste_area');
+                        pasteArea.innerHTML = `
+                                <p style="font-size: 12px; color: var(--danger); margin: 0 0 8px;">
+                                    ⚠️ No se pudieron obtener los modelos automáticamente. Introduce ID manual o usa el default:
+                                </p>
+                                <input type="text" id="oauth_model_select" value="gpt-4o" placeholder="gpt-5.4-thinking..." style="width:100%; margin-bottom:10px;" />
+                                <button class="primary-btn" onclick="saveOAuthModel('${data.accountId}')" style="width: 100%;">Guardar modelo</button>
+                                <p id="oauth_model_status" style="font-size: 12px; margin: 8px 0 0; text-align: center;"></p>
+                            `;
+                    }
                 } else {
                     statusEl.textContent = '❌ ' + (data.error || 'Error al vincular');
                     statusEl.style.color = 'var(--danger)';

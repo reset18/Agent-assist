@@ -123,21 +123,12 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         }
     }
 
-    // Codex requiere identificadores específicos. Los nombres "GPT-5.4" son cosméticos del frontal.
-    // Mapeamos a los IDs reales soportados por el backend de ChatGPT.
-    let effectiveModel = 'gpt-4o'; // Default más potente para Plus/Free
+    // Codex requiere identificadores específicos (v0.2.51)
+    let effectiveModel = model;
 
     const m = model.toLowerCase();
-    if (m.includes('mini') || m.includes('o4-mini')) {
-        effectiveModel = 'gpt-4o-mini';
-    } else if (m.includes('o1')) {
-        effectiveModel = 'o1';
-    } else if (m.includes('o3')) {
-        effectiveModel = 'o3-mini';
-    } else if (m === 'gpt-4' || m === 'gpt-4-mobile') {
-        effectiveModel = 'gpt-4';
-    } else if (m === 'auto') {
-        effectiveModel = 'auto';
+    if (m === 'gpt-4o' || m === 'auto') {
+        effectiveModel = 'gpt-4o'; // gpt-4o es el fallback más compatible
     }
 
     const normalized = normalizeTools(tools);
@@ -154,7 +145,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         body.tools = normalized;
     }
 
-    console.log(`[LLM/OAuth v0.2.50] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth v0.2.51] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
