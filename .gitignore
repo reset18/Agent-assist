@@ -47,3 +47,4 @@ qrcode.png
 sessions/
 auth_info/
 mcp_downloads/
+.venv/
