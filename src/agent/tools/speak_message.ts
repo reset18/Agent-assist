@@ -41,7 +41,7 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
         if (engine === 'local') {
             console.log('[Voice Engine] Usando motor Local (Piper)...');
             const piperPath = path.join(process.env.HOME || '/home/ubuntu', 'piper', 'piper', 'piper');
-            const modelPath = path.join(process.env.HOME || '/home/ubuntu', 'piper', 'es_ES-gestecho-medium.onnx');
+            const modelPath = path.join(process.env.HOME || '/home/ubuntu', 'piper', 'es_ES-sharvard-medium.onnx');
 
             if (!fs.existsSync(piperPath)) {
                 throw new Error("El binario de Piper no se encuentra en ~/piper/piper/piper. Por favor, ejecuta el script de instalación scripts/setup-piper.sh en el servidor.");
