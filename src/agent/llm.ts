@@ -191,17 +191,36 @@ export async function chatCompletion(model: string, provider: string, messages: 
 
     let lastError: any = null;
 
+    // Helper: detectar si una key es un token OAuth JWT (empieza con "eyJ")
+    const isJwtToken = (key?: string) => key ? key.startsWith('eyJ') : false;
+
     for (let i = 0; i < tiers.length; i++) {
         const tier = tiers[i];
         try {
-            console.log(`[LLM] Intento Tier ${i + 1} (${tier.p}${tier.isOauth ? '/OAuth' : ''}) -> ${tier.m}`);
-            if (tier.isOauth && tier.p === 'openai' && tier.key) {
+            // Auto-detectar tokens OAuth por formato JWT, incluso si isOauth es false
+            const effectiveOAuth = tier.isOauth || isJwtToken(tier.key);
+            console.log(`[LLM] Intento Tier ${i + 1} (${tier.p}${effectiveOAuth ? '/OAuth' : ''}) -> ${tier.m}`);
+            if (effectiveOAuth && tier.p === 'openai' && tier.key) {
                 return await _responsesApiCompletion(tier.m, messages, tier.key);
             }
             return await _internalCompletion(tier.m, tier.p, messages, tools, tier.key);
         } catch (error: any) {
             console.warn(`[LLM] Fallo en Tier ${i + 1} (${tier.p}): ${error.message}`);
             lastError = error;
+        }
+    }
+
+    // Si no hay tiers con cuenta, verificar si la key legacy es un token JWT
+    if (tiers.length === 1 && !tiers[0].key) {
+        const legacyKey = getSetting('llm_api_key');
+        if (legacyKey && isJwtToken(legacyKey) && provider === 'openai') {
+            try {
+                console.log(`[LLM] Detectado token OAuth JWT en key legacy, redirigiendo a Codex Responses API`);
+                return await _responsesApiCompletion(model, messages, legacyKey);
+            } catch (error: any) {
+                console.warn(`[LLM] Fallo en legacy OAuth: ${error.message}`);
+                lastError = error;
+            }
         }
     }
 
