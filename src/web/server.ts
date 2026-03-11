@@ -246,7 +246,8 @@ function generatePKCE() {
 }
 
 // Paso 1: Generar la URL de autorización
-app.get('/api/auth/chatgpt/start', (req, res) => {
+app.get('/api/auth/:provider/start', (req, res) => {
+    const { provider } = req.params;
     try {
         const { verifier, challenge } = generatePKCE();
         currentCodeVerifier = verifier;
@@ -262,7 +263,8 @@ app.get('/api/auth/chatgpt/start', (req, res) => {
 });
 
 // Paso 2: Recibir la URL pegada por el usuario, extraer code, canjear por token
-app.post('/api/auth/chatgpt/exchange', async (req, res) => {
+app.post('/api/auth/:provider/exchange', async (req, res) => {
+    const { provider } = req.params;
     try {
         const { callbackUrl } = req.body;
         if (!callbackUrl) {
@@ -310,7 +312,7 @@ app.post('/api/auth/chatgpt/exchange', async (req, res) => {
         const accountId = 'oa_' + crypto.randomBytes(6).toString('hex');
         saveLLMAccount({
             id: accountId,
-            provider: 'openai',
+            provider: provider === 'chatgpt' ? 'openai' : provider,
             name: 'ChatGPT Web (' + new Date().toLocaleDateString() + ')',
             apiKey: accessToken,
             isOauth: true,
@@ -370,7 +372,7 @@ app.get('/api/check-update', async (req, res) => {
 });
 
 // Proxy para obtener modelos de ChatGPT Codex (v0.2.51)
-app.get('/api/auth/chatgpt/models', async (req, res) => {
+app.get('/api/auth/:provider/models', async (req, res) => {
     const accountId = req.query.accountId as string;
     if (!accountId) return res.status(400).json({ error: 'accountId required' });
 

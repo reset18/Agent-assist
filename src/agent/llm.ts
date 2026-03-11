@@ -116,6 +116,7 @@ function normalizeTools(tools: any[]) {
 async function _responsesApiCompletion(model: string, messages: any[], apiKey: string, tools: any[] = []) {
     const input: any[] = [];
     let systemInstruction = '';
+    let currentVersion = '0.2.54';
     for (const msg of messages) {
         if (msg.role === 'system') systemInstruction = msg.content;
         else {
@@ -124,6 +125,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     }
 
     // Codex requiere identificadores específicos
+    // - **v0.2.54**: Habilitado Copilot OAuth login y mapeo a Codex API.
     // - **v0.2.53**: Fix error 400 Codex (missing tools[0].name) mediante flattening a functions.
     // - **v0.2.52**: Añadido Copilot como proveedor y fallback de entrada manual para IDs de modelos (v0.2.52).
     // - **v0.2.51**: Fix "Configuración Guardada" al recargar (ghost saving), importación dinámica de modelos Codex (GPT-5.4/o1) y placeholder de Copilot.
@@ -148,7 +150,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         body.tools = normalized;
     }
 
-    console.log(`[LLM/OAuth v0.2.53] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth v0.2.54] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
@@ -280,7 +282,7 @@ export async function chatCompletion(model: string, provider: string, messages: 
             // Auto-detectar tokens OAuth por formato JWT, incluso si isOauth es false
             const effectiveOAuth = tier.isOauth || isJwtToken(tier.key);
             console.log(`[LLM] Intento Tier ${i + 1} (${tier.p}${effectiveOAuth ? '/OAuth' : ''}) -> ${tier.m}`);
-            if (effectiveOAuth && tier.p === 'openai' && tier.key) {
+            if (effectiveOAuth && (tier.p === 'openai' || tier.p === 'copilot') && tier.key) {
                 return await _responsesApiCompletion(tier.m, messages, tier.key, tools);
             }
             return await _internalCompletion(tier.m, tier.p, messages, tools, tier.key);
