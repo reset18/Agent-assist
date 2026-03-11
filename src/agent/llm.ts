@@ -117,9 +117,20 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     const input: any[] = [];
     let systemInstruction = '';
     for (const msg of messages) {
-        if (msg.role === 'system') systemInstruction = msg.content;
-        else {
-            input.push({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content });
+        if (msg.role === 'system') {
+            systemInstruction = msg.content;
+        } else if (msg.role === 'tool') {
+            input.push({
+                role: 'tool',
+                content: msg.content || '',
+                tool_call_id: msg.tool_call_id
+            });
+        } else {
+            const processedMsg: any = { role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content || '' };
+            if (msg.tool_calls) {
+                processedMsg.tool_calls = msg.tool_calls;
+            }
+            input.push(processedMsg);
         }
     }
 

@@ -7,12 +7,17 @@ import { toggle_skill_def, execute_toggle_skill } from './tools/toggle_skill.js'
 import { list_skills_def, execute_list_skills } from './tools/list_skills.js';
 import { update_setting_def, execute_update_setting } from './tools/update_setting.js';
 import { update_memory_details as update_memory_def, execute_update_memory } from './tools/update_memory.js';
+import { delegate_tasks_def, execute_delegate_tasks } from './tools/delegate_tasks.js';
 import { isToolEnabled, getSetting } from '../db/index.js';
 
 const AVAILABLE_TOOLS = {
     get_current_time: {
         def: get_current_time_def,
         execute: execute_get_current_time
+    },
+    delegate_tasks: {
+        def: delegate_tasks_def,
+        execute: execute_delegate_tasks
     },
     read_file_local: {
         def: read_file_local_def,
