@@ -1933,9 +1933,9 @@
                 <label>Proveedor</label>
                 <select id="modal_provider_select" onchange="updateAccountModalUI()">
                     <option value="openai">OpenAI (ChatGPT)</option>
+                    <option value="copilot">Microsoft Copilot</option>
                     <option value="anthropic">Anthropic (Claude)</option>
                     <option value="google">Google (Gemini)</option>
-                    <option value="copilot">Microsoft Copilot</option>
                     <option value="openrouter">OpenRouter</option>
                     <option value="groq">Groq</option>
                     <option value="qwen">Alibaba Qwen</option>
@@ -1964,9 +1964,11 @@
                 <button class="primary-btn" id="btn_oauth_chatgpt"
                     style="width: 100%; background: #10a37f; border-color: #10a37f; justify-content: center;"
                     onclick="startChatGPTWebLogin()">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
-                        style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">
-                    Vincular cuenta con OpenAI
+                    <span id="oauth_btn_icon">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg"
+                            style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">
+                    </span>
+                    <span id="oauth_btn_text">Vincular cuenta con OpenAI</span>
                 </button>
             </div>
 
@@ -2216,7 +2218,7 @@
         window.currentSessionId = 'default';
         window.settingsLoaded = false;
 
-        let currentVersion = '0.2.52';
+        let currentVersion = '0.2.53';
         let remoteVersion = '';
         let usageChart = null;
 
@@ -3268,7 +3270,8 @@
             groq: 'https://console.groq.com/keys',
             openrouter: 'https://openrouter.ai/keys',
             qwen: 'https://dashscope.console.aliyun.com/',
-            xai: 'https://console.x.ai/'
+            xai: 'https://console.x.ai/',
+            copilot: 'https://www.bing.com/chat'
         };
 
         function toggleAuthMethodUI() {
@@ -3323,9 +3326,27 @@
             document.getElementById('btn_test_conn').style.display = 'none';
             document.getElementById('btn_verify_key').style.display = 'block';
 
-            // Solo mostrar OAuth toggle para OpenAI
-            if (provider === 'openai') {
+            // Solo mostrar OAuth toggle para OpenAI y Copilot
+            if (provider === 'openai' || provider === 'copilot') {
                 if (toggleContainer) toggleContainer.style.display = 'flex';
+
+                // Personalizar botón OAuth según proveedor
+                const oauthBtn = document.getElementById('btn_oauth_chatgpt');
+                const oauthIcon = document.getElementById('oauth_btn_icon');
+                const oauthText = document.getElementById('oauth_btn_text');
+
+                if (provider === 'copilot') {
+                    oauthBtn.style.background = '#00a4ef';
+                    oauthBtn.style.borderColor = '#00a4ef';
+                    oauthIcon.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" style="width: 16px; margin-right: 8px; vertical-align: middle;">`;
+                    oauthText.textContent = 'Vincular cuenta con Copilot';
+                } else {
+                    oauthBtn.style.background = '#10a37f';
+                    oauthBtn.style.borderColor = '#10a37f';
+                    oauthIcon.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">`;
+                    oauthText.textContent = 'Vincular cuenta con OpenAI';
+                }
+
                 toggleAuthMethodUI(); // Aplicar la selección del radio button
             } else {
                 if (toggleContainer) toggleContainer.style.display = 'none';
@@ -3421,7 +3442,7 @@
                     statusMsg.style.color = 'var(--danger)';
                 }
             } catch (e) {
-                statusMsg.textContent = '❌ Error de red';
+                statusMsg.textContent = '❌ Error de red interno consultando.';
                 statusMsg.style.color = 'var(--danger)';
             } finally {
                 btn.disabled = false;
@@ -3481,7 +3502,8 @@
             btn.innerHTML = '⌛ Iniciando...';
 
             try {
-                const res = await fetch('/api/auth/chatgpt/start');
+                const provider = document.getElementById('modal_provider_select').value;
+                const res = await fetch(`/api/auth/${provider}/start`);
                 const data = await res.json();
 
                 if (data.success && data.url) {
@@ -3528,6 +3550,7 @@
             const input = document.getElementById('oauth_callback_url');
             const statusEl = document.getElementById('oauth_paste_status');
             const callbackUrl = input.value.trim();
+            const provider = document.getElementById('modal_provider_select').value;
 
             if (!callbackUrl) {
                 statusEl.textContent = '❌ Pega la URL de la barra de direcciones';
@@ -3545,7 +3568,7 @@
             statusEl.style.color = 'var(--primary)';
 
             try {
-                const res = await fetch('/api/auth/chatgpt/exchange', {
+                const res = await fetch(`/api/auth/${provider}/exchange`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ callbackUrl })
@@ -3558,7 +3581,7 @@
 
                     // 1. Obtener modelos dinámicamente (v0.2.51)
                     try {
-                        const modRes = await fetch(`/api/auth/chatgpt/models?accountId=${data.accountId}`);
+                        const modRes = await fetch(`/api/auth/${provider}/models?accountId=${data.accountId}`);
                         const modData = await modRes.json();
 
                         const pasteArea = document.getElementById('oauth_paste_area');
@@ -3656,6 +3679,7 @@
             const select = document.getElementById('oauth_model_select');
             const statusEl = document.getElementById('oauth_model_status');
             const model = select.value;
+            const provider = document.getElementById('modal_provider_select').value;
 
             statusEl.textContent = '⌛ Guardando...';
             statusEl.style.color = 'var(--primary)';
@@ -3688,7 +3712,11 @@
                     if (pasteArea) pasteArea.style.display = 'none';
                     const btn = document.getElementById('btn_oauth_chatgpt');
                     btn.disabled = false;
-                    btn.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">Vincular ChatGPT (Sesión Web Gratuita/Plus)`;
+                    if (provider === 'copilot') {
+                        btn.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" style="width: 16px; margin-right: 8px; vertical-align: middle;">Vincular cuenta con Copilot`;
+                    } else {
+                        btn.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">Vincular cuenta con OpenAI`;
+                    }
                     await loadSettings();
                 }, 1000);
             } catch (e) {
