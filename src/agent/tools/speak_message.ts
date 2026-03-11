@@ -56,7 +56,17 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
             const filePath = path.join(mediaDir, filename);
 
             // Ejecutar Piper para generar WAV
-            // Comando: echo "texto" | ./piper --model model.onnx --output_file out.wav
+            const piperVoiceNoteScript = path.join(__dirname, '..', '..', '..', 'scripts', 'piper_voice_note.sh');
+            const useScript = fs.existsSync(piperVoiceNoteScript);
+
+            if (useScript) {
+                console.log('[Voice Engine] Usando scripts/piper_voice_note.sh para mayor compatibilidad...');
+                execSync(`bash ${piperVoiceNoteScript} ${JSON.stringify(args.text_to_speak)} ${filePath.replace('.mp3', '.ogg')}`);
+                // Si el frontend espera MP3, igual necesitamos convertirlo a MP3 o avisar.
+                // Pero el usuario pidió OGG específicamente para Telegram.
+                // Como compromiso, generamos ambos o permitimos que Horus lo sepa.
+            }
+
             const piperCmd = `echo ${JSON.stringify(args.text_to_speak)} | ${piperPath} --model ${modelPath} --output_file ${tempWav}`;
             execSync(piperCmd);
 
