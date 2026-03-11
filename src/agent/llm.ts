@@ -89,6 +89,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     const body: any = {
         model,
         input,
+        store: false,
     };
     if (systemInstruction) {
         body.instructions = systemInstruction;
