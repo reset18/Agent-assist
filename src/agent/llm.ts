@@ -94,7 +94,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         body.instructions = systemInstruction;
     }
 
-    const res = await fetch('https://api.openai.com/v1/responses', {
+    const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${apiKey}`,
