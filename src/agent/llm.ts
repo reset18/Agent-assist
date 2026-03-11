@@ -160,7 +160,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         }));
     }
 
-    console.log(`[LLM/OAuth v0.2.65] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth v0.2.68] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
@@ -205,32 +205,47 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
                 // console.log(`[Codex SSE Debug] Type: ${data.type}`); // Descomentar para debug profundo
 
                 // Formato OpenResponses / Codex SSE
-                // Intentamos capturar tanto 'output_text.delta' como 'text.delta' (usado en algunas versiones)
-                if ((data.type === 'response.output_text.delta' || data.type === 'response.text.delta') && data.delta) {
-                    fullText += data.delta;
-                } else if (data.type === 'response.tool_call.added' && data.tool_call) {
-                    const tc = data.tool_call;
-                    toolCallsMap.set(tc.id, {
-                        id: tc.id,
-                        type: 'function',
-                        function: { 
-                            name: tc.function?.name || '', 
-                            arguments: tc.function?.arguments || '' 
-                        }
-                    });
-                } else if ((data.type === 'response.tool_call.arguments.delta' || data.type === 'response.tool_call.delta') && data.delta) {
-                    const tcIdx = data.tool_call_id || (data.tool_call && data.tool_call.id);
+                // Capturar texto de múltiples variantes de eventos
+                if ((data.type === 'response.output_text.delta' || data.type === 'response.text.delta' || data.type === 'response.delta' || data.type === 'response.message.delta') && data.delta) {
+                    if (typeof data.delta === 'string') {
+                        fullText += data.delta;
+                    } else if (data.delta.content) {
+                        fullText += data.delta.content;
+                    } else if (data.delta.text) {
+                        fullText += data.delta.text;
+                    }
+                } 
+                // Capturar inicio de llamada a herramienta
+                else if ((data.type === 'response.tool_call.added' || data.type === 'response.part.added') && (data.tool_call || data.part)) {
+                    const tc = data.tool_call || data.part;
+                    if (tc && tc.type === 'function') {
+                        toolCallsMap.set(tc.id, {
+                            id: tc.id,
+                            type: 'function',
+                            function: { 
+                                name: tc.function?.name || '', 
+                                arguments: tc.function?.arguments || '' 
+                            }
+                        });
+                    }
+                } 
+                // Capturar deltas de argumentos de herramientas
+                else if ((data.type === 'response.tool_call.arguments.delta' || data.type === 'response.tool_call.delta' || data.type === 'response.part.delta') && data.delta) {
+                    const tcIdx = data.tool_call_id || data.part_id || (data.tool_call && data.tool_call.id);
                     const tc = toolCallsMap.get(tcIdx);
                     if (tc) {
-                        tc.function.arguments += data.delta;
+                        if (typeof data.delta === 'string') {
+                            tc.function.arguments += data.delta;
+                        } else if (data.delta.arguments) {
+                            tc.function.arguments += data.delta.arguments;
+                        }
                     }
                 } else if (data.type === 'response.completed' && data.response?.usage) {
-                    // Capturar uso de tokens si está disponible al final
                     const usage = data.response.usage;
                     addTokenUsage('openai', (usage.input_tokens || 0) + (usage.output_tokens || 0));
                 }
             } catch (e) {
-                // Ignorar errores de parseo de líneas parciales o eventos no JSON
+                // Ignorar errores de parseo
             }
         }
     }
