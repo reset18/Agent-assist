@@ -160,7 +160,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         }));
     }
 
-    console.log(`[LLM/OAuth v0.2.58] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth v0.2.65] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
@@ -202,9 +202,11 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
 
             try {
                 const data = JSON.parse(dataStr);
+                // console.log(`[Codex SSE Debug] Type: ${data.type}`); // Descomentar para debug profundo
 
                 // Formato OpenResponses / Codex SSE
-                if (data.type === 'response.output_text.delta' && data.delta) {
+                // Intentamos capturar tanto 'output_text.delta' como 'text.delta' (usado en algunas versiones)
+                if ((data.type === 'response.output_text.delta' || data.type === 'response.text.delta') && data.delta) {
                     fullText += data.delta;
                 } else if (data.type === 'response.tool_call.added' && data.tool_call) {
                     const tc = data.tool_call;
@@ -216,8 +218,9 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
                             arguments: tc.function?.arguments || '' 
                         }
                     });
-                } else if (data.type === 'response.tool_call.arguments.delta' && data.delta) {
-                    const tc = toolCallsMap.get(data.tool_call_id);
+                } else if ((data.type === 'response.tool_call.arguments.delta' || data.type === 'response.tool_call.delta') && data.delta) {
+                    const tcIdx = data.tool_call_id || (data.tool_call && data.tool_call.id);
+                    const tc = toolCallsMap.get(tcIdx);
                     if (tc) {
                         tc.function.arguments += data.delta;
                     }
