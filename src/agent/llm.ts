@@ -62,13 +62,19 @@ async function _internalCompletion(model: string, provider: string, messages: an
         payload.tool_choice = "auto";
     }
 
-    const response = await client.chat.completions.create(payload as any);
-
-    if (response.usage) {
-        addTokenUsage(provider, (response.usage.prompt_tokens || 0) + (response.usage.completion_tokens || 0));
+    try {
+        const response = await client.chat.completions.create(payload as any);
+        if (response.usage) {
+            addTokenUsage(provider, (response.usage.prompt_tokens || 0) + (response.usage.completion_tokens || 0));
+        }
+        return response.choices[0].message;
+    } catch (apiError: any) {
+        // Diagnóstico profundo para errores 400/429 (especialmente en Gemini)
+        if (apiError.status === 400 || apiError.status === 429) {
+            console.error(`[LLM/Error] Diagnóstico ${provider} (${apiError.status}):`, JSON.stringify(apiError.error || apiError.message || apiError, null, 2));
+        }
+        throw apiError;
     }
-
-    return response.choices[0].message;
 }
 
 // ---------- NORMALIZADOR DE HERRAMIENTAS ----------
@@ -245,7 +251,8 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
                     addTokenUsage('openai', (usage.input_tokens || 0) + (usage.output_tokens || 0));
                 }
             } catch (e) {
-                // Ignorar errores de parseo
+                // Log de diagnóstico para eventos no reconocidos o malformados
+                console.warn(`[Codex SSE Diagnostic] Evento no reconocido o error: ${trimmedLine}`);
             }
         }
     }
@@ -332,6 +339,13 @@ export async function chatCompletion(model: string, provider: string, messages: 
 
     for (let i = 0; i < tiers.length; i++) {
         const tier = tiers[i];
+        
+        // Estabilización: Añadir un pequeño retardo entre intentos si no es el primero
+        if (i > 0) {
+            console.log(`[LLM] Esperando 1.5s antes de reintentar con Tier ${i + 1}...`);
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
         try {
             // Auto-detectar tokens OAuth por formato JWT, incluso si isOauth es false
             const effectiveOAuth = tier.isOauth || isJwtToken(tier.key);
