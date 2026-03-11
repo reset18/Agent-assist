@@ -266,7 +266,7 @@ app.get('/api/auth/:provider/start', (req, res) => {
 app.post('/api/auth/:provider/exchange', async (req, res) => {
     const { provider } = req.params;
     try {
-        const { callbackUrl } = req.body;
+        const { callbackUrl, accountName } = req.body;
         if (!callbackUrl) {
             return res.status(400).json({ success: false, error: 'Falta la URL de callback' });
         }
@@ -310,10 +310,11 @@ app.post('/api/auth/:provider/exchange', async (req, res) => {
 
         // Guardar como cuenta
         const accountId = 'oa_' + crypto.randomBytes(6).toString('hex');
+        const finalAccountName = accountName || ('ChatGPT Web (' + new Date().toLocaleDateString() + ')');
         saveLLMAccount({
             id: accountId,
             provider: provider === 'chatgpt' ? 'openai' : provider,
-            name: 'ChatGPT Web (' + new Date().toLocaleDateString() + ')',
+            name: finalAccountName,
             apiKey: accessToken,
             isOauth: true,
             refreshToken: refreshToken || null,

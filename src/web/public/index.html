@@ -3336,10 +3336,12 @@
                 const oauthText = document.getElementById('oauth_btn_text');
 
                 if (provider === 'copilot') {
-                    oauthBtn.style.background = '#00a4ef';
-                    oauthBtn.style.borderColor = '#00a4ef';
-                    oauthIcon.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" style="width: 16px; margin-right: 8px; vertical-align: middle;">`;
-                    oauthText.textContent = 'Vincular cuenta con Copilot';
+                    if (oauthBtn) {
+                        oauthBtn.style.background = '#00a4ef';
+                        oauthBtn.style.borderColor = '#00a4ef';
+                    }
+                    if (oauthIcon) oauthIcon.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" style="width: 16px; margin-right: 8px; vertical-align: middle;">`;
+                    if (oauthText) oauthText.textContent = 'Vincular cuenta con Copilot';
                     
                     // Copilot NO tiene API Key, forzar modo OAuth
                     if (toggleContainer) toggleContainer.style.display = 'none';
@@ -3349,10 +3351,12 @@
                     const radioOauth = document.querySelector('input[name="openai_method"][value="oauth"]');
                     if (radioOauth) radioOauth.checked = true;
                 } else {
-                    oauthBtn.style.background = '#10a37f';
-                    oauthBtn.style.borderColor = '#10a37f';
-                    oauthIcon.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">`;
-                    oauthText.textContent = 'Vincular cuenta con OpenAI';
+                    if (oauthBtn) {
+                        oauthBtn.style.background = '#10a37f';
+                        oauthBtn.style.borderColor = '#10a37f';
+                    }
+                    if (oauthIcon) oauthIcon.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">`;
+                    if (oauthText) oauthText.textContent = 'Vincular cuenta con OpenAI';
                     
                     if (toggleContainer) toggleContainer.style.display = 'flex';
                     toggleAuthMethodUI(); 
@@ -3578,11 +3582,13 @@
             statusEl.textContent = '⌛ Procesando...';
             statusEl.style.color = 'var(--primary)';
 
+            const accountName = document.getElementById('modal_account_name').value.trim() || 'Cuenta OAuth (' + new Date().toLocaleDateString() + ')';
+
             try {
                 const res = await fetch(`/api/auth/${provider}/exchange`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ callbackUrl })
+                    body: JSON.stringify({ callbackUrl, accountName })
                 });
                 const data = await res.json();
 
