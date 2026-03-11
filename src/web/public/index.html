@@ -2215,7 +2215,7 @@
         window.currentSessionId = 'default';
         window.settingsLoaded = false;
 
-        let currentVersion = '0.2.21-beta';
+        let currentVersion = '0.2.51';
         let remoteVersion = '';
         let usageChart = null;
 
@@ -2601,10 +2601,10 @@
 
                 window.settingsLoaded = true;
 
-                // Ejecutar toggles iniciales
-                if (typeof toggleTelegramConfig === 'function') toggleTelegramConfig();
-                if (typeof toggleWhatsappConfig === 'function') toggleWhatsappConfig();
-                if (typeof toggleVoiceMainConfig === 'function') toggleVoiceMainConfig();
+                // Ejecutar toggles iniciales (sin guardar)
+                if (typeof toggleTelegramConfig === 'function') toggleTelegramConfig(true);
+                if (typeof toggleWhatsappConfig === 'function') toggleWhatsappConfig(true);
+                if (typeof toggleVoiceMainConfig === 'function') toggleVoiceMainConfig(true);
                 if (typeof updateVoiceEngineFields === 'function') updateVoiceEngineFields();
 
             } catch (e) {
@@ -2824,29 +2824,29 @@
         }, 3000);
 
         // Funciones para mostrar u ocultar la configuración según si están habilitados
-        function toggleTelegramConfig() {
+        function toggleTelegramConfig(noSave = false) {
             const el = document.getElementById('bot_telegram_enabled');
             const section = document.getElementById('telegram_config_section');
             if (el && section) {
                 const isEnabled = el.checked;
                 section.style.display = isEnabled ? 'block' : 'none';
             }
-            saveSettings();
+            if (!noSave) saveSettings();
         }
 
-        function toggleVoiceMainConfig() {
+        function toggleVoiceMainConfig(noSave = false) {
             const isEnabled = document.getElementById('voice_enabled').checked;
             document.getElementById('voice_engine_section').style.display = isEnabled ? 'block' : 'none';
-            saveSettings();
+            if (!noSave) saveSettings();
         }
 
-        function toggleWhatsappConfig() {
+        function toggleWhatsappConfig(noSave = false) {
             const el = document.getElementById('bot_whatsapp_enabled');
             const section = document.getElementById('whatsapp_config_section');
             if (el && section) {
                 section.style.display = el.checked ? 'block' : 'none';
             }
-            saveSettings();
+            if (!noSave) saveSettings();
         }
 
         function updateVoiceEngineFields() {
