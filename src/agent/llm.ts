@@ -120,10 +120,11 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         if (msg.role === 'system') {
             systemInstruction = msg.content;
         } else if (msg.role === 'tool') {
+            // Codex no soporta el rol 'tool'. Lo mapeamos a 'user' con un prefijo.
             input.push({
-                role: 'tool',
-                content: msg.content || '',
-                tool_call_id: msg.tool_call_id
+                role: 'user',
+                content: `[RESULTADO DE HERRAMIENTA]: ${msg.content || ''}`
+                // Omitimos tool_call_id ya que no es un rol 'tool' estándar aquí
             });
         } else {
             const processedMsg: any = { role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content || '' };
