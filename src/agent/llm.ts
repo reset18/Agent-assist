@@ -127,9 +127,8 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
             });
         } else {
             const processedMsg: any = { role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content || '' };
-            if (msg.tool_calls) {
-                processedMsg.tool_calls = msg.tool_calls;
-            }
+            // Codex no acepta el parámetro 'tool_calls' en el historial de mensajes
+            // Lo omitimos para evitar el error 400: Unknown parameter
             input.push(processedMsg);
         }
     }
