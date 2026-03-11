@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es" data-theme="dark">
 
 <head>
@@ -2218,7 +2218,7 @@
         window.currentSessionId = 'default';
         window.settingsLoaded = false;
 
-        let currentVersion = '0.2.54';
+        let currentVersion = '0.2.55';
         let remoteVersion = '';
         let usageChart = null;
 
@@ -2526,7 +2526,7 @@
 
                 // Populate hidden inputs for compatibility
                 if (document.getElementById('model_provider')) document.getElementById('model_provider').value = data.model_provider || 'openai';
-                if (document.getElementById('model_name')) document.getElementById('model_name').value = data.model_name || 'gpt-4o';
+                if (document.getElementById('model_name')) document.getElementById('model_name').value = data.model_name || 'auto';
                 if (document.getElementById('llm_api_key')) document.getElementById('llm_api_key').value = data.llm_api_key || '';
                 window._lastLlmApiKey = data.llm_api_key || '';
 
@@ -3605,8 +3605,8 @@
                                 select.appendChild(opt);
                             });
                         } else {
-                            // Fallback IDs comunes para Codex
-                            ['gpt-4o', 'gpt-4o-mini', 'o1', 'auto', 'gpt-4'].forEach(id => {
+                            // Fallback IDs comunes para Codex (sin gpt-4o para evitar errores)
+                            ['auto', 'gpt-4o-mini', 'o1', 'gpt-4'].forEach(id => {
                                 const opt = document.createElement('option');
                                 opt.value = id;
                                 opt.textContent = id;

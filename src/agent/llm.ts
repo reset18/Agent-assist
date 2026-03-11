@@ -125,6 +125,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     }
 
     // Codex requiere identificadores específicos
+    // - **v0.2.55**: Cambiado fallback de gpt-4o a 'auto' para evitar Error 400 en Codex.
     // - **v0.2.54**: Habilitado Copilot OAuth login y mapeo a Codex API.
     // - **v0.2.53**: Fix error 400 Codex (missing tools[0].name) mediante flattening a functions.
     // - **v0.2.52**: Añadido Copilot como proveedor y fallback de entrada manual para IDs de modelos (v0.2.52).
@@ -133,7 +134,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
 
     const m = model.toLowerCase();
     if (m === 'gpt-4o' || m === 'auto') {
-        effectiveModel = 'gpt-4o'; // gpt-4o es el fallback más compatible
+        effectiveModel = 'auto'; // 'auto' es el placeholder más seguro para web sessions
     }
 
     const normalized = normalizeTools(tools);
@@ -147,10 +148,11 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         body.instructions = systemInstruction;
     }
     if (normalized.length > 0) {
-        body.tools = normalized;
+        // Codex (Responses API) espera el formato antiguo "functions" plano, no el envoltorio "type: function"
+        body.functions = normalized.map((t: any) => t.function || t);
     }
 
-    console.log(`[LLM/OAuth v0.2.54] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth v0.2.55] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
