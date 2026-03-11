@@ -48,3 +48,17 @@ sessions/
 auth_info/
 mcp_downloads/
 .venv/
+
+# --- Sensitive / local-only ---
+.env
+.wwebjs_auth/
+memory/
+# Optional common secrets
+*.pem
+*.key
+*.p12
+*.pfx
+# --- sensitive / local-only ---
+.env.*
+tmp/backup_sensitive/
+tmp/backup_sensitive/**
