@@ -141,11 +141,15 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         body.instructions = systemInstruction;
     }
     if (normalized.length > 0) {
-        // Codex (Responses API) espera el formato antiguo plano, pero bajo la clave "tools"
-        body.tools = normalized.map((t: any) => t.function || t);
+        // Codex (Responses API) requiere que cada tool tenga "type": "function"
+        // pero que name/parameters estén en el primer nivel (semi-aplanado)
+        body.tools = normalized.map((t: any) => ({
+            type: 'function',
+            ...(t.function || t)
+        }));
     }
 
-    console.log(`[LLM/OAuth v0.2.57] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth v0.2.58] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
