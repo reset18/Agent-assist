@@ -235,7 +235,7 @@ app.get('/api/auth/chatgpt/start', (req, res) => {
         currentCodeVerifier = verifier;
         const stateStr = crypto.randomBytes(16).toString('hex');
 
-        const authUrl = `https://auth.openai.com/oauth/authorize?response_type=code&client_id=${OAUTH_CLIENT_ID}&redirect_uri=${encodeURIComponent(OAUTH_REDIRECT_URI)}&scope=openid+profile+email+offline_access+model.request+model.read&code_challenge=${challenge}&code_challenge_method=S256&state=${stateStr}&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=pi&prompt=login`;
+        const authUrl = `https://auth.openai.com/oauth/authorize?response_type=code&client_id=${OAUTH_CLIENT_ID}&redirect_uri=${encodeURIComponent(OAUTH_REDIRECT_URI)}&scope=openid+profile+email+offline_access&code_challenge=${challenge}&code_challenge_method=S256&state=${stateStr}&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=pi&prompt=login`;
 
         console.log(`[OAuth] Auth URL generada. redirect_uri: ${OAUTH_REDIRECT_URI}`);
         res.json({ success: true, url: authUrl });

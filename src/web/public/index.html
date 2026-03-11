@@ -1166,7 +1166,7 @@
                         <!-- Mensajes de la sesión activa -->
                     </div>
                     <button id="scroll_to_bottom_btn" class="secondary-btn" onclick="scrollToBottomFunc()"
-                        style="display: none; position: absolute; bottom: 90px; right: 30px; border-radius: 50%; width: 40px; height: 40px; padding: 0; justify-content: center; box-shadow: var(--shadow-md); z-index: 100;">
+                        style="display: none; align-items: center; justify-content: center; position: absolute; bottom: 90px; right: 30px; border-radius: 50%; width: 40px; height: 40px; padding: 0; box-shadow: var(--shadow-md); z-index: 100;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                             style="width: 20px; height: 20px;">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -1245,7 +1245,7 @@
                                 </h3>
                                 <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Si falla tu IA
                                     principal,
-                                    Horus saltará automáticamente a la siguiente.</p>
+                                    el Agente saltará automáticamente a la siguiente.</p>
                             </div>
                         </div>
 
@@ -1298,7 +1298,7 @@
                         </div>
                         <div class="form-group">
                             <label for="agent_name">Nombre del Agente</label>
-                            <input type="text" id="agent_name" onchange="saveSettings()" placeholder="Ej: Horus">
+                            <input type="text" id="agent_name" onchange="saveSettings()" placeholder="Ej: Jarvis">
                             <span class="helper-text">Este es el nombre con el que se presentará tu agente.</span>
                         </div>
                         <div class="form-group">
@@ -2328,7 +2328,7 @@
                 { p: 30, t: "Sincronizando archivos del código..." },
                 { p: 50, t: "Iniciando compilación (npm install)..." },
                 { p: 75, t: "Construyendo interfaz (rebuild)..." },
-                { p: 90, t: "Reiniciando servidor de Horus..." }
+                { p: 90, t: "Reiniciando servidor del Agente..." }
             ];
 
             let stepIdx = 0;
@@ -2366,19 +2366,30 @@
         }
 
         async function deleteCurrentSession() {
-            if (window.currentSessionId === 'default' || window.currentSessionId === 'whatsapp_default' || window.currentSessionId === 'telegram_default') {
-                alert("No puedes borrar la sesión principal por defecto de Web, WhatsApp o Telegram. Solo puedes crear nuevas o borrar las personalizadas.");
-                return;
-            }
-            if (!confirm("¿Estás seguro de que quieres borrar este chat y todo su historial?")) return;
+            const isDefault = (window.currentSessionId === 'default' || window.currentSessionId === 'whatsapp_default' || window.currentSessionId === 'telegram_default');
 
-            const res = await fetch(`/api/sessions/${window.currentSessionId}`, { method: 'DELETE' });
-            if (res.ok) {
-                window.currentSessionId = 'default';
-                await loadSessions();
-                await loadChatHistory();
+            if (!confirm(isDefault ? "¿Vaciar todo el historial de este chat principal?" : "¿Estás seguro de que quieres borrar este chat y todo su historial?")) return;
+
+            if (isDefault) {
+                const res = await fetch('/api/clear-memory', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: window.currentSessionId })
+                });
+                if (res.ok) {
+                    await loadChatHistory();
+                } else {
+                    alert("Error vaciando memoria.");
+                }
             } else {
-                alert("Error borrando sesión.");
+                const res = await fetch(`/api/sessions/${window.currentSessionId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    window.currentSessionId = 'default';
+                    await loadSessions();
+                    await loadChatHistory();
+                } else {
+                    alert("Error borrando sesión.");
+                }
             }
         }
 
@@ -2429,7 +2440,11 @@
             const btn = document.getElementById('delete_chat_btn');
             if (!btn) return;
             const isDefault = (window.currentSessionId === 'default' || window.currentSessionId === 'whatsapp_default' || window.currentSessionId === 'telegram_default');
-            btn.style.display = isDefault ? 'none' : 'flex';
+            btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px; height:14px; margin-right:6px; vertical-align:middle;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            ${isDefault ? 'Vaciar Chat' : 'Borrar Chat'}`;
+            btn.style.display = 'flex';
         }
 
         function scrollToBottomFunc() {

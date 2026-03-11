@@ -4,7 +4,7 @@ export const update_setting_def = {
     type: "function",
     function: {
         name: "update_setting",
-        description: "Actualiza o configura un parámetro de la base de datos de Horus. Úsalo sobre todo cuando el usuario te facilite una API Key (de texto, voz u otros) que necesites guardar.",
+        description: "Actualiza o configura un parámetro de la base de datos de la aplicación. Úsalo sobre todo cuando el usuario te facilite una API Key (de texto, voz u otros) que necesites guardar.",
         parameters: {
             type: "object",
             properties: {
