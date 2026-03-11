@@ -315,13 +315,13 @@ app.post('/api/auth/chatgpt/exchange', async (req, res) => {
             apiKey: accessToken,
             isOauth: true,
             refreshToken: refreshToken || null,
-            model: 'gpt-4o'
+            model: 'auto'
         });
 
         // Auto-set como primaria si no hay ninguna
         if (!getSetting('llm_primary_account_id')) {
             setSetting('llm_primary_account_id', accountId);
-            setSetting('llm_primary_model', 'gpt-4o');
+            setSetting('llm_primary_model', 'auto');
         }
 
         // Legado

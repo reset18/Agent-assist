@@ -55,39 +55,66 @@ async function _internalCompletion(model: string, provider: string, messages: an
     }
 
     const client = new OpenAI({ apiKey, baseURL });
+    const normalized = normalizeTools(tools);
     const payload: any = { model, messages };
-    if (tools.length > 0) {
-        payload.tools = tools;
+    if (normalized.length > 0) {
+        payload.tools = normalized;
         payload.tool_choice = "auto";
     }
 
-    const response = await client.chat.completions.create(payload);
+    const response = await client.chat.completions.create(payload as any);
 
     if (response.usage) {
-        addTokenUsage(provider, response.usage.total_tokens);
+        addTokenUsage(provider, (response.usage.prompt_tokens || 0) + (response.usage.completion_tokens || 0));
     }
 
     return response.choices[0].message;
 }
 
-// ---------- Responses API para tokens OAuth (Codex) ----------
-async function _responsesApiCompletion(model: string, messages: any[], apiKey: string) {
-    // Convertir messages en el formato "input" del Responses API
-    const input: any[] = [];
-    let systemInstruction: string | undefined;
+// ---------- NORMALIZADOR DE HERRAMIENTAS ----------
+function normalizeTools(tools: any[]) {
+    return tools.map(t => {
+        // Si ya está envuelta en { type: 'function', function: { ... } }, devolver tal cual
+        if (t.type === 'function' && t.function) return t;
+        // Si es una definición directa de función, envolverla
+        if (t.name && t.parameters) {
+            return {
+                type: 'function',
+                function: t
+            };
+        }
+        // Si tiene la propiedad .function pero no el .type
+        if (t.function && !t.type) {
+            return {
+                type: 'function',
+                function: t.function
+            };
+        }
+        return t;
+    });
+}
 
+// ---------- COMPLETION CON OAUTH (CODEX API) ----------
+async function _responsesApiCompletion(model: string, messages: any[], apiKey: string, tools: any[] = []) {
+    const input: any[] = [];
+    let systemInstruction = '';
     for (const msg of messages) {
-        if (msg.role === 'system') {
-            systemInstruction = msg.content;
-        } else if (msg.role === 'user') {
-            input.push({ role: 'user', content: msg.content });
-        } else if (msg.role === 'assistant') {
-            input.push({ role: 'assistant', content: msg.content });
+        if (msg.role === 'system') systemInstruction = msg.content;
+        else {
+            input.push({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content });
         }
     }
 
+    // Codex suele requerir modelos específicos como 'auto' o 'gpt-4' para cuentas Plus
+    // Si el usuario elige algo genérico o no compatible, forzamos 'auto' que es lo más fiable
+    let effectiveModel = model;
+    if (model.includes('gpt-model') || model.includes('gpt-5') || model.includes('o1') || model === 'gpt-4o') {
+        effectiveModel = 'auto';
+    }
+
+    const normalized = normalizeTools(tools);
     const body: any = {
-        model,
+        model: effectiveModel,
         input,
         store: false,
         stream: true
@@ -95,8 +122,11 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     if (systemInstruction) {
         body.instructions = systemInstruction;
     }
+    if (normalized.length > 0) {
+        body.tools = normalized;
+    }
 
-    console.log(`[LLM/OAuth v0.2.47] Calling Codex Responses API (Streaming): model=${model}, tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth v0.2.48] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
@@ -229,7 +259,7 @@ export async function chatCompletion(model: string, provider: string, messages: 
             const effectiveOAuth = tier.isOauth || isJwtToken(tier.key);
             console.log(`[LLM] Intento Tier ${i + 1} (${tier.p}${effectiveOAuth ? '/OAuth' : ''}) -> ${tier.m}`);
             if (effectiveOAuth && tier.p === 'openai' && tier.key) {
-                return await _responsesApiCompletion(tier.m, messages, tier.key);
+                return await _responsesApiCompletion(tier.m, messages, tier.key, tools);
             }
             return await _internalCompletion(tier.m, tier.p, messages, tools, tier.key);
         } catch (error: any) {
