@@ -1935,6 +1935,7 @@
                     <option value="openai">OpenAI (ChatGPT)</option>
                     <option value="anthropic">Anthropic (Claude)</option>
                     <option value="google">Google (Gemini)</option>
+                    <option value="copilot">Microsoft Copilot</option>
                     <option value="openrouter">OpenRouter</option>
                     <option value="groq">Groq</option>
                     <option value="qwen">Alibaba Qwen</option>
@@ -2215,7 +2216,7 @@
         window.currentSessionId = 'default';
         window.settingsLoaded = false;
 
-        let currentVersion = '0.2.51';
+        let currentVersion = '0.2.52';
         let remoteVersion = '';
         let usageChart = null;
 
@@ -3125,13 +3126,14 @@
             openai: 'https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg',
             anthropic: 'https://anthropic.com/images/icons/apple-touch-icon.png',
             google: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg',
+            copilot: 'https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg',
             openrouter: 'https://openrouter.ai/favicon.ico',
             groq: null,
             qwen: null,
             xai: null
         };
         const providerNames = {
-            openai: 'OpenAI', anthropic: 'Anthropic', google: 'Gemini',
+            openai: 'OpenAI', anthropic: 'Anthropic', google: 'Gemini', copilot: 'Copilot',
             groq: 'Groq', openrouter: 'OpenRouter', qwen: 'Qwen', xai: 'xAI'
         };
 
@@ -3371,12 +3373,46 @@
                         data.models.forEach(m => {
                             const opt = document.createElement('option');
                             opt.value = m.id;
-                            opt.textContent = m.name || m.id;
+                            opt.textContent = m.id; // Usar ID real
                             select.appendChild(opt);
                         });
-                        document.getElementById('model_selection_area').style.display = 'block';
+
+                        // Añadir opción para escribir manual si no está en la lista
+                        const optManual = document.createElement('option');
+                        optManual.value = 'manual';
+                        optManual.textContent = '✏️ Escribir ID Manualmente...';
+                        select.appendChild(optManual);
+                    } else {
+                        // Fallback con opciones comunes si falla la descarga
+                        const common = ['gpt-4o', 'gpt-4o-mini', 'o1', 'auto', 'gpt-4'];
+                        common.forEach(id => {
+                            const opt = document.createElement('option');
+                            opt.value = id;
+                            opt.textContent = id;
+                            select.appendChild(opt);
+                        });
+                        const optManual = document.createElement('option');
+                        optManual.value = 'manual';
+                        optManual.textContent = '✏️ Escribir ID Manualmente...';
+                        select.appendChild(optManual);
                     }
 
+                    // Listener para cambio a manual
+                    select.onchange = () => {
+                        if (select.value === 'manual') {
+                            const newId = prompt("Escribe el Model ID exacto (ej: gpt-5.4, gpt-4):");
+                            if (newId) {
+                                const opt = document.createElement('option');
+                                opt.value = newId;
+                                opt.textContent = newId;
+                                select.insertBefore(opt, select.firstChild);
+                                select.value = newId;
+                            } else {
+                                select.value = select.options[0].value;
+                            }
+                        }
+                    };
+                    document.getElementById('model_selection_area').style.display = 'block';
                     btn.style.display = 'none';
                     document.getElementById('btn_test_conn').style.display = 'block';
                 } else {
@@ -3525,33 +3561,86 @@
                         const modRes = await fetch(`/api/auth/chatgpt/models?accountId=${data.accountId}`);
                         const modData = await modRes.json();
 
-                        const selectHtml = (modData.models || [])
-                            .map(m => `<option value="${m.slug}">${m.title} (${m.slug})</option>`)
-                            .join('') || '<option value="gpt-4o">GPT-4o (Fallback)</option>';
-
                         const pasteArea = document.getElementById('oauth_paste_area');
                         pasteArea.innerHTML = `
                                 <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 8px;">
-                                    <strong>✅ Cuenta vinculada.</strong> Estos son los modelos disponibles en tu cuenta:
+                                    <strong>✅ Cuenta vinculada.</strong> Selecciona o escribe el ID del modelo:
                                 </p>
                                 <select id="oauth_model_select" style="width: 100%; margin-bottom: 10px;">
-                                    ${selectHtml}
+                                    <!-- Populated below -->
                                 </select>
                                 <button class="primary-btn" onclick="saveOAuthModel('${data.accountId}')" style="width: 100%;">Guardar selección</button>
                                 <p id="oauth_model_status" style="font-size: 12px; margin: 8px 0 0; text-align: center;"></p>
                             `;
+
+                        const select = document.getElementById('oauth_model_select');
+                        if (modData.models && modData.models.length > 0) {
+                            modData.models.forEach(m => {
+                                const opt = document.createElement('option');
+                                opt.value = m.slug;
+                                opt.textContent = m.slug;
+                                select.appendChild(opt);
+                            });
+                        } else {
+                            // Fallback IDs comunes para Codex
+                            ['gpt-4o', 'gpt-4o-mini', 'o1', 'auto', 'gpt-4'].forEach(id => {
+                                const opt = document.createElement('option');
+                                opt.value = id;
+                                opt.textContent = id;
+                                select.appendChild(opt);
+                            });
+                        }
+
+                        // Opción Manual
+                        const optManual = document.createElement('option');
+                        optManual.value = 'manual';
+                        optManual.textContent = '✏️ Escribir ID Manualmente...';
+                        select.appendChild(optManual);
+
+                        select.onchange = () => {
+                            if (select.value === 'manual') {
+                                const newId = prompt("Escribe el Model ID exacto para Codex (ej: gpt-5.4, o1, auto):");
+                                if (newId) {
+                                    const opt = document.createElement('option');
+                                    opt.value = newId;
+                                    opt.textContent = newId;
+                                    select.insertBefore(opt, select.firstChild);
+                                    select.value = newId;
+                                } else {
+                                    select.value = select.options[0].value;
+                                }
+                            }
+                        };
+
                     } catch (err) {
                         console.error("Error fetching models", err);
-                        // Fallback si falla la obtención de modelos
                         const pasteArea = document.getElementById('oauth_paste_area');
                         pasteArea.innerHTML = `
                                 <p style="font-size: 12px; color: var(--danger); margin: 0 0 8px;">
-                                    ⚠️ No se pudieron obtener los modelos automáticamente. Introduce ID manual o usa el default:
+                                    ⚠️ No se pudieron obtener los modelos. Introduce ID manual o usa el default:
                                 </p>
-                                <input type="text" id="oauth_model_select" value="gpt-4o" placeholder="gpt-5.4-thinking..." style="width:100%; margin-bottom:10px;" />
-                                <button class="primary-btn" onclick="saveOAuthModel('${data.accountId}')" style="width: 100%;">Guardar modelo</button>
+                                <select id="oauth_model_select" style="width: 100%; margin-bottom: 10px;">
+                                    <option value="gpt-4o">gpt-4o</option>
+                                    <option value="gpt-4o-mini">gpt-4o-mini</option>
+                                    <option value="o1">o1</option>
+                                    <option value="auto">auto</option>
+                                    <option value="manual">✏️ Escribir ID Manualmente...</option>
+                                </select>
+                                <button class="primary-btn" onclick="saveOAuthModel('${data.accountId}')" style="width: 100%;">Guardar selección</button>
                                 <p id="oauth_model_status" style="font-size: 12px; margin: 8px 0 0; text-align: center;"></p>
                             `;
+                        const select = document.getElementById('oauth_model_select');
+                        select.onchange = () => {
+                            if (select.value === 'manual') {
+                                const newId = prompt("Escribe el Model ID:");
+                                if (newId) {
+                                    const opt = document.createElement('option');
+                                    opt.value = newId; opt.textContent = newId;
+                                    select.insertBefore(opt, select.firstChild);
+                                    select.value = newId;
+                                }
+                            }
+                        };
                     }
                 } else {
                     statusEl.textContent = '❌ ' + (data.error || 'Error al vincular');
