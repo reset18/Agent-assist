@@ -448,7 +448,7 @@ function updateEnv(key: string, value: string) {
 }
 
 app.post('/api/settings', (req, res) => {
-    console.log(`[Web v0.2.48] Recibida actualización de ajustes:`, JSON.stringify({
+    console.log(`[Web v0.2.49] Recibida actualización de ajustes:`, JSON.stringify({
         ...req.body,
         llm_api_key: req.body.llm_api_key ? 'RECIBIDA (' + req.body.llm_api_key.substring(0, 5) + '...)' : 'VACÍA',
         elevenlabs_api_key: req.body.elevenlabs_api_key ? 'RECIBIDA' : 'VACÍA'

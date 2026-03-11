@@ -73,16 +73,16 @@ async function _internalCompletion(model: string, provider: string, messages: an
 
 // ---------- NORMALIZADOR DE HERRAMIENTAS ----------
 function normalizeTools(tools: any[]) {
-    return tools.map(t => {
+    if (!tools || tools.length === 0) return [];
+
+    return tools.map((t, idx) => {
+        if (!t || typeof t !== 'object') return t;
+
         // Si ya está envuelta en { type: 'function', function: { ... } }, devolver tal cual
-        if (t.type === 'function' && t.function) return t;
-        // Si es una definición directa de función, envolverla
-        if (t.name && t.parameters) {
-            return {
-                type: 'function',
-                function: t
-            };
+        if (t.type === 'function' && t.function && t.function.name) {
+            return t;
         }
+
         // Si tiene la propiedad .function pero no el .type
         if (t.function && !t.type) {
             return {
@@ -90,6 +90,24 @@ function normalizeTools(tools: any[]) {
                 function: t.function
             };
         }
+
+        // Si es una definición directa de función (tiene name y parameters)
+        if (t.name && t.parameters) {
+            return {
+                type: 'function',
+                function: t
+            };
+        }
+
+        // Caso de emergencia: si falta el type pero parece ser una herramienta
+        if (!t.type && (t.name || t.function)) {
+            return {
+                type: 'function',
+                function: t.function || t
+            };
+        }
+
+        console.warn(`[LLM] No se pudo normalizar la herramienta en el índice ${idx}:`, JSON.stringify(t));
         return t;
     });
 }
@@ -105,11 +123,11 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         }
     }
 
-    // Codex suele requerir modelos específicos como 'auto' o 'gpt-4' para cuentas Plus
-    // Si el usuario elige algo genérico o no compatible, forzamos 'auto' que es lo más fiable
+    // Codex suele requerir modelos específicos. 'auto' no funcionó, 'gpt-4o' tampoco. 
+    // 'gpt-4' es el estándar para cuentas Plus en esta API interna.
     let effectiveModel = model;
-    if (model.includes('gpt-model') || model.includes('gpt-5') || model.includes('o1') || model === 'gpt-4o') {
-        effectiveModel = 'auto';
+    if (model.includes('gpt-model') || model.includes('gpt-5') || model.includes('o1') || model === 'gpt-4o' || model === 'auto') {
+        effectiveModel = 'gpt-4';
     }
 
     const normalized = normalizeTools(tools);
@@ -126,7 +144,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         body.tools = normalized;
     }
 
-    console.log(`[LLM/OAuth v0.2.48] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth v0.2.49] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
