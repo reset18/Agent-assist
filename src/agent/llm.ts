@@ -181,6 +181,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     if (!reader) throw new Error("No se pudo obtener el reader del stream");
 
     let fullText = '';
+    const toolCallsMap = new Map<string, any>();
     const decoder = new TextDecoder();
     let buffer = '';
 
@@ -205,6 +206,21 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
                 // Formato OpenResponses / Codex SSE
                 if (data.type === 'response.output_text.delta' && data.delta) {
                     fullText += data.delta;
+                } else if (data.type === 'response.tool_call.added' && data.tool_call) {
+                    const tc = data.tool_call;
+                    toolCallsMap.set(tc.id, {
+                        id: tc.id,
+                        type: 'function',
+                        function: { 
+                            name: tc.function?.name || '', 
+                            arguments: tc.function?.arguments || '' 
+                        }
+                    });
+                } else if (data.type === 'response.tool_call.arguments.delta' && data.delta) {
+                    const tc = toolCallsMap.get(data.tool_call_id);
+                    if (tc) {
+                        tc.function.arguments += data.delta;
+                    }
                 } else if (data.type === 'response.completed' && data.response?.usage) {
                     // Capturar uso de tokens si está disponible al final
                     const usage = data.response.usage;
@@ -216,13 +232,16 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         }
     }
 
-    if (!fullText) {
+    const toolCalls = Array.from(toolCallsMap.values());
+
+    if (!fullText && toolCalls.length === 0) {
         throw new Error("La respuesta del stream está vacía");
     }
 
     return {
         role: 'assistant' as const,
-        content: fullText
+        content: fullText,
+        ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {})
     };
 }
 
