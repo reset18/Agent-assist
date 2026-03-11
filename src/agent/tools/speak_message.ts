@@ -39,13 +39,40 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
 
     try {
         if (engine === 'local') {
-            console.log('[Voice Engine] Usando motor Local...');
-            // En un sistema real usaríamos Piper (binario). 
-            // Como fallback de "biblioteca totalmente local", usamos el sintetizador del sistema si está disponible,
-            // o preparamos la respuesta para que el frontend lo maneje si es posible.
-            // Para el servidor, intentamos 'say' (mac/linux) o similar, pero lo más robusto es 
-            // generar un buffer vacío o un mensaje de "Pendiente instalación de Piper".
-            throw new Error("El motor Local (Piper) requiere una instalación binaria adicional. Por favor, contacta con soporte o usa OpenAI/ElevenLabs temporalmente.");
+            console.log('[Voice Engine] Usando motor Local (Piper)...');
+            const piperPath = path.join(process.env.HOME || '/home/ubuntu', 'piper', 'piper', 'piper');
+            const modelPath = path.join(process.env.HOME || '/home/ubuntu', 'piper', 'es_ES-gestecho-medium.onnx');
+
+            if (!fs.existsSync(piperPath)) {
+                throw new Error("El binario de Piper no se encuentra en ~/piper/piper/piper. Por favor, ejecuta el script de instalación scripts/setup-piper.sh en el servidor.");
+            }
+
+            const { execSync } = await import('child_process');
+            const mediaDir = path.join(__dirname, '..', '..', 'web', 'public', 'media');
+            if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir, { recursive: true });
+
+            const tempWav = path.join(mediaDir, `temp_${Date.now()}.wav`);
+            const filename = `voice_${Date.now()}.mp3`;
+            const filePath = path.join(mediaDir, filename);
+
+            // Ejecutar Piper para generar WAV
+            // Comando: echo "texto" | ./piper --model model.onnx --output_file out.wav
+            const piperCmd = `echo ${JSON.stringify(args.text_to_speak)} | ${piperPath} --model ${modelPath} --output_file ${tempWav}`;
+            execSync(piperCmd);
+
+            // Convertir a MP3 usando ffmpeg (si está disponible) o simplemente renombrar si el sistema lo acepta
+            // Probamos ffmpeg para máxima compatibilidad con el frontend que espera .mp3
+            try {
+                execSync(`ffmpeg -i ${tempWav} -acodec libmp3lame -y ${filePath} && rm ${tempWav}`);
+            } catch (e) {
+                console.warn("[Voice Engine] ffmpeg falló o no está instalado, usando WAV directamente.");
+                const wavFilename = filename.replace('.mp3', '.wav');
+                const wavPath = filePath.replace('.mp3', '.wav');
+                fs.renameSync(tempWav, wavPath);
+                return `Éxito. El audio fue generado (formato WAV). [AUDIO: /media/${wavFilename}]`;
+            }
+
+            return `Éxito. El audio fue generado e incrustado. Por favor, para que el usuario pueda reproducirlo, debes acabar tu mensaje de texto respondiendo EXACTAMENTE la siguiente etiqueta oculta al final del todo:\n[AUDIO: /media/${filename}]`;
         } else if (engine === 'openrouter') {
             const apiKey = getSetting('llm_key_openrouter') || process.env.OPENROUTER_API_KEY;
             if (!apiKey) throw new Error("Falta API Key de OpenRouter para Voz.");
