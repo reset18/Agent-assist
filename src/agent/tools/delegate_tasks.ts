@@ -44,12 +44,13 @@ export async function execute_delegate_tasks(args: { tasks: string[] }): Promise
     const primaryModel = getSetting('model_name');
     const primaryApiKey = getSetting('llm_api_key');
     if (primaryProvider && primaryModel && primaryApiKey) {
+        const isJwtToken = primaryApiKey.startsWith('eyJ');
         availableDelegates.push({
             id: 'primary',
             provider: primaryProvider,
             model: primaryModel,
             apiKey: primaryApiKey,
-            isOauth: false,
+            isOauth: isJwtToken,
             name: 'Agente Principal'
         });
     }

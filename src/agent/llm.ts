@@ -257,11 +257,17 @@ function resolveAccount(accountId: string): { provider: string, apiKey: string, 
     return { provider: acc.provider, apiKey: acc.apiKey, isOauth: acc.isOauth || false, model: acc.model };
 }
 
-export async function chatCompletion(model: string, provider: string, messages: any[], tools: any[] = [], testApiKey?: string) {
-    // Si se envía una clave de prueba explícita (desde la UI modal de validación),
+    // Si se envía una clave de prueba explícita (desde la UI modal de validación o delegación),
     // forzamos a probar SÓLO esa combinación inicial sin caer en tiers de backup.
     if (testApiKey) {
-        console.log(`[LLM] Intento validación directa (${provider}) -> ${model}`);
+        const isJwtToken = (key: string) => key.startsWith('eyJ');
+        const effectiveOAuth = isJwtToken(testApiKey) || provider === 'copilot';
+        
+        console.log(`[LLM] Intento directo (${provider}${effectiveOAuth ? '/OAuth' : ''}) -> ${model}`);
+        
+        if (effectiveOAuth && (provider === 'openai' || provider === 'copilot')) {
+            return await _responsesApiCompletion(model, messages, testApiKey, tools);
+        }
         return await _internalCompletion(model, provider, messages, tools, testApiKey);
     }
 
