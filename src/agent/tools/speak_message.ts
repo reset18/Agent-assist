@@ -51,38 +51,33 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
             const mediaDir = path.join(__dirname, '..', '..', 'web', 'public', 'media');
             if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir, { recursive: true });
 
-            const tempWav = path.join(mediaDir, `temp_${Date.now()}.wav`);
-            const filename = `voice_${Date.now()}.mp3`;
-            const filePath = path.join(mediaDir, filename);
+            const now = Date.now();
+            const tempWav = path.join(mediaDir, `temp_${now}.wav`);
+            const base = `voice_${now}`;
+            const mp3Filename = `${base}.mp3`;
+            const oggFilename = `${base}.ogg`;
+            const mp3Path = path.join(mediaDir, mp3Filename);
+            const oggPath = path.join(mediaDir, oggFilename);
 
-            // Ejecutar Piper para generar WAV
-            const piperVoiceNoteScript = path.join(__dirname, '..', '..', '..', 'scripts', 'piper_voice_note.sh');
-            const useScript = fs.existsSync(piperVoiceNoteScript);
-
-            if (useScript) {
-                console.log('[Voice Engine] Usando scripts/piper_voice_note.sh para mayor compatibilidad...');
-                execSync(`bash ${piperVoiceNoteScript} ${JSON.stringify(args.text_to_speak)} ${filePath.replace('.mp3', '.ogg')}`);
-                // Si el frontend espera MP3, igual necesitamos convertirlo a MP3 o avisar.
-                // Pero el usuario pidió OGG específicamente para Telegram.
-                // Como compromiso, generamos ambos o permitimos que Horus lo sepa.
-            }
-
+            // 1) Ejecutar Piper UNA sola vez para generar WAV
             const piperCmd = `echo ${JSON.stringify(args.text_to_speak)} | ${piperPath} --model ${modelPath} --output_file ${tempWav}`;
             execSync(piperCmd);
 
-            // Convertir a MP3 usando ffmpeg (si está disponible) o simplemente renombrar si el sistema lo acepta
-            // Probamos ffmpeg para máxima compatibilidad con el frontend que espera .mp3
+            // 2) Convertir con ffmpeg (si está disponible) para máxima compatibilidad con el frontend que espera .mp3
             try {
-                execSync(`ffmpeg -i ${tempWav} -acodec libmp3lame -y ${filePath} && rm ${tempWav}`);
+                execSync(`ffmpeg -i ${tempWav} -acodec libmp3lame -y ${mp3Path}`);
+                // 3) Generar también OGG para compatibilidad (Telegram, etc.)
+                execSync(`ffmpeg -i ${tempWav} -acodec libopus -y ${oggPath}`);
+                execSync(`rm ${tempWav}`);
             } catch (e) {
                 console.warn("[Voice Engine] ffmpeg falló o no está instalado, usando WAV directamente.");
-                const wavFilename = filename.replace('.mp3', '.wav');
-                const wavPath = filePath.replace('.mp3', '.wav');
+                const wavFilename = `${base}.wav`;
+                const wavPath = path.join(mediaDir, wavFilename);
                 fs.renameSync(tempWav, wavPath);
                 return `Éxito. El audio fue generado (formato WAV). [AUDIO: /media/${wavFilename}]`;
             }
 
-            return `Éxito. El audio fue generado e incrustado. Por favor, para que el usuario pueda reproducirlo, debes acabar tu mensaje de texto respondiendo EXACTAMENTE la siguiente etiqueta oculta al final del todo:\n[AUDIO: /media/${filename}]`;
+            return `Éxito. El audio fue generado e incrustado. Por favor, para que el usuario pueda reproducirlo, debes acabar tu mensaje de texto respondiendo EXACTAMENTE la siguiente etiqueta oculta al final del todo:\n[AUDIO: /media/${mp3Filename}]`;
         } else if (engine === 'openrouter') {
             const apiKey = getSetting('llm_key_openrouter') || process.env.OPENROUTER_API_KEY;
             if (!apiKey) throw new Error("Falta API Key de OpenRouter para Voz.");
