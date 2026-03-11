@@ -1250,27 +1250,31 @@
                         </div>
 
                         <div
-                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; align-items: end;">
                             <div class="form-group">
                                 <label>1. Cuenta Principal</label>
-                                <select id="llm_primary_account_id" onchange="saveSettings()">
+                                <select id="llm_primary_account_id">
                                     <option value="">-- Seleccionar --</option>
                                 </select>
                                 <input type="hidden" id="llm_primary_model" />
                             </div>
                             <div class="form-group">
                                 <label>2. Primer Respaldo</label>
-                                <select id="llm_secondary_account_id" onchange="saveSettings()">
+                                <select id="llm_secondary_account_id">
                                     <option value="">-- Seleccionar --</option>
                                 </select>
                                 <input type="hidden" id="llm_secondary_model" />
                             </div>
                             <div class="form-group">
                                 <label>3. Red de Seguridad Final</label>
-                                <select id="llm_tertiary_account_id" onchange="saveSettings()">
+                                <select id="llm_tertiary_account_id">
                                     <option value="">-- Seleccionar --</option>
                                 </select>
                                 <input type="hidden" id="llm_tertiary_model" />
+                            </div>
+                            <div class="form-group">
+                                <button class="primary-btn" onclick="saveRelaySettings()"
+                                    style="width: 100%; height: 42px; border-radius: 10px;">Guardar Relevos</button>
                             </div>
                         </div>
                     </div>
@@ -3174,9 +3178,48 @@
                     if (modelInput && selected) {
                         modelInput.value = selected.getAttribute('data-model') || '';
                     }
-                    saveSettings();
                 };
             });
+        }
+
+        async function saveRelaySettings() {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '⌛ Guardando...';
+
+            try {
+                const settings = {
+                    llm_primary_account_id: document.getElementById('llm_primary_account_id').value,
+                    llm_primary_model: document.getElementById('llm_primary_model').value,
+                    llm_secondary_account_id: document.getElementById('llm_secondary_account_id').value,
+                    llm_secondary_model: document.getElementById('llm_secondary_model').value,
+                    llm_tertiary_account_id: document.getElementById('llm_tertiary_account_id').value,
+                    llm_tertiary_model: document.getElementById('llm_tertiary_model').value
+                };
+
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                if (res.ok) {
+                    btn.textContent = '✅ Guardado';
+                    btn.style.background = 'var(--success)';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.textContent = originalText;
+                        btn.style.background = '';
+                    }, 2000);
+                } else {
+                    throw new Error('Error al guardar');
+                }
+            } catch (err) {
+                alert('❌ Error guardando relevos');
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
         }
 
         async function removeAccount(accountId) {
