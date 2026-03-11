@@ -116,7 +116,6 @@ function normalizeTools(tools: any[]) {
 async function _responsesApiCompletion(model: string, messages: any[], apiKey: string, tools: any[] = []) {
     const input: any[] = [];
     let systemInstruction = '';
-    let currentVersion = '0.2.54';
     for (const msg of messages) {
         if (msg.role === 'system') systemInstruction = msg.content;
         else {
@@ -125,17 +124,11 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     }
 
     // Codex requiere identificadores específicos
+    // - **v0.2.56**: Eliminado remapeo de gpt-4o/auto. Se permite el paso directo de nombres modernos (GPT-5).
     // - **v0.2.55**: Cambiado fallback de gpt-4o a 'auto' para evitar Error 400 en Codex.
-    // - **v0.2.54**: Habilitado Copilot OAuth login y mapeo a Codex API.
     // - **v0.2.53**: Fix error 400 Codex (missing tools[0].name) mediante flattening a functions.
     // - **v0.2.52**: Añadido Copilot como proveedor y fallback de entrada manual para IDs de modelos (v0.2.52).
-    // - **v0.2.51**: Fix "Configuración Guardada" al recargar (ghost saving), importación dinámica de modelos Codex (GPT-5.4/o1) y placeholder de Copilot.
     let effectiveModel = model;
-
-    const m = model.toLowerCase();
-    if (m === 'gpt-4o' || m === 'auto') {
-        effectiveModel = 'auto'; // 'auto' es el placeholder más seguro para web sessions
-    }
 
     const normalized = normalizeTools(tools);
     const body: any = {
@@ -152,7 +145,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         body.functions = normalized.map((t: any) => t.function || t);
     }
 
-    console.log(`[LLM/OAuth v0.2.55] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth v0.2.56] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
@@ -311,4 +304,3 @@ export async function chatCompletion(model: string, provider: string, messages: 
     console.error(`[LLM] Todos los tiers fallaron.`);
     throw lastError || new Error("Error desconocido en la comunicación con la IA.");
 }
-

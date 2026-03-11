@@ -2218,7 +2218,7 @@
         window.currentSessionId = 'default';
         window.settingsLoaded = false;
 
-        let currentVersion = '0.2.55';
+        let currentVersion = '0.2.56';
         let remoteVersion = '';
         let usageChart = null;
 
@@ -3340,11 +3340,22 @@
                     oauthBtn.style.borderColor = '#00a4ef';
                     oauthIcon.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" style="width: 16px; margin-right: 8px; vertical-align: middle;">`;
                     oauthText.textContent = 'Vincular cuenta con Copilot';
+                    
+                    // Copilot NO tiene API Key, forzar modo OAuth
+                    if (toggleContainer) toggleContainer.style.display = 'none';
+                    if (oauthContainer) oauthContainer.style.display = 'block';
+                    if (keySection) keySection.style.display = 'none';
+                    
+                    const radioOauth = document.querySelector('input[name="openai_method"][value="oauth"]');
+                    if (radioOauth) radioOauth.checked = true;
                 } else {
                     oauthBtn.style.background = '#10a37f';
                     oauthBtn.style.borderColor = '#10a37f';
                     oauthIcon.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">`;
                     oauthText.textContent = 'Vincular cuenta con OpenAI';
+                    
+                    if (toggleContainer) toggleContainer.style.display = 'flex';
+                    toggleAuthMethodUI(); 
                 }
 
                 toggleAuthMethodUI(); // Aplicar la selección del radio button
@@ -3605,8 +3616,14 @@
                                 select.appendChild(opt);
                             });
                         } else {
-                            // Fallback IDs comunes para Codex (sin gpt-4o para evitar errores)
-                            ['auto', 'gpt-4o-mini', 'o1', 'gpt-4'].forEach(id => {
+                            // Modelos Sugeridos Modernos (GPT-5 series)
+                            const gpt5Models = [
+                                'gpt-5.4', 'gpt-5.3-codex', 'gpt-5.3-codex-spark', 
+                                'gpt-5.2-codex', 'gpt-5.2', 'gpt-5.1-codex-max', 
+                                'gpt-5.1', 'gpt-5.1-codex', 'gpt-5-codex', 
+                                'gpt-5-codex-mini', 'gpt-5'
+                            ];
+                            gpt5Models.forEach(id => {
                                 const opt = document.createElement('option');
                                 opt.value = id;
                                 opt.textContent = id;
