@@ -109,6 +109,7 @@ async function sendAudioOnlyReply(ctx: any, reply: string) {
 
 async function processTelegramAudioBuffer(ctx: any, userId: string, audioBuffer: Buffer, filename: string) {
     const transcript = await transcribeAudio(audioBuffer, filename);
+    console.log(`[Telegram] Transcripción recibida (${transcript.length} chars)`);
 
     const sessionId = 'telegram_default';
     createSession(sessionId, 'Chat de Telegram', 'telegram');
@@ -194,11 +195,8 @@ export async function startTelegramBot() {
         }
     });
 
-    bot.on(['message:voice', 'message:audio'], async (ctx) => {
+    const handleTelegramAudio = async (ctx: any, fileId: string, filename: string) => {
         const userId = ctx.from.id.toString();
-        const fileId = ctx.message.voice?.file_id || (ctx.message as any).audio?.file_id;
-
-        if (!fileId) return;
 
         try {
             await ctx.replyWithChatAction('typing');
@@ -212,11 +210,31 @@ export async function startTelegramBot() {
             const arrayBuffer = await response.arrayBuffer();
             const buffer = Buffer.from(arrayBuffer);
 
-            await processTelegramAudioBuffer(ctx, userId, buffer, 'telegram_audio.ogg');
+            await processTelegramAudioBuffer(ctx, userId, buffer, filename);
         } catch (e: any) {
             console.error('[Telegram] Error procesando audio:', e);
             await ctx.reply('No he podido transcribir o procesar el audio. ' + (e.message || ''), { parse_mode: 'Markdown' });
         }
+    };
+
+    bot.on('message:voice', async (ctx) => {
+        const fileId = (ctx.message as any).voice?.file_id;
+        if (!fileId) return;
+        await handleTelegramAudio(ctx, fileId, 'telegram_voice.ogg');
+    });
+
+    bot.on('message:audio', async (ctx) => {
+        const audio: any = (ctx.message as any).audio;
+        const fileId = audio?.file_id;
+        if (!fileId) return;
+        const filename = audio?.file_name || 'telegram_audio_file';
+        await handleTelegramAudio(ctx, fileId, filename);
+    });
+
+    bot.on('message:video_note', async (ctx) => {
+        const fileId = (ctx.message as any).video_note?.file_id;
+        if (!fileId) return;
+        await handleTelegramAudio(ctx, fileId, 'telegram_video_note.mp4');
     });
 
     // Adjuntos: fotos y documentos (incluye audio enviado como "archivo")
