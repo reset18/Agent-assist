@@ -161,7 +161,8 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         }));
     }
 
-    console.log(`[LLM/OAuth v0.2.69] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
+    const agentVersion = getSetting('agent_version') || 'v0.2.x';
+    console.log(`[LLM/OAuth ${agentVersion}] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
@@ -189,6 +190,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     // Algunos streams devuelven el texto final en un objeto response al final.
     // Guardamos la última respuesta completa por si no hubo deltas.
     let lastResponseObject: any = null;
+    const debugLLM = getSetting('debug_llm') === '1';
 
     const appendText = (t: any) => {
         if (!t) return;
@@ -269,6 +271,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
 
             try {
                 const data = JSON.parse(dataStr);
+                if (debugLLM) console.log(`[Codex/Stream] Event Type: ${data.type}`);
 
                 // 0) Verificar si hay errores explícitos en el stream
                 if (data?.type === 'error' || data?.error) {
