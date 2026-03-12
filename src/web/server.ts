@@ -810,8 +810,8 @@ app.get('/api/chat/stream', async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const sendEvent = (type: string, data: any) => {
-        res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+    const sendEvent = (data: any) => {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
     try {
@@ -823,16 +823,16 @@ app.get('/api/chat/stream', async (req, res) => {
             (sessionId as string) || 'default',
             (delta) => {
                 if (delta.reasoning) {
-                    sendEvent('reasoning', delta.reasoning);
+                    sendEvent({ type: 'delta', reasoning: true, delta: delta.reasoning });
                 } else if (delta.content) {
-                    sendEvent('content', delta.content);
+                    sendEvent({ type: 'delta', delta: delta.content });
                 }
             }
         );
 
-        sendEvent('done', { fullText: reply });
+        sendEvent({ type: 'done', reply });
     } catch (e: any) {
-        sendEvent('error', { message: e.message });
+        sendEvent({ type: 'error', message: e.message });
     } finally {
         res.end();
     }
