@@ -347,11 +347,45 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         }
     }
 
-    const toolCalls = Array.from(toolCallsMap.values());
+    let toolCalls = Array.from(toolCallsMap.values());
 
     // Fallback mejorado: si no hubo deltas pero sí vino un objeto response al final, extraer texto
     if (!fullText && lastResponseObject) {
         fullText = extractTextFromResponseObject(lastResponseObject);
+    }
+
+    // --- DETECCIÓN DE HERRAMIENTAS EN CRUDO (JSON) PARA CODEX ---
+    // Si no se detectaron tool_calls por SSE pero el texto parece ser un JSON de argumentos,
+    // intentamos parsearlo y convertirlo en una llamada a herramienta real.
+    if (toolCalls.length === 0 && fullText.trim().startsWith('{') && fullText.trim().endsWith('}')) {
+        try {
+            const possibleArgs = JSON.parse(fullText.trim());
+            // Si tiene una estructura que coincide con nombres de herramientas conocidas (ej: run_shell_local tiene 'command')
+            // O si el modelo simplemente escupió los argumentos. 
+            // Para ser robustos, si el usuario envió herramientas, podemos intentar inferir cuál es.
+            if (tools.length > 0) {
+                // Buscamos una herramienta que coincida con los argumentos o usamos la primera como fallback inteligente
+                // si el JSON es válido. A menudo Codex devuelve un JSON que mapea exactamente a los params de la herramienta.
+                const firstTool = tools[0];
+                const toolName = firstTool.function?.name || firstTool.name;
+                
+                if (toolName) {
+                    console.log(`[LLM/Codex] Detectada llamada a herramienta en crudo (JSON) para: ${toolName}`);
+                    toolCalls = [{
+                        id: `call_raw_${Date.now()}`,
+                        type: 'function',
+                        function: {
+                            name: toolName,
+                            arguments: fullText.trim()
+                        }
+                    }];
+                    // Limpiamos el texto para que no se muestre el JSON en el chat
+                    fullText = ''; 
+                }
+            }
+        } catch (e) {
+            // No era un JSON válido o no pudimos mapearlo, seguimos normal
+        }
     }
 
     if (!fullText && toolCalls.length === 0) {
