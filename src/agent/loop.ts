@@ -133,7 +133,7 @@ function stripTelegramAttachmentsBlock(message: string) {
     return out.join('\n').trim();
 }
 
-export async function processUserMessage(userId: string, source: string, message: string, isAudio: boolean = false, sessionId = 'default'): Promise<string> {
+export async function processUserMessage(userId: string, source: string, message: string, isAudio: boolean = false, sessionId = 'default', onDelta?: (delta: any) => void): Promise<string> {
     const agentName = getSetting('agent_name');
     let setupDone = getSetting('agent_setup_done');
     let setupStep = parseInt(getSetting('agent_setup_step') || '0', 10);
@@ -220,7 +220,26 @@ export async function processUserMessage(userId: string, source: string, message
         ? "EL USUARIO TE HA ENVIADO UNA NOTA DE VOZ. Debes responderle usando la herramienta 'speak_message'."
         : "EL USUARIO TE HA ESCRITO POR TEXTO. Responde \u00daNICAMENTE por texto, a menos que te pida expl\u00edcitamente un audio.";
 
-    fullSystemPrompt += `\n\nDIRECTRICES CR\u00cdTICAS:\n1. USO DE VOZ (speak_message):\n${voiceContext}\n- Si el usuario te pide que hables pero la herramienta est\u00e1 desactivada, DEBES usar 'toggle_skill(skillId: "voice", enabled: true)' para activarla t\u00fa mismo antes de hablar.\n- IMPORTANTE: Si al intentar hablar notas que falta una configuraci\u00f3n cr\u00edtica (como la API Key de ElevenLabs), DEBES informar al usuario y ped\u00edrsela amablemente para poder completar la configuraci\u00f3n.\n\n2. USO DE HERRAMIENTAS ACTIVAS:\n- NUNCA respondas que no puedes hacer algo sin verificar primero el listado expl\u00edcito de funciones que se te ha entregado en este turno.\n- MEMORIA A LARGO PLAZO: Si el usuario te indica un dato importante, te pide recordar un hecho, o establece una regla que debe aplicar en el futuro, SIEMPRE usa OBLIGATORIAMENTE la herramienta 'update_memory' para asegurar que lo recuerdas. Las cosas no se guardan solas.\n- CONFIGURACI\u00d3N DEL SISTEMA: Si el usuario te dicta o pide guardar una API Key (ej. de OpenAI, Anthropic, ElevenLabs, etc.) o te pide cambiar un proveedor, DEBES usar OBLIGATORIAMENTE la herramienta 'update_setting' para guardar instant\u00e1neamente la clave en su base de datos en vez de intentar usar scripts de Bash locales.\n- AN\u00c1LISIS DE C\u00d3DIGO LOCAL: Usa bash para 'grep', lectura r\u00e1pida, o scripting en python/node.\n- ESCRITURA: Para escribir c\u00f3digo que te pida el usuario, USA UNICAMENTE 'write_file_local' indicando TODA la ruta absoluta correcta.\n\n3. HOSTING DE PROYECTOS WEB:\n- Si el usuario te pide crear una p\u00e1gina web o aplicaci\u00f3n frontend, DEBES usar la herramienta 'write_file_local' o 'run_shell_local' para crear los archivos en la ruta: 'src/web/public/sites/[nombre-del-proyecto]/'.\n- IMPORTANTE: No uses rutas relativas vagas, usa la ruta completa desde la ra\u00edz del proyecto si es necesario, o asume que est\u00e1s en la ra\u00edz.\n- Una vez creados, DEBES proporcionar al usuario el enlace para visualizarla: 'http://localhost:3005/sites/[nombre-del-proyecto]/index.html'.\n- NO te limites a pasar el c\u00f3digo, cr\u00e9alo f\u00edsicamente en esa ruta para que sea accesible.\n\n4. AUTONOM\u00cdA Y AUTO-APRENDIZAJE:\n- Eres un agente autodidacta. Tu objetivo es resolver problemas de forma independiente.\n- EVITA darle comandos al usuario para que los ejecute. Tu objetivo es resolverlo todo t\u00fa mismo.\n- Si te falta una herramienta para una tarea compleja (ej: auditor\u00eda de puertos, an\u00e1lisis de certificados), crea los archivos necesarios y usa 'package_skill' para autoinstalarte esa capacidad.\n- TAREAS MULTI-AGENTE (Fase 13): Si el usuario te pide investigar, resumir o procesar m\u00faltiples cosas complejas o diversas a la vez, DEBES usar la herramienta 'delegate_tasks' para repartir el trabajo entre tus agentes de relevo en paralelo y as\u00ed ahorrar tiempo.\n- Reflexiona sobre tus errores (Post-mortem) y ajusta tu l\u00f3gica en el siguiente paso.\n- Usa 'list_dir_local' y 'read_file_local' proactivamente para entender tu entorno si es necesario.`;
+    fullSystemPrompt += `\n\nDIRECTRICES CR\u00cdTICAS:\n1. USO DE VOZ (speak_message):\n${voiceContext}\n- Si el usuario te pide que hables pero la herramienta est\u00e1 desactivada, DEBES usar 'toggle_skill(skillId: "voice", enabled: true)' para activarla t\u00f4 mismo antes de hablar.\n- IMPORTANTE: Si al intentar hablar notas que falta una configuraci\u00f3n cr\u00edtica (como la API Key de ElevenLabs), DEBES informar al usuario y ped\u00edrsela amablemente para poder completar la configuraci\u00f3n.\n\n2. USO DE HERRAMIENTAS ACTIVAS:\n- NUNCA respondas que no puedes hacer algo sin verificar primero el listado expl\u00edcito de funciones que se te ha entregado en este turno.\n- MEMORIA A LARGO PLAZO: Si el usuario te indica un dato importante, te pide recordar un hecho, o establece una regla que debe aplicar en el futuro, SIEMPRE usa OBLIGATORIAMENTE la herramienta 'update_memory' para asegurar que lo recuerdas. Las cosas no se guardan solas.\n- CONFIGURACI\u00d3N DEL SISTEMA: Si el usuario te dicta o pide guardar una API Key (ej. de OpenAI, Anthropic, ElevenLabs, etc.) o te pide cambiar un proveedor, DEBES usar OBLIGATORIAMENTE la herramienta 'update_setting' para guardar instant\u00e1neamente la clave en su base de datos en vez de intentar usar scripts de Bash locales.\n- AN\u00c1LISIS DE C\u00d3DIGO LOCAL: Usa bash para 'grep', lectura r\u00e1pida, o scripting en python/node.\n- ESCRITURA: Para escribir c\u00f3digo que te pida el usuario, USA UNICAMENTE 'write_file_local' indicando TODA la ruta absoluta correcta.\n\n3. HOSTING DE PROYECTOS WEB:\n- Si el usuario te pide crear una p\u00e1gina web o aplicaci\u00f3n frontend, DEBES usar la herramienta 'write_file_local' o 'run_shell_local' para crear los archivos en la ruta: 'src/web/public/sites/[nombre-del-proyecto]/'.\n- IMPORTANTE: No uses rutas relativas vagas, usa la ruta completa desde la ra\u00edz del proyecto si es necesario, o asume que est\u00e1s en la ra\u00edz.\n- Una vez creados, DEBES proporcionar al usuario el enlace para visualizarla: 'http://localhost:3005/sites/[nombre-del-proyecto]/index.html'.\n- NO te limites a pasar el c\u00f3digo, cr\u00e9alo f\u00edsicamente en esa ruta para que sea accesible.\n\n4. AUTONOM\u00cdA Y AUTO-APRENDIZAJE:\n- Eres un agente autodidacta. Tu objetivo es resolver problemas de forma independiente.\n- EVITA darle comandos al usuario para que los ejecute. Tu objetivo es resolverlo todo t\u00fa mismo.\n- Si te falta una herramienta para una tarea compleja (ej: auditor\u00eda de puertos, an\u00e1lisis de certificados), crea los archivos necesarios y usa 'package_skill' para autoinstalarte esa capacidad.\n- TAREAS MULTI-AGENTE (Fase 13): Si el usuario te pide investigar, resumir o procesar m\u00faltiples cosas complejas o diversas a la vez, DEBES usar la herramienta 'delegate_tasks' para repartir el trabajo entre tus agentes de relevo en paralelo y as\u00ed ahorrar tiempo.\n- Reflexiona sobre tus errores (Post-mortem) y ajusta tu l\u00f3gica en el siguiente paso.\n- Usa 'list_dir_local' y 'read_file_local' proactivamente para entender tu entorno si es necesario.`;
+
+    // --- BOOTSTRAP MECHANISM (OpenClaw inspired) ---
+    const bootstrapFiles = ['package.json', 'README.md', 'src/index.ts'];
+    let bootstrapContext = '';
+    for (const file of bootstrapFiles) {
+        try {
+            const filePath = join(process.cwd(), file);
+            if (fs.existsSync(filePath)) {
+                const stats = fs.statSync(filePath);
+                if (stats.size < 50000) {
+                    const content = fs.readFileSync(filePath, 'utf8');
+                    bootstrapContext += `\n[ARCHIVO CRÍTICO: ${file}]:\n${content}\n`;
+                }
+            }
+        } catch (e) { /* ignore */ }
+    }
+    if (bootstrapContext) {
+        fullSystemPrompt += `\n\nBOOTSTRAP CONTEXT (Estado actual del proyecto):\n${bootstrapContext}`;
+    }
 
     const extraSkills = getEnabledSkillsContext();
     if (extraSkills) {
@@ -277,7 +296,7 @@ export async function processUserMessage(userId: string, source: string, message
                 tools = tools.filter(t => (t.function?.name || t.name) !== 'speak_message');
             }
 
-            const responseMessage = await chatCompletion(model, provider, thread, tools);
+            const responseMessage = await chatCompletion(model, provider, thread, tools, undefined, onDelta);
             thread.push(responseMessage);
 
             // Acumular contenido de texto si existe

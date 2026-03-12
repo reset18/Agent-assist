@@ -119,7 +119,7 @@ function normalizeTools(tools: any[]) {
 }
 
 // ---------- COMPLETION CON OAUTH (CODEX API) ----------
-async function _responsesApiCompletion(model: string, messages: any[], apiKey: string, tools: any[] = []) {
+async function _responsesApiCompletion(model: string, messages: any[], apiKey: string, tools: any[] = [], onDelta?: (delta: any) => void) {
     const input: any[] = [];
     let systemInstruction = '';
     for (const msg of messages) {
@@ -146,12 +146,21 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     const body: any = {
         model: effectiveModel,
         input,
-        store: false,
+        store: getSetting('codex_store_enabled') !== '0', // Default enabled
         stream: true
     };
     if (systemInstruction) {
         body.instructions = systemInstruction;
     }
+    
+    // Server-side compaction support (OpenClaw style)
+    if (getSetting('codex_compaction_enabled') !== '0') {
+        body.context_management = [{
+            type: 'compaction',
+            compact_threshold: parseInt(getSetting('codex_compact_threshold') || '80000', 10)
+        }];
+    }
+
     if (normalized.length > 0) {
         // Codex (Responses API) requiere que cada tool tenga "type": "function"
         // pero que name/parameters estén en el primer nivel (semi-aplanado)
@@ -194,11 +203,17 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
 
     const appendText = (t: any) => {
         if (!t) return;
-        if (typeof t === 'string') fullText += t;
+        let deltaText = '';
+        if (typeof t === 'string') deltaText = t;
         else if (typeof t === 'object') {
-            if (typeof t.text === 'string') fullText += t.text;
-            else if (typeof t.content === 'string') fullText += t.content;
-            else if (typeof t.delta === 'string') fullText += t.delta;
+            if (typeof t.text === 'string') deltaText = t.text;
+            else if (typeof t.content === 'string') deltaText = t.content;
+            else if (typeof t.delta === 'string') deltaText = t.delta;
+        }
+        
+        if (deltaText) {
+            fullText += deltaText;
+            if (onDelta) onDelta({ type: 'text', delta: deltaText });
         }
     };
 
@@ -241,11 +256,19 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
                 const isTool = data.type?.includes('tool_call') || data.type?.includes('part.added') || data.tool_call !== undefined || data.tool_calls !== undefined;
 
                 if (isDelta && !isTool) {
-                    // Algunos eventos usan data.delta, otros data.text, otros data.content
-                    if (data.delta !== undefined) appendText(data.delta);
-                    else if (data.text !== undefined) appendText(data.text);
-                    else if (data.content !== undefined) appendText(data.content);
-                    else if (data?.message?.delta !== undefined) appendText(data.message.delta);
+                    // Capturar razonamiento (thinking) si está presente
+                    if (data.type === 'response.reasoning.delta' || data.type === 'response.part.reasoning.delta') {
+                        const reasoningDelta = data.delta?.reasoning || data.delta || '';
+                        if (reasoningDelta && onDelta) {
+                            onDelta({ type: 'reasoning', delta: reasoningDelta });
+                        }
+                    } else {
+                        // Algunos eventos usan data.delta, otros data.text, otros data.content
+                        if (data.delta !== undefined) appendText(data.delta);
+                        else if (data.text !== undefined) appendText(data.text);
+                        else if (data.content !== undefined) appendText(data.content);
+                        else if (data?.message?.delta !== undefined) appendText(data.message.delta);
+                    }
                 }
 
                 // Algunas implementaciones envían eventos done con texto final.
@@ -445,7 +468,7 @@ function resolveAccount(accountId: string): { provider: string, apiKey: string, 
     return { provider: acc.provider, apiKey: acc.apiKey, isOauth: acc.isOauth || false, model: acc.model };
 }
 
-export async function chatCompletion(model: string, provider: string, messages: any[], tools: any[] = [], testApiKey?: string) {
+export async function chatCompletion(model: string, provider: string, messages: any[], tools: any[] = [], testApiKey?: string, onDelta?: (delta: any) => void) {
     // Si se envía una clave de prueba explícita (desde la UI modal de validación o delegación),
     // forzamos a probar SÓLO esa combinación inicial sin caer en tiers de backup.
     if (testApiKey) {
@@ -455,7 +478,7 @@ export async function chatCompletion(model: string, provider: string, messages: 
         console.log(`[LLM] Intento directo (${provider}${effectiveOAuth ? '/OAuth' : ''}) -> ${model}`);
 
         if (effectiveOAuth && (provider === 'openai' || provider === 'copilot')) {
-            return await _responsesApiCompletion(model, messages, testApiKey, tools);
+            return await _responsesApiCompletion(model, messages, testApiKey, tools, onDelta);
         }
         return await _internalCompletion(model, provider, messages, tools, testApiKey);
     }
@@ -524,7 +547,7 @@ export async function chatCompletion(model: string, provider: string, messages: 
             const effectiveOAuth = tier.isOauth || isJwtToken(tier.key);
             console.log(`[LLM] Intento Tier ${i + 1} (${tier.p}${effectiveOAuth ? '/OAuth' : ''}) -> ${tier.m}`);
             if (effectiveOAuth && (tier.p === 'openai' || tier.p === 'copilot') && tier.key) {
-                return await _responsesApiCompletion(tier.m, messages, tier.key, tools);
+                return await _responsesApiCompletion(tier.m, messages, tier.key, tools, onDelta);
             }
             return await _internalCompletion(tier.m, tier.p, messages, tools, tier.key);
         } catch (error: any) {
@@ -539,7 +562,7 @@ export async function chatCompletion(model: string, provider: string, messages: 
         if (legacyKey && isJwtToken(legacyKey) && provider === 'openai') {
             try {
                 console.log(`[LLM] Detectado token OAuth JWT en key legacy, redirigiendo a Codex Responses API`);
-                return await _responsesApiCompletion(model, messages, legacyKey);
+                return await _responsesApiCompletion(model, messages, legacyKey, [], onDelta);
             } catch (error: any) {
                 console.warn(`[LLM] Fallo en legacy OAuth: ${error.message}`);
                 lastError = error;

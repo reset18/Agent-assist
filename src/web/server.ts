@@ -73,6 +73,10 @@ app.get('/api/settings', (req, res) => {
         llm_secondary_model: getSetting('llm_secondary_model') || '',
         llm_tertiary_model: getSetting('llm_tertiary_model') || '',
         llm_relay_hopping_enabled: getSetting('llm_relay_hopping_enabled') !== '0',
+        codex_store_enabled: getSetting('codex_store_enabled') !== '0',
+        codex_compaction_enabled: getSetting('codex_compaction_enabled') !== '0',
+        codex_compact_threshold: getSetting('codex_compact_threshold') || '80000',
+        ui_show_thinking: getSetting('ui_show_thinking') === '1',
     });
 });
 
@@ -501,6 +505,10 @@ app.post('/api/settings', (req, res) => {
     if (llm_tertiary_account_id !== undefined) setSetting('llm_tertiary_account_id', llm_tertiary_account_id);
     if (llm_tertiary_model !== undefined) setSetting('llm_tertiary_model', llm_tertiary_model);
     if (req.body.llm_relay_hopping_enabled !== undefined) setSetting('llm_relay_hopping_enabled', req.body.llm_relay_hopping_enabled ? '1' : '0');
+    if (req.body.codex_store_enabled !== undefined) setSetting('codex_store_enabled', req.body.codex_store_enabled ? '1' : '0');
+    if (req.body.codex_compaction_enabled !== undefined) setSetting('codex_compaction_enabled', req.body.codex_compaction_enabled ? '1' : '0');
+    if (req.body.codex_compact_threshold !== undefined) setSetting('codex_compact_threshold', req.body.codex_compact_threshold);
+    if (req.body.ui_show_thinking !== undefined) setSetting('ui_show_thinking', req.body.ui_show_thinking ? '1' : '0');
 
     // Guardar dinámicamente cualquier skill enviada
     for (const key of Object.keys(req.body)) {
@@ -789,6 +797,40 @@ app.post('/api/chat', async (req, res) => {
         res.json({ reply });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/chat/stream', async (req, res) => {
+    const { message, sessionId } = req.query;
+    if (!message) return res.status(400).json({ error: 'Mensaje vacío' });
+
+    console.log(`[Web/Stream] Iniciando stream para: ${sessionId}`);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const sendEvent = (data: any) => {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+        const reply = await processUserMessage(
+            'web_user', 
+            'web', 
+            message as string, 
+            false, 
+            (sessionId as string) || 'default',
+            (delta) => {
+                sendEvent({ type: 'delta', ...delta });
+            }
+        );
+        sendEvent({ type: 'done', reply });
+        res.end();
+    } catch (e: any) {
+        sendEvent({ type: 'error', message: e.message });
+        res.end();
     }
 });
 

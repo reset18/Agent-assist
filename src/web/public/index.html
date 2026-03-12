@@ -3013,82 +3013,90 @@
             chat.appendChild(typingWrapper);
             chat.scrollTop = chat.scrollHeight;
 
-            try {
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, sessionId: window.currentSessionId })
-                });
+            const botWrapper = document.createElement('div');
+            botWrapper.className = 'chat-message-wrapper assistant';
+            botWrapper.style.display = 'none';
 
-                chat.removeChild(typingWrapper);
+            const botAvatar = document.createElement('div');
+            botAvatar.className = 'avatar assistant';
+            botAvatar.textContent = window.agentNameCache;
+            botAvatar.title = window.fullAgentNameCache;
 
-                if (!res.ok) {
-                    const d = await res.json();
-                    throw new Error(d.error || 'Error del servidor');
+            const botContentWrapper = document.createElement('div');
+            botContentWrapper.className = 'message-content';
+
+            const botSenderName = document.createElement('div');
+            botSenderName.className = 'sender-name';
+            botSenderName.textContent = window.fullAgentNameCache;
+
+            const botBubble = document.createElement('div');
+            botBubble.className = 'chat-bubble assistant';
+            
+            // Contenedor de "Pensando" (Reasoning)
+            const thinkingBox = document.createElement('div');
+            thinkingBox.className = 'thinking-box';
+            thinkingBox.style.cssText = 'font-size: 13px; color: var(--text-muted); font-style: italic; margin-bottom: 10px; padding: 10px; border-left: 3px solid var(--primary); background: rgba(var(--bg-rgb), 0.3); border-radius: 4px; display: none;';
+            thinkingBox.innerHTML = '<div style="font-weight: 700; margin-bottom: 4px; font-size: 11px; text-transform: uppercase;">Pensando...</div><div class="thinking-content"></div>';
+            
+            const responseContent = document.createElement('div');
+            responseContent.className = 'response-content';
+
+            botBubble.appendChild(thinkingBox);
+            botBubble.appendChild(responseContent);
+            botContentWrapper.appendChild(botSenderName);
+            botContentWrapper.appendChild(botBubble);
+            botWrapper.appendChild(botAvatar);
+            botWrapper.appendChild(botContentWrapper);
+            chat.appendChild(botWrapper);
+
+            let accumulatedText = '';
+            let accumulatedReasoning = '';
+            let isThinking = false;
+
+            const eventSource = new EventSource(`/api/chat/stream?message=${encodeURIComponent(text)}&sessionId=${encodeURIComponent(window.currentSessionId || 'default')}`);
+
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'delta') {
+                    if (chat.contains(typingWrapper)) chat.removeChild(typingWrapper);
+                    botWrapper.style.display = 'flex';
+
+                    if (data.type_delta === 'reasoning' || data.reasoning) {
+                        const delta = data.delta || '';
+                        accumulatedReasoning += delta;
+                        if (window.appSettings?.ui_show_thinking) {
+                            thinkingBox.style.display = 'block';
+                            thinkingBox.querySelector('.thinking-content').textContent = accumulatedReasoning;
+                        }
+                    } else {
+                        const delta = data.delta || '';
+                        accumulatedText += delta;
+                        responseContent.innerHTML = formatChatText(accumulatedText);
+                    }
+                    chat.scrollTop = chat.scrollHeight;
+                } else if (data.type === 'done') {
+                    eventSource.close();
+                    if (chat.contains(typingWrapper)) chat.removeChild(typingWrapper);
+                    botWrapper.style.display = 'flex';
+                    responseContent.innerHTML = formatChatText(data.reply);
+                    chat.scrollTop = chat.scrollHeight;
+                    chatBusySending = false;
+                } else if (data.type === 'error') {
+                    eventSource.close();
+                    if (chat.contains(typingWrapper)) chat.removeChild(typingWrapper);
+                    responseContent.style.color = 'var(--danger)';
+                    responseContent.innerHTML = formatChatText("Error: " + data.message);
+                    chatBusySending = false;
                 }
+            };
 
-                const data = await res.json();
-
-                const botWrapper = document.createElement('div');
-                botWrapper.className = 'chat-message-wrapper assistant';
-
-                const botAvatar = document.createElement('div');
-                botAvatar.className = 'avatar assistant';
-                botAvatar.textContent = window.agentNameCache;
-                botAvatar.title = window.fullAgentNameCache;
-
-                const botContentWrapper = document.createElement('div');
-                botContentWrapper.className = 'message-content';
-
-                const botSenderName = document.createElement('div');
-                botSenderName.className = 'sender-name';
-                botSenderName.textContent = window.fullAgentNameCache;
-
-                const botBubble = document.createElement('div');
-                botBubble.className = 'chat-bubble assistant';
-                botBubble.innerHTML = formatChatText(data.reply);
-
-                botContentWrapper.appendChild(botSenderName);
-                botContentWrapper.appendChild(botBubble);
-
-                botWrapper.appendChild(botAvatar);
-                botWrapper.appendChild(botContentWrapper);
-                chat.appendChild(botWrapper);
-
-                chat.scrollTop = chat.scrollHeight;
-
-            } catch (e) {
-                chat.removeChild(typingWrapper);
-                const errWrapper = document.createElement('div');
-                errWrapper.className = 'chat-message-wrapper assistant';
-
-                const botAvatar = document.createElement('div');
-                botAvatar.className = 'avatar assistant';
-                botAvatar.textContent = window.agentNameCache;
-                botAvatar.title = window.fullAgentNameCache;
-
-                const errorContentWrapper = document.createElement('div');
-                errorContentWrapper.className = 'message-content';
-
-                const errorSenderName = document.createElement('div');
-                errorSenderName.className = 'sender-name';
-                errorSenderName.textContent = window.fullAgentNameCache;
-
-                const errorBubble = document.createElement('div');
-                errorBubble.className = 'chat-bubble assistant';
-                errorBubble.style.color = 'var(--danger)';
-                errorBubble.innerHTML = formatChatText("Error de red: " + e.message);
-
-                errorContentWrapper.appendChild(errorSenderName);
-                errorContentWrapper.appendChild(errorBubble);
-
-                errWrapper.appendChild(botAvatar);
-                errWrapper.appendChild(errorContentWrapper);
-                chat.appendChild(errWrapper);
-
-                chat.scrollTop = chat.scrollHeight;
-            }
-            chatBusySending = false; // Reanudar polling
+            eventSource.onerror = (e) => {
+                eventSource.close();
+                if (chat.contains(typingWrapper)) chat.removeChild(typingWrapper);
+                chatBusySending = false;
+                console.error("Stream error", e);
+            };
         }
 
         async function loadModels() {
