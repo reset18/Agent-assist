@@ -7,7 +7,7 @@ import fs from 'fs';
 import { join } from 'path';
 import AdmZip from 'adm-zip';
 
-const MAX_ITERATIONS = 15;
+const MAX_ITERATIONS = 30;
 
 // Extraer directrices de habilidades habilitadas
 function getEnabledSkillsContext(): string {

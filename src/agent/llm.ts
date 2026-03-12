@@ -355,36 +355,39 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     }
 
     // --- DETECCIÓN DE HERRAMIENTAS EN CRUDO (JSON) PARA CODEX ---
-    // Si no se detectaron tool_calls por SSE pero el texto parece ser un JSON de argumentos,
-    // intentamos parsearlo y convertirlo en una llamada a herramienta real.
-    if (toolCalls.length === 0 && fullText.trim().startsWith('{') && fullText.trim().endsWith('}')) {
-        try {
-            const possibleArgs = JSON.parse(fullText.trim());
-            // Si tiene una estructura que coincide con nombres de herramientas conocidas (ej: run_shell_local tiene 'command')
-            // O si el modelo simplemente escupió los argumentos. 
-            // Para ser robustos, si el usuario envió herramientas, podemos intentar inferir cuál es.
-            if (tools.length > 0) {
-                // Buscamos una herramienta que coincida con los argumentos o usamos la primera como fallback inteligente
-                // si el JSON es válido. A menudo Codex devuelve un JSON que mapea exactamente a los params de la herramienta.
-                const firstTool = tools[0];
-                const toolName = firstTool.function?.name || firstTool.name;
-                
-                if (toolName) {
-                    console.log(`[LLM/Codex] Detectada llamada a herramienta en crudo (JSON) para: ${toolName}`);
-                    toolCalls = [{
-                        id: `call_raw_${Date.now()}`,
-                        type: 'function',
-                        function: {
-                            name: toolName,
-                            arguments: fullText.trim()
-                        }
-                    }];
-                    // Limpiamos el texto para que no se muestre el JSON en el chat
-                    fullText = ''; 
+    // Si el texto contiene bloques JSON (incluso si son múltiples), los extraemos.
+    const jsonBlocks = extractJsonBlocks(fullText);
+    if (jsonBlocks.length > 0) {
+        // En Codex/OAuth, si el modelo escupe JSON en el texto, suele ser porque quiere llamar a herramientas.
+        // Si ya tenemos toolCalls de SSE, las mantenemos, pero sumamos las detectadas en texto.
+        for (const block of jsonBlocks) {
+            try {
+                const parsed = JSON.parse(block);
+                // Intentamos encontrar una herramienta compatible
+                if (tools.length > 0) {
+                    // Si el objeto tiene una estructura de argumentos, usamos la primera herramienta habilitada
+                    // (Codex suele volcar argumentos directamente). 
+                    // Si el JSON tiene un campo 'action', 'command', etc., es muy probable que sea para una herramienta.
+                    const firstTool = tools[0];
+                    const toolName = firstTool.function?.name || firstTool.name;
+                    
+                    if (toolName) {
+                        console.log(`[LLM/Codex] Detectada llamada a herramienta en crudo (Texto): ${toolName}`);
+                        toolCalls.push({
+                            id: `call_raw_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+                            type: 'function',
+                            function: {
+                                name: toolName,
+                                arguments: block
+                            }
+                        });
+                        // Removemos el bloque del texto final para que no se vea el JSON en el chat
+                        fullText = fullText.replace(block, '').trim();
+                    }
                 }
+            } catch (e) {
+                // No era JSON válido o error al procesar
             }
-        } catch (e) {
-            // No era un JSON válido o no pudimos mapearlo, seguimos normal
         }
     }
 
@@ -401,6 +404,40 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         content: fullText,
         ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {})
     };
+}
+
+/**
+ * Extrae bloques de JSON válidos de un texto. 
+ * Útil para cuando el LLM escupe JSON en lugar de usar herramientas estructuradas.
+ */
+function extractJsonBlocks(text: string): string[] {
+    const blocks: string[] = [];
+    let braceCount = 0;
+    let start = -1;
+    let inString = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        
+        // Manejar strings para evitar confundir llaves dentro de textos
+        if (char === '"' && text[i - 1] !== '\\') {
+            inString = !inString;
+        }
+
+        if (inString) continue;
+
+        if (char === '{') {
+            if (braceCount === 0) start = i;
+            braceCount++;
+        } else if (char === '}') {
+            braceCount--;
+            if (braceCount === 0 && start !== -1) {
+                blocks.push(text.substring(start, i + 1));
+                start = -1;
+            }
+        }
+    }
+    return blocks;
 }
 
 // ---------- RESOLVER UNA CUENTA POR ID ----------
