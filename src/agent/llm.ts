@@ -146,7 +146,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     const body: any = {
         model: effectiveModel,
         input,
-        store: getSetting('codex_store_enabled') !== '0', // Default enabled
+        store: getSetting('codex_store_enabled') === '1', // Default disabled for safety
         stream: true
     };
     if (systemInstruction) {
@@ -184,6 +184,17 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
 
     if (!res.ok) {
         const errText = await res.text();
+        if (res.status === 400) {
+            try {
+                const errJson = JSON.parse(errText);
+                if (errJson.detail?.includes('Store must be set to false')) {
+                    throw new Error("ERROR CODEX: Tu cuenta de OpenAI no permite 'vía API' la persistencia de historial (store: true). Por favor, DESACTIVA 'Persistencia de Sesión' en los ajustes de Cerebro.");
+                }
+            } catch (jsonParseError) {
+                // If errText is not valid JSON, just proceed to throw the original error
+                console.warn("Failed to parse error text as JSON:", jsonParseError);
+            }
+        }
         throw new Error(`${res.status} ${errText}`);
     }
 
