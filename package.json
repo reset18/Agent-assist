@@ -1,6 +1,6 @@
 {
   "name": "agent-assist",
-  "version": "0.2.89",
+  "version": "0.2.91",
   "description": "",
   "main": "dist/index.js",
   "bin": {

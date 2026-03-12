@@ -156,11 +156,11 @@ function stripTelegramAttachmentsBlock(message: string) {
 export async function processUserMessage(userId: string, source: string, message: string, isAudio: boolean = false, sessionId = 'default', onDelta?: (delta: any) => void): Promise<string> {
     const state = getSessionState(sessionId);
     
-    // Deduplicación por contenido (OpenClaw approach)
     const normalized = normalizeTextForComparison(message);
     const messageHash = `${userId}:${normalized}`;
     
-    if (state.processedIds.has(messageHash) && normalized.length > 5) {
+    // Deduplicación: No bloquear audios, ni mensajes ultra cortos (ej: "si", "no", "ok")
+    if (!isAudio && normalized.length > 2 && state.processedIds.has(messageHash)) {
         console.warn(`[Agent/Queue] Bloqueado mensaje duplicado en sesión ${sessionId}: "${normalized.substring(0, 30)}..."`);
         return ""; // Ignorar duplicado
     }
@@ -209,6 +209,10 @@ async function runProcessorQueue(sessionId: string) {
                         if (m.onDelta) m.onDelta(delta);
                     }
                 };
+
+                // Guardar en DB solo una vez la ráfaga completa antes de procesar
+                const cleanCombinedText = stripTelegramAttachmentsBlock(combinedText);
+                addMessage('user', cleanCombinedText, sessionId);
 
                 const response = await _executeAgentLogic(
                     primaryMessage.userId, 
@@ -274,7 +278,6 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
 
     const imageAttachments = extractImageAttachmentsFromText(message);
     const cleanUserText = stripTelegramAttachmentsBlock(message) || message;
-    addMessage('user', cleanUserText, sessionId);
 
     const nameToUse = getSetting('agent_name') || 'Asistente';
     const userNameToUse = getSetting('user_name') || 'Usuario';
@@ -313,7 +316,13 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
     const extraSkills = getEnabledSkillsContext();
     if (extraSkills) fullSystemPrompt += `\n\nHABILIDADES ACTIVAS:\n${extraSkills}`;
 
-    const dbMessages = Array.from(getRecentMessages(10, sessionId));
+    // Obtener historial. Tomamos 11 para poder descartar el último si es el mismo que acabamos de guardar
+    let dbMessages = Array.from(getRecentMessages(11, sessionId));
+    if (dbMessages.length > 0 && dbMessages[dbMessages.length - 1].role === 'user') {
+        // Descartamos el último mensaje de la DB en el hilo, ya que lo añadiremos abajo de forma manual (multimodal)
+        dbMessages.pop();
+    }
+
     let currentUserMsg: any = (imageAttachments.length > 0 && provider !== 'anthropic') 
         ? { role: 'user', content: [{ type: 'text', text: cleanUserText }, ...imageAttachments.map(img => ({ type: 'image_url', image_url: { url: img.url || `data:${guessMimeFromPath(img.path)};base64,${fs.readFileSync(img.path).toString('base64')}` } }))] }
         : { role: 'user', content: cleanUserText };
