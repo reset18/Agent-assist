@@ -201,32 +201,54 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     };
 
     const extractTextFromResponseObject = (resp: any) => {
-        // Intentar extraer texto del objeto final (varía por implementación)
+        // Intentar extraer texto del objeto final (varía por implementación de Codex)
         if (!resp || typeof resp !== 'object') return '';
 
-        // 1) output_text (si existiera)
+        // 1) Caso Directo: text o content en la raíz
+        if (typeof resp.text === 'string') return resp.text;
+        if (typeof resp.content === 'string') return resp.content;
         if (typeof resp.output_text === 'string') return resp.output_text;
 
-        // 2) output[] -> content[] -> { type: 'output_text', text }
+        // 2) Caso output[] (Muy común en Codex/Responses API)
         const out = resp.output;
         if (Array.isArray(out)) {
             let t = '';
             for (const item of out) {
-                const content = item?.content;
-                if (Array.isArray(content)) {
-                    for (const c of content) {
-                        if (typeof c?.text === 'string') t += c.text;
-                        else if (typeof c?.content === 'string') t += c.content;
+                // Algunos envían item.item.content o similar, buscamos recursivamente
+                if (typeof item?.text === 'string') {
+                    t += item.text;
+                } else if (item?.content) {
+                    const content = item.content;
+                    if (Array.isArray(content)) {
+                        for (const c of content) {
+                            if (typeof c === 'string') t += c;
+                            else if (typeof c?.text === 'string') t += c.text;
+                            else if (typeof c?.content === 'string') t += c.content;
+                        }
+                    } else if (typeof content === 'string') {
+                        t += content;
                     }
                 }
-                if (typeof item?.text === 'string') t += item.text;
             }
             if (t) return t;
+        } else if (out && typeof out === 'object') {
+            // Si output es un objeto en lugar de un array
+            if (typeof out.text === 'string') return out.text;
+            if (typeof out.content === 'string') return out.content;
         }
 
-        // 3) message/content
+        // 3) Caso message.content (OpenAI standard fallback)
         if (typeof resp.message?.content === 'string') return resp.message.content;
+        if (Array.isArray(resp.choices) && resp.choices[0]?.message?.content) {
+            return resp.choices[0].message.content;
+        }
 
+        // 4) Caso reasoning (algunos modelos lo separan)
+        if (typeof resp.reasoning === 'string' && resp.reasoning) {
+            return `[Reasoning]: ${resp.reasoning}`;
+        }
+
+        console.warn('[LLM/Codex] No se pudo extraer texto del objeto de respuesta:', JSON.stringify(resp).substring(0, 500));
         return '';
     };
 
@@ -263,19 +285,22 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
                     }
                 }
 
-                // Capturar texto (muchas variantes)
-                if (
-                    (data.type === 'response.output_text.delta' || data.type === 'response.text.delta' || data.type === 'response.delta' || data.type === 'response.message.delta')
-                ) {
-                    // Algunos eventos usan data.delta, otros data.text
+                // Capturar texto (muchas variantes y muy permisivo)
+                const isDelta = data.type?.includes('.delta') || data.delta !== undefined || data.text !== undefined || data.content !== undefined;
+                const isTool = data.type?.includes('tool_call') || data.tool_call !== undefined || data.tool_calls !== undefined;
+
+                if (isDelta && !isTool) {
+                    // Algunos eventos usan data.delta, otros data.text, otros data.content
                     if (data.delta !== undefined) appendText(data.delta);
                     else if (data.text !== undefined) appendText(data.text);
+                    else if (data.content !== undefined) appendText(data.content);
                     else if (data?.message?.delta !== undefined) appendText(data.message.delta);
                 }
 
                 // Algunas implementaciones envían eventos done con texto final
-                else if (data.type === 'response.output_text.done' || data.type === 'response.text.done') {
+                else if (data.type?.includes('.done') && !isTool) {
                     if (data.text !== undefined) appendText(data.text);
+                    else if (data.content !== undefined) appendText(data.content);
                 }
 
                 // Capturar inicio de llamada a herramienta
