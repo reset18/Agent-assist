@@ -72,6 +72,7 @@ app.get('/api/settings', (req, res) => {
         llm_primary_model: getSetting('llm_primary_model') || '',
         llm_secondary_model: getSetting('llm_secondary_model') || '',
         llm_tertiary_model: getSetting('llm_tertiary_model') || '',
+        llm_relay_hopping_enabled: getSetting('llm_relay_hopping_enabled') !== '0',
     });
 });
 
@@ -499,6 +500,7 @@ app.post('/api/settings', (req, res) => {
     if (llm_secondary_model !== undefined) setSetting('llm_secondary_model', llm_secondary_model);
     if (llm_tertiary_account_id !== undefined) setSetting('llm_tertiary_account_id', llm_tertiary_account_id);
     if (llm_tertiary_model !== undefined) setSetting('llm_tertiary_model', llm_tertiary_model);
+    if (req.body.llm_relay_hopping_enabled !== undefined) setSetting('llm_relay_hopping_enabled', req.body.llm_relay_hopping_enabled ? '1' : '0');
 
     // Guardar dinámicamente cualquier skill enviada
     for (const key of Object.keys(req.body)) {

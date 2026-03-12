@@ -125,6 +125,7 @@
             font-weight: 700;
             background: linear-gradient(90deg, #3b82f6, #8b5cf6);
             -webkit-background-clip: text;
+            background-clip: text;
             color: transparent;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
@@ -1272,10 +1273,22 @@
                                 </select>
                                 <input type="hidden" id="llm_tertiary_model" />
                             </div>
-                            <div class="form-group">
-                                <button class="primary-btn" onclick="saveRelaySettings()"
-                                    style="width: 100%; height: 42px; border-radius: 10px;">Guardar Relevos</button>
+                        </div>
+
+                        <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; background: rgba(var(--bg-rgb), 0.3); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border);">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px;">Mantener en cuenta principal</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Desactiva los saltos automáticos si falla la IA principal.</div>
                             </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="llm_relay_hopping_disabled">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 20px;">
+                            <button class="primary-btn" onclick="saveRelaySettings()"
+                                style="width: 100%; height: 42px; border-radius: 10px;">Guardar Relevos</button>
                         </div>
                     </div>
                 </div>
@@ -2583,6 +2596,10 @@
                 const terMod = document.getElementById('llm_tertiary_model');
                 if (terMod) terMod.value = data.llm_tertiary_model || '';
 
+                if (document.getElementById('llm_relay_hopping_disabled')) {
+                    document.getElementById('llm_relay_hopping_disabled').checked = data.llm_relay_hopping_enabled === false;
+                }
+
                 const openaiVoice = document.getElementById('openai_voice_id');
                 if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
                 const openaiKey = document.getElementById('openai_api_key_audio');
@@ -3222,7 +3239,8 @@
                     llm_secondary_account_id: document.getElementById('llm_secondary_account_id').value,
                     llm_secondary_model: document.getElementById('llm_secondary_model').value,
                     llm_tertiary_account_id: document.getElementById('llm_tertiary_account_id').value,
-                    llm_tertiary_model: document.getElementById('llm_tertiary_model').value
+                    llm_tertiary_model: document.getElementById('llm_tertiary_model').value,
+                    llm_relay_hopping_enabled: !document.getElementById('llm_relay_hopping_disabled').checked
                 };
 
                 const res = await fetch('/api/settings', {

@@ -248,6 +248,12 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
             try {
                 const data = JSON.parse(dataStr);
 
+                // 0) Verificar si hay errores explícitos en el stream
+                if (data?.type === 'error' || data?.error) {
+                    const errMsg = data.error?.message || data.message || JSON.stringify(data.error || data);
+                    throw new Error(`Codex Stream Error: ${errMsg}`);
+                }
+
                 // Guardar respuesta completa si viene en eventos tipo completed
                 if (data?.type === 'response.completed' && data.response) {
                     lastResponseObject = data.response;
@@ -299,7 +305,15 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
                         }
                     }
                 }
-            } catch (e) {
+
+                // LÍMITE DE SEGURIDAD: Evitar volcados infinitos si el modelo entra en bucle
+                if (fullText.length > 100000) {
+                    console.warn('[LLM/Codex] Límite de seguridad alcanzado (100k chars), truncando stream.');
+                    reader.cancel();
+                    break;
+                }
+            } catch (e: any) {
+                if (e.message?.includes('Codex Stream Error')) throw e;
                 console.warn(`[Codex SSE Diagnostic] Evento no reconocido o error: ${trimmedLine}`);
             }
         }
@@ -307,7 +321,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
 
     const toolCalls = Array.from(toolCallsMap.values());
 
-    // Fallback: si no hubo deltas pero sí vino un objeto response al final, extraer texto
+    // Fallback mejorado: si no hubo deltas pero sí vino un objeto response al final, extraer texto
     if (!fullText && lastResponseObject) {
         fullText = extractTextFromResponseObject(lastResponseObject);
     }
@@ -315,7 +329,9 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     if (!fullText && toolCalls.length === 0) {
         // Diagnóstico un pelín más útil
         const lastKeys = lastResponseObject ? Object.keys(lastResponseObject).slice(0, 20).join(',') : 'null';
-        throw new Error(`La respuesta del stream está vacía (response keys: ${lastKeys})`);
+        const dump = lastResponseObject ? JSON.stringify(lastResponseObject).substring(0, 200) : 'n/a';
+        console.error(`[LLM/Codex] Respuesta vacía. Last object keys: ${lastKeys}. Data: ${dump}`);
+        throw new Error(`La respuesta del modelo está vacía. Intenta de nuevo o revisa tu cuenta.`);
     }
 
     return {
@@ -397,6 +413,13 @@ export async function chatCompletion(model: string, provider: string, messages: 
 
         // Estabilización: Añadir un pequeño retardo entre intentos si no es el primero
         if (i > 0) {
+            // Verificamos si los saltos están permitidos antes de continuar al siguiente tier
+            const hoppingEnabled = getSetting('llm_relay_hopping_enabled') !== '0';
+            if (!hoppingEnabled) {
+                console.log(`[LLM] Saltos de proveedor desactivados. No se intentará el Tier ${i + 1}.`);
+                break;
+            }
+
             console.log(`[LLM] Esperando 1.5s antes de reintentar con Tier ${i + 1}...`);
             await new Promise(resolve => setTimeout(resolve, 1500));
         }
