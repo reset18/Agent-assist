@@ -159,8 +159,8 @@ export async function processUserMessage(userId: string, source: string, message
     const normalized = normalizeTextForComparison(message);
     const messageHash = `${userId}:${normalized}`;
     
-    // Deduplicación: No bloquear audios, ni mensajes ultra cortos (ej: "si", "no", "ok")
-    if (!isAudio && normalized.length > 2 && state.processedIds.has(messageHash)) {
+    // Deduplicación estricta para todos (incluyendo audio para evitar duplicados por reintentos de bots)
+    if (normalized.length > 2 && state.processedIds.has(messageHash)) {
         console.warn(`[Agent/Queue] Bloqueado mensaje duplicado en sesión ${sessionId}: "${normalized.substring(0, 30)}..."`);
         return ""; // Ignorar duplicado
     }
@@ -209,10 +209,6 @@ async function runProcessorQueue(sessionId: string) {
                         if (m.onDelta) m.onDelta(delta);
                     }
                 };
-
-                // Guardar en DB solo una vez la ráfaga completa antes de procesar
-                const cleanCombinedText = stripTelegramAttachmentsBlock(combinedText);
-                addMessage('user', cleanCombinedText, sessionId);
 
                 const response = await _executeAgentLogic(
                     primaryMessage.userId, 
@@ -292,16 +288,19 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
     let model = getSetting('model_name') || process.env.MODEL_NAME || (provider === 'openai' ? 'gpt-4o-mini' : 'openrouter/free');
 
     // --- System Prompt Builder ---
-    const systemPromptTemplate = `Eres un asistente de IA llamado {agent_name}. Tu usuario es {user_name}.\nTu personalidad: {agent_personality}\nTu misión: {agent_function}\n\nHabla siempre en castellano. Eres capaz de recordar contexto.`;
+    // Kevin's rule: prominence for voice notes
+    const voiceContext = isAudio ? "\n!!! [IMPORTANTE: EL USUARIO TE HA ENVIADO UNA NOTA DE VOZ] !!!\nDebes responder SIEMPRE activando la herramienta 'speak_message'. No respondas solo con texto." : "Responde por texto estándar.";
+
+    const systemPromptTemplate = `Eres un asistente de IA llamado {agent_name}. Tu usuario es {user_name}.\nTu personalidad: {agent_personality}\nTu misión: {agent_function}\n\nHabla siempre en castellano. Eres capaz de recordar contexto.\n\nDIRECTRICES DE FORMATO:\n{voice_context}\n\nUsa las herramientas autónomamente. No pidas permiso si tienes una herramienta que soluciona la petición del usuario.`;
+    
     let fullSystemPrompt = systemPromptTemplate
         .replace('{agent_name}', nameToUse)
         .replace('{user_name}', userNameToUse)
         .replace('{agent_personality}', personalityToUse)
-        .replace('{agent_function}', functionToUse);
+        .replace('{agent_function}', functionToUse)
+        .replace('{voice_context}', voiceContext);
 
     fullSystemPrompt += getMemoryPrompt();
-    const voiceContext = isAudio ? "EL USUARIO TE HA ENVIADO UNA NOTA DE VOZ. Responde con 'speak_message'." : "Responde por texto.";
-    fullSystemPrompt += `\n\nDIRECTRICES:\n${voiceContext}\n\nUsa las herramientas autónomamente. No pidas permiso si tienes una herramienta que soluciona la petición del usuario.`;
 
     // Bootstrap
     const bootstrapFiles = ['package.json', 'README.md', 'src/index.ts'];
@@ -320,17 +319,8 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
     const extraSkills = getEnabledSkillsContext();
     if (extraSkills) fullSystemPrompt += `\n\nHABILIDADES ACTIVAS:\n${extraSkills}`;
 
-    // Obtener historial. 
+    // Historial LIMPIO: No incluye el mensaje actual porque aún no lo hemos guardado en DB
     const dbMessages = Array.from(getRecentMessages(12, sessionId));
-    // DEDUPLICACIÓN DE HISTORIAL: Si el último mensaje es del usuario y es igual al que vamos a enviar, lo quitamos de la lista
-    // para no enviarlo repetido (ya que currentUserMsg ya lo contiene, quizás con imágenes)
-    const normalizedNew = normalizeTextForComparison(cleanUserText);
-    if (dbMessages.length > 0) {
-        const lastMsg = dbMessages[dbMessages.length - 1];
-        if (lastMsg.role === 'user' && normalizeTextForComparison(lastMsg.content) === normalizedNew) {
-            dbMessages.pop();
-        }
-    }
 
     let currentUserMsg: any = (imageAttachments.length > 0 && provider !== 'anthropic') 
         ? { role: 'user', content: [{ type: 'text', text: cleanUserText }, ...imageAttachments.map(img => ({ type: 'image_url', image_url: { url: img.url || `data:${guessMimeFromPath(img.path)};base64,${fs.readFileSync(img.path).toString('base64')}` } }))] }
@@ -386,7 +376,11 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
             }
 
             if (fullAccumulatedText) {
+                // Registro ATÓMICO del turno en la base de datos al finalizar con éxito
+                const cleanUserTextForDb = stripTelegramAttachmentsBlock(message) || message;
+                addMessage('user', cleanUserTextForDb, sessionId);
                 addMessage('assistant', fullAccumulatedText, sessionId);
+                
                 return fullAccumulatedText;
             }
             return "Respuesta vacía.";
