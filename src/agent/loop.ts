@@ -151,6 +151,37 @@ function stripTelegramAttachmentsBlock(message: string) {
 }
 
 /**
+ * Busca el solapamiento más largo entre el final de 'base' y el inicio de 'addition'.
+ * Útil para evitar duplicados cuando la IA repite contenido previo en streams o ráfagas.
+ */
+function fuzzyMerge(base: string, addition: string): string {
+    if (!base) return addition;
+    if (!addition) return base;
+
+    const b = base.trim();
+    const a = addition.trim();
+
+    // Intentar encontrar el solapamiento más largo (mínimo 10 caracteres para evitar falsos positivos)
+    let maxOverlap = 0;
+    const minOverlapSize = Math.min(b.length, a.length, 10);
+
+    for (let i = minOverlapSize; i <= Math.min(b.length, a.length); i++) {
+        const baseSuffix = b.substring(b.length - i);
+        const additionPrefix = a.substring(0, i);
+        
+        if (baseSuffix === additionPrefix) {
+            maxOverlap = i;
+        }
+    }
+
+    if (maxOverlap > 0) {
+        return base + addition.substring(maxOverlap);
+    }
+
+    return base + (base.endsWith('\n') ? '' : '\n\n') + addition;
+}
+
+/**
  * Función principal expuesta al exterior. Implementa colas por sesión.
  */
 export async function processUserMessage(userId: string, source: string, message: string, isAudio: boolean = false, sessionId = 'default', onDelta?: (delta: any) => void): Promise<string> {
@@ -159,8 +190,8 @@ export async function processUserMessage(userId: string, source: string, message
     const normalized = normalizeTextForComparison(message);
     const messageHash = `${userId}:${normalized}`;
     
-    // Deduplicación estricta para todos (incluyendo audio para evitar duplicados por reintentos de bots)
-    if (normalized.length > 2 && state.processedIds.has(messageHash)) {
+    // Deduplicación: No bloquear audios (las transcripciones pueden ser similares)
+    if (!isAudio && normalized.length > 2 && state.processedIds.has(messageHash)) {
         console.warn(`[Agent/Queue] Bloqueado mensaje duplicado en sesión ${sessionId}: "${normalized.substring(0, 30)}..."`);
         return ""; // Ignorar duplicado
     }
@@ -355,13 +386,14 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
             thread.push(responseMessage);
 
             if (responseMessage.content) {
-                let newContent = responseMessage.content.trim();
-                if (fullAccumulatedText && newContent.startsWith(fullAccumulatedText.substring(0, 50))) {
-                    newContent = newContent.substring(fullAccumulatedText.length).trim();
+                const newContent = responseMessage.content.trim();
+                const merged = fuzzyMerge(fullAccumulatedText, newContent);
+                
+                if (getSetting('debug_llm') === '1' && merged.length < fullAccumulatedText.length + newContent.length) {
+                    console.log(`[Fuzzy Merger] Detectado solapamiento. Recortado de ${newContent.length} a ${merged.length - fullAccumulatedText.length} chars.`);
                 }
-                if (newContent) {
-                    fullAccumulatedText += (fullAccumulatedText ? '\n\n' : '') + newContent;
-                }
+                
+                fullAccumulatedText = merged;
             }
 
             if ('tool_calls' in responseMessage && (responseMessage as any).tool_calls?.length > 0) {

@@ -2982,8 +2982,14 @@
             userWrapper.appendChild(contentWrapper);
             chat.appendChild(userWrapper);
 
-            input.value = '';
             chat.scrollTop = chat.scrollHeight;
+
+            // Bloquear entrada mientras se procesa
+            input.disabled = true;
+            const sendBtn = document.querySelector('.send-btn-inside');
+            if (sendBtn) (sendBtn as any).disabled = true;
+            if (sendBtn) (sendBtn as any).style.opacity = '0.5';
+            if (sendBtn) (sendBtn as any).style.cursor = 'not-allowed';
 
             // Indicación de carga estilo ChatGPT
             const typingWrapper = document.createElement('div');
@@ -3082,6 +3088,12 @@
                     responseContent.innerHTML = formatChatText(data.reply);
                     chat.scrollTop = chat.scrollHeight;
                     chatBusySending = false;
+                    input.disabled = false;
+                    const sendBtn = document.querySelector('.send-btn-inside');
+                    if (sendBtn) (sendBtn as any).disabled = false;
+                    if (sendBtn) (sendBtn as any).style.opacity = '1';
+                    if (sendBtn) (sendBtn as any).style.cursor = 'pointer';
+                    input.focus();
                 } else if (data.type === 'error') {
                     eventSource.close();
                     if (chat.contains(typingWrapper)) chat.removeChild(typingWrapper);
