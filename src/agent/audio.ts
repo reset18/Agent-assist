@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { getSetting } from '../db/index.js';
+import { getSetting, getLLMAccounts } from '../db/index.js';
 
 export async function transcribeAudio(audioBuffer: Buffer, filename: string): Promise<string> {
     const voiceEngine = getSetting('stt_engine') || 'cloud';
@@ -27,10 +27,24 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
     const provider = getSetting('model_provider') || 'openrouter';
     const mainApiKey = getSetting('llm_api_key') || '';
     const audioApiKey = getSetting('openai_api_key_audio') || '';
+    const accounts = getLLMAccounts();
+
+    const getPreferredAccountKey = (p: string) => {
+        const primaryId = getSetting('llm_primary_account_id');
+        if (primaryId) {
+            const primary = accounts.find(a => a.id === primaryId && a.provider === p && !a.isOauth && !!a.apiKey);
+            if (primary?.apiKey) return primary.apiKey;
+        }
+        const any = accounts.find(a => a.provider === p && !a.isOauth && !!a.apiKey);
+        return any?.apiKey || '';
+    };
 
     let transcriptionUrl = '';
     let apiKey = '';
     let model = '';
+
+    const openaiAccountKey = getPreferredAccountKey('openai');
+    const groqAccountKey = getPreferredAccountKey('groq');
 
     // Nueva prioridad: 1. Clave específica de audio (si existe, usamos OpenAI Whisper por defecto)
     if (audioApiKey) {
@@ -41,18 +55,26 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
     // 2. Si usamos groq como proveedor principal
     else if (provider === 'groq') {
         transcriptionUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
-        apiKey = mainApiKey || process.env.GROQ_API_KEY || '';
+        apiKey = mainApiKey || groqAccountKey || process.env.GROQ_API_KEY || '';
         model = 'whisper-large-v3';
     }
     // 3. Si usamos openai como proveedor principal
     else if (provider === 'openai') {
         transcriptionUrl = 'https://api.openai.com/v1/audio/transcriptions';
-        apiKey = mainApiKey || process.env.OPENAI_API_KEY || '';
+        apiKey = mainApiKey || openaiAccountKey || process.env.OPENAI_API_KEY || '';
         model = 'whisper-1';
     }
-    // 4. Fallback automático a variables de entorno para transcribir sí o sí
+    // 4. Fallback automático a cuentas configuradas o variables de entorno
     else {
-        if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'SUTITUYE POR EL TUYO') {
+        if (openaiAccountKey) {
+            transcriptionUrl = 'https://api.openai.com/v1/audio/transcriptions';
+            apiKey = openaiAccountKey;
+            model = 'whisper-1';
+        } else if (groqAccountKey) {
+            transcriptionUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
+            apiKey = groqAccountKey;
+            model = 'whisper-large-v3';
+        } else if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'SUTITUYE POR EL TUYO') {
             transcriptionUrl = 'https://api.openai.com/v1/audio/transcriptions';
             apiKey = process.env.OPENAI_API_KEY;
             model = 'whisper-1';
@@ -87,7 +109,9 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
 
         const data: any = await response.json();
         if (data.text) {
-            return data.text;
+            const text = String(data.text).trim();
+            if (!text) throw new Error('La transcripción llegó vacía. Repite el audio con más volumen o duración.');
+            return text;
         } else {
             throw new Error('La respuesta de transcripción no contiene texto válido.');
         }

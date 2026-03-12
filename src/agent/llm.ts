@@ -237,8 +237,20 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         }
         
         if (deltaText) {
-            fullText += deltaText;
-            if (onDelta) onDelta({ type: 'text', delta: deltaText });
+            if (fullText.endsWith(deltaText)) return;
+
+            let cleanDelta = deltaText;
+            for (let i = deltaText.length; i >= 1; i--) {
+                if (fullText.endsWith(deltaText.substring(0, i))) {
+                    cleanDelta = deltaText.substring(i);
+                    break;
+                }
+            }
+
+            if (!cleanDelta) return;
+
+            fullText += cleanDelta;
+            if (onDelta) onDelta({ type: 'text', delta: cleanDelta });
         }
     };
 
