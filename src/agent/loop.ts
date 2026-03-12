@@ -152,7 +152,7 @@ function stripTelegramAttachmentsBlock(message: string) {
 
 /**
  * Busca el solapamiento más largo entre el final de 'base' y el inicio de 'addition'.
- * Útil para evitar duplicados cuando la IA repite contenido previo en streams o ráfagas.
+ * Esta versión es más agresiva para detectar repeticiones parciales.
  */
 function fuzzyMerge(base: string, addition: string): string {
     if (!base) return addition;
@@ -161,9 +161,9 @@ function fuzzyMerge(base: string, addition: string): string {
     const b = base.trim();
     const a = addition.trim();
 
-    // Intentar encontrar el solapamiento más largo (mínimo 10 caracteres para evitar falsos positivos)
+    // Intentar encontrar el solapamiento más largo (mínimo 6 caracteres)
     let maxOverlap = 0;
-    const minOverlapSize = Math.min(b.length, a.length, 10);
+    const minOverlapSize = 6; 
 
     for (let i = minOverlapSize; i <= Math.min(b.length, a.length); i++) {
         const baseSuffix = b.substring(b.length - i);
@@ -180,6 +180,42 @@ function fuzzyMerge(base: string, addition: string): string {
 
     return base + (base.endsWith('\n') ? '' : '\n\n') + addition;
 }
+
+/**
+ * Deduplicador de Streaming: Asegura que nunca enviemos deltas que ya forman parte del texto acumulado.
+ * Esto evita que la interfaz muestre texto duplicado cuando el modelo itera sobre herramientas.
+ */
+class StreamDeduplicator {
+    private fullOutput = '';
+
+    wrap(onDelta?: (delta: any) => void) {
+        if (!onDelta) return undefined;
+        return (delta: any) => {
+            if (delta.type === 'delta' && delta.delta) {
+                const newText = delta.delta;
+                // Si el nuevo texto ya está contenido al final de lo que llevamos, lo ignoramos
+                if (this.fullOutput.endsWith(newText)) return;
+                
+                // Si hay un solapamiento parcial, lo limpiamos
+                let cleanDelta = newText;
+                for (let i = newText.length; i >= 1; i--) {
+                    if (this.fullOutput.endsWith(newText.substring(0, i))) {
+                        cleanDelta = newText.substring(i);
+                        break;
+                    }
+                }
+
+                if (cleanDelta) {
+                    this.fullOutput += cleanDelta;
+                    onDelta({ ...delta, delta: cleanDelta });
+                }
+            } else {
+                onDelta(delta);
+            }
+        };
+    }
+}
+
 
 /**
  * Función principal expuesta al exterior. Implementa colas por sesión.
@@ -226,20 +262,29 @@ async function runProcessorQueue(sessionId: string) {
     try {
         while (state.messages.length > 0) {
             // FUSIÓN DE TURNOS (OpenClaw Parity): Agrupar ráfagas de mensajes del usuario
-            const burst = state.messages.splice(0, state.messages.length);
+            let burst = state.messages.splice(0, state.messages.length);
+            
+            // DEDUPLICACIÓN DE RÁFAGA: Eliminar mensajes idénticos consecutivos dentro de la misma ráfaga
+            // (Común cuando bots reintentan envíos de audio/texto)
+            burst = burst.filter((m, index, self) => 
+                index === 0 || normalizeTextForComparison(m.text) !== normalizeTextForComparison(self[index - 1].text)
+            );
+
             const combinedText = burst.map(m => m.text).join('\n---\n');
             const primaryMessage = burst[0];
             const isAudioBurst = burst.some(m => m.isAudio);
 
-            console.log(`[Agent/Processor] Procesando ráfaga de ${burst.length} mensajes en sesión ${sessionId}`);
+            console.log(`[Agent/Processor] Procesando ráfaga de ${burst.length} mensajes (filtrada) en sesión ${sessionId}`);
             
+            const deduplicator = new StreamDeduplicator();
             try {
-                // Combinar todos los callbacks onDelta del burst
-                const combinedOnDelta = (delta: any) => {
+                // Combinar todos los callbacks onDelta del burst con deduplicación de streaming
+                const combinedOnDelta = deduplicator.wrap((delta: any) => {
                     for (const m of burst) {
                         if (m.onDelta) m.onDelta(delta);
                     }
-                };
+                });
+
 
                 const response = await _executeAgentLogic(
                     primaryMessage.userId, 
@@ -362,6 +407,14 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
         ...dbMessages,
         currentUserMsg
     ];
+
+    // Prominencia MÁXIMA para audio: inyectamos recordatorio al final del hilo
+    if (isAudio) {
+        thread.push({ 
+            role: 'system', 
+            content: `!!! [ATENCIÓN: EL USUARIO ACABA DE ENVIAR UNA NOTA DE VOZ] !!!\nDebes responder exclusivamente usando la herramienta 'speak_message'. No incluyas texto fuera de esa herramienta.` 
+        });
+    }
 
     console.log(`[Agent Logic] Procesando: isAudio=${isAudio}, textLength=${cleanUserText.length}, historySize=${dbMessages.length}`);
     if (getSetting('debug_llm') === '1') {
