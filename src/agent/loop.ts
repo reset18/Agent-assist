@@ -228,6 +228,7 @@ export async function processUserMessage(userId: string, source: string, message
     }
 
     let currentIteration = 0;
+    let fullAccumulatedText = '';
     const dbMessages = Array.from(getRecentMessages(10, sessionId));
 
     // Construir el mensaje actual (puede ser multimodal)
@@ -279,6 +280,27 @@ export async function processUserMessage(userId: string, source: string, message
             const responseMessage = await chatCompletion(model, provider, thread, tools);
             thread.push(responseMessage);
 
+            // Acumular contenido de texto si existe
+            if (responseMessage.content) {
+                let newContent = responseMessage.content.trim();
+                
+                // DEDUPLICACIÓN: Evitar que el modelo repita lo que ya dijo en turnos anteriores
+                // (a veces algunos modelos repiten su pensamiento previo al continuar)
+                if (fullAccumulatedText && newContent.startsWith(fullAccumulatedText.trim().substring(0, 100))) {
+                    // Si empieza de forma idéntica (primeros 100 chars), intentamos un recorte inteligente
+                    if (newContent.length > fullAccumulatedText.trim().length) {
+                        newContent = newContent.substring(fullAccumulatedText.trim().length).trim();
+                    } else {
+                        newContent = ''; // Era un duplicado exacto o más corto
+                    }
+                }
+
+                if (newContent) {
+                    if (fullAccumulatedText) fullAccumulatedText += '\n\n';
+                    fullAccumulatedText += newContent;
+                }
+            }
+
             if ('tool_calls' in responseMessage && (responseMessage as any).tool_calls && (responseMessage as any).tool_calls.length > 0) {
                 const msg = responseMessage as any;
                 console.log(`[Agent] Se invocan ${msg.tool_calls.length} herramientas...`);
@@ -308,9 +330,9 @@ export async function processUserMessage(userId: string, source: string, message
                 continue;
             }
 
-            if (responseMessage.content) {
-                addMessage('assistant', responseMessage.content, sessionId);
-                return responseMessage.content;
+            if (fullAccumulatedText) {
+                addMessage('assistant', fullAccumulatedText, sessionId);
+                return fullAccumulatedText;
             }
             return "Lo siento, la respuesta generada estaba vac\u00eda.";
         } catch (error: any) {
