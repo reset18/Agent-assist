@@ -793,7 +793,14 @@ app.post('/api/chat', async (req, res) => {
     const { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ error: 'Mensaje vacío' });
     try {
+        // processUserMessage ahora gestiona colas internamente
         const reply = await processUserMessage('web_user', 'web', message, false, sessionId || 'default');
+        
+        // Si el mensaje fue encolado, devolvemos un estado informativo
+        if (reply === "Mensaje encolado mientras el agente piensa...") {
+            return res.json({ reply: "", queued: true });
+        }
+        
         res.json({ reply });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
@@ -804,32 +811,39 @@ app.get('/api/chat/stream', async (req, res) => {
     const { message, sessionId } = req.query;
     if (!message) return res.status(400).json({ error: 'Mensaje vacío' });
 
-    console.log(`[Web/Stream] Iniciando stream para: ${sessionId}`);
-
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
 
-    const sendEvent = (data: any) => {
-        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    const sendEvent = (type: string, data: any) => {
+        res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
     };
 
     try {
         const reply = await processUserMessage(
-            'web_user', 
-            'web', 
-            message as string, 
-            false, 
+            'web_user',
+            'web',
+            message as string,
+            false,
             (sessionId as string) || 'default',
             (delta) => {
-                sendEvent({ type: 'delta', ...delta });
+                if (delta.reasoning) {
+                    sendEvent('reasoning', delta.reasoning);
+                } else if (delta.content) {
+                    sendEvent('content', delta.content);
+                }
             }
         );
-        sendEvent({ type: 'done', reply });
-        res.end();
+
+        // Si es una respuesta encolada, notificamos al cliente
+        if (reply === "Mensaje encolado mientras el agente piensa...") {
+            sendEvent('status', { message: 'Tu mensaje ha sido encolado. El agente responderá en breve.' });
+        } else {
+            sendEvent('done', { fullText: reply });
+        }
     } catch (e: any) {
-        sendEvent({ type: 'error', message: e.message });
+        sendEvent('error', { message: e.message });
+    } finally {
         res.end();
     }
 });

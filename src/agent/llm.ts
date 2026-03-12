@@ -1,6 +1,20 @@
 import OpenAI from 'openai';
 import { getSetting, addTokenUsage, getLLMAccounts } from '../db/index.js';
 
+/**
+ * Normaliza el texto para comparación de duplicados (estilo OpenClaw).
+ */
+export function normalizeTextForComparison(text: string): string {
+    if (!text) return "";
+    return text
+        .trim()
+        .toLowerCase()
+        // Eliminar emojis y caracteres especiales de puntuación repetidos
+        .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 async function _internalCompletion(model: string, provider: string, messages: any[], tools: any[] = [], overrideApiKey?: string) {
     let apiKey = overrideApiKey || getSetting(`llm_key_${provider}`) || getSetting('llm_api_key') || '';
     let baseURL = '';

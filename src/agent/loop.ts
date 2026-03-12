@@ -1,4 +1,4 @@
-import { chatCompletion } from './llm.js';
+import { chatCompletion, normalizeTextForComparison } from './llm.js';
 import { getSetting, setSetting, getRecentMessages, addMessage } from '../db/index.js';
 import { getMemoryPrompt } from './memory.js';
 import { getActiveTools, executeToolCall } from './tools.js';
@@ -8,6 +8,24 @@ import { join } from 'path';
 import AdmZip from 'adm-zip';
 
 const MAX_ITERATIONS = 30;
+
+// --- ESTADO GLOBAL DE COLAS (OpenClaw Parity) ---
+const sessionQueues: Record<string, {
+    busy: boolean;
+    messages: { text: string; isAudio: boolean; onDelta?: (delta: any) => void; userId: string; source: string }[];
+    processedIds: Set<string>;
+}> = {};
+
+function getSessionState(sessionId: string) {
+    if (!sessionQueues[sessionId]) {
+        sessionQueues[sessionId] = {
+            busy: false,
+            messages: [],
+            processedIds: new Set()
+        };
+    }
+    return sessionQueues[sessionId];
+}
 
 // Extraer directrices de habilidades habilitadas
 function getEnabledSkillsContext(): string {
@@ -66,11 +84,6 @@ function guessMimeFromPath(p: string) {
 }
 
 function extractImageAttachmentsFromText(message: string): Array<{ path: string; url?: string }> {
-    // Parsea el bloque que inyecta el bot de Telegram:
-    // [Adjuntos de Telegram]
-    // - type: image
-    //   path: /abs/path
-    //   url: https://...
     const out: Array<{ path: string; url?: string }> = [];
     const lines = (message || '').split(/\r?\n/);
     let inBlock = false;
@@ -85,7 +98,6 @@ function extractImageAttachmentsFromText(message: string): Array<{ path: string;
 
         const typeMatch = line.match(/^\s*-\s*type:\s*(.+)\s*$/);
         if (typeMatch) {
-            // push previous
             if (current && current.type === 'image' && current.path) out.push({ path: current.path, url: current.url });
             current = { type: typeMatch[1].trim(), path: '', url: '' };
             continue;
@@ -119,21 +131,86 @@ function stripTelegramAttachmentsBlock(message: string) {
             continue;
         }
         if (inBlock) {
-            // el bloque termina cuando acaban las líneas con '-' o '  key:' o vacías
             if (line.startsWith('- ') || line.startsWith('  ') || line.trim() === '') {
                 continue;
             } else {
-                // línea que no pertenece al bloque: salimos
                 inBlock = false;
             }
         }
         if (!inBlock) out.push(line);
     }
-
     return out.join('\n').trim();
 }
 
-export async function processUserMessage(userId: string, source: string, message: string, isAudio: boolean = false, sessionId = 'default', onDelta?: (delta: any) => void): Promise<string> {
+/**
+ * Función principal expuesta al exterior. Implementa colas por sesión.
+ */
+export async function processUserMessage(userId: string, source: string, message: string, isAudio: boolean = false, sessionId = 'default', onDelta?: (delta: any) => void): Promise<string | any> {
+    const state = getSessionState(sessionId);
+    
+    // Deduplicación por contenido (OpenClaw approach)
+    const normalized = normalizeTextForComparison(message);
+    const messageHash = `${userId}:${normalized}`;
+    
+    if (state.processedIds.has(messageHash) && normalized.length > 5) {
+        console.warn(`[Agent/Queue] Bloqueado mensaje duplicado en sesión ${sessionId}: "${normalized.substring(0, 30)}..."`);
+        return ""; // Ignorar duplicado
+    }
+    state.processedIds.add(messageHash);
+    // Limpieza periódica de IDs procesados para evitar fuga de memoria
+    if (state.processedIds.size > 100) state.processedIds.delete(state.processedIds.values().next().value);
+
+    // Encolar mensaje
+    state.messages.push({ text: message, isAudio, onDelta, userId, source });
+
+    if (state.busy) {
+        console.log(`[Agent/Queue] Sesión ${sessionId} ocupada. Mensaje encolado (Posición: ${state.messages.length})`);
+        // Devolvemos una promesa que se resolverá cuando el proceso termine (opcional si usamos SSE)
+        return "Mensaje encolado mientras el agente piensa...";
+    }
+
+    return runProcessorQueue(sessionId);
+}
+
+/**
+ * Procesador de la cola de la sesión.
+ */
+async function runProcessorQueue(sessionId: string): Promise<string> {
+    const state = getSessionState(sessionId);
+    state.busy = true;
+
+    let finalResponse = "";
+
+    try {
+        while (state.messages.length > 0) {
+            // FUSIÓN DE TURNOS (OpenClaw Parity): Agrupar ráfagas de mensajes del usuario
+            const burst = state.messages.splice(0, state.messages.length);
+            const combinedText = burst.map(m => m.text).join('\n---\n');
+            const primaryMessage = burst[0];
+            const isAudioBurst = burst.some(m => m.isAudio);
+
+            console.log(`[Agent/Processor] Procesando ráfaga de ${burst.length} mensajes en sesión ${sessionId}`);
+            
+            finalResponse = await _executeAgentLogic(
+                primaryMessage.userId, 
+                primaryMessage.source, 
+                combinedText, 
+                isAudioBurst, 
+                sessionId, 
+                primaryMessage.onDelta
+            );
+        }
+    } finally {
+        state.busy = false;
+    }
+
+    return finalResponse;
+}
+
+/**
+ * La lógica central del agente (anteriormente processUserMessage).
+ */
+async function _executeAgentLogic(userId: string, source: string, message: string, isAudio: boolean, sessionId: string, onDelta?: (delta: any) => void): Promise<string> {
     const agentName = getSetting('agent_name');
     let setupDone = getSetting('agent_setup_done');
     let setupStep = parseInt(getSetting('agent_setup_step') || '0', 10);
@@ -147,39 +224,33 @@ export async function processUserMessage(userId: string, source: string, message
     }
 
     if (setupDone !== '1') {
+        const messageTrim = message.trim();
         if (setupStep === 0) {
             setSetting('agent_setup_step', '1');
             return "\u00a1Hola! Soy un nuevo agente de Inteligencia Artificial reci\u00e9n encendido en tu m\u00e1quina. Para calibrar mi sistema, te har\u00e9 4 preguntas r\u00e1pidas.\n\nPara empezar: **\u00bfQu\u00e9 nombre te gustar\u00eda ponerme a m\u00ed (tu agente)?**";
         } else if (setupStep === 1) {
-            setSetting('agent_name', message.trim());
+            setSetting('agent_name', messageTrim);
             setSetting('agent_setup_step', '2');
-            return `\u00a1Me gusta el nombre ${message.trim()}! Segunda pregunta: **\u00bfC\u00f3mo te llamas t\u00fa (mi usuario)?**`;
+            return `\u00a1Me gusta el nombre ${messageTrim}! Segunda pregunta: **\u00bfC\u00f3mo te llamas t\u00fa (mi usuario)?**`;
         } else if (setupStep === 2) {
-            setSetting('user_name', message.trim());
+            setSetting('user_name', messageTrim);
             setSetting('agent_setup_step', '3');
-            return `\u00a1Encantado de conocerte, ${message.trim()}! Tercera pregunta: **\u00bfQu\u00e9 car\u00e1cter o personalidad quieres que tenga al responderte?** (Ej: "Serio y corto", "Sarc\u00e1stico y divertido", "Did\u00e1ctico y amigable", etc)`;
+            return `\u00a1Encantado de conocerte, ${messageTrim}! Tercera pregunta: **\u00bfQu\u00e9 car\u00e1cter o personalidad quieres que tenga al responderte?**`;
         } else if (setupStep === 3) {
-            setSetting('agent_personality', message.trim());
+            setSetting('agent_personality', messageTrim);
             setSetting('agent_setup_step', '4');
-            return "\u00a1Anotado de por vida! Por \u00faltimo: **\u00bfCu\u00e1l ser\u00e1 mi funci\u00f3n principal o en qu\u00e9 rol tecnol\u00f3gico me voy a enfocar contigo de ahora en adelante?**";
+            return "\u00a1Anotado de por vida! Por \u00faltimo: **\u00bfCu\u00e1l ser\u00e1 mi funci\u00f3n principal?**";
         } else if (setupStep === 4) {
-            setSetting('agent_function', message.trim());
+            setSetting('agent_function', messageTrim);
             setSetting('agent_setup_step', '5');
             setSetting('agent_setup_done', '1');
-            return "\u00a1Todo listo! He guardado todas tus directrices en mi memoria base. A partir de ahora mi comportamiento ser\u00e1 exactamente el que has deseado. \u00bfEn qu\u00e9 te ayudo por primera vez?";
+            return "\u00a1Todo listo! \u00bfEn qu\u00e9 te ayudo?";
         }
     }
 
-    // --- Adjuntos (multimodal) ---
-    // Si el mensaje contiene un bloque de adjuntos de Telegram con una imagen descargada localmente,
-    // intentamos transformar el mensaje de usuario a formato multimodal OpenAI-compatible:
-    // { role: 'user', content: [ {type:'text', text:'...'}, {type:'image_url', image_url:{url:'data:...base64'}} ] }
     const imageAttachments = extractImageAttachmentsFromText(message);
     const cleanUserText = stripTelegramAttachmentsBlock(message) || message;
-
     addMessage('user', cleanUserText, sessionId);
-
-    const systemPromptTemplate = `Eres un asistente de IA interactuando con tu usuario principal. Sigue estrictamente esta configuraci\u00f3n persistente de perfil:\nTu nombre es: {agent_name}\nEl nombre del usuario que te habla es: {user_name}\nTu personalidad y tono de respuesta en absoluto DEBE ser: {agent_personality}\nTu misi\u00f3n principal o funci\u00f3n asignada es: {agent_function}\n\nSe te han otorgado herramientas para interactuar con sistemas locales de manera aut\u00f3noma. Habla siempre en castellano. Eres capaz de recordar contexto de mensajes pasados. Adapta toda respuesta al tono de tu personalidad y c\u00e9ntrate en tu misi\u00f3n.`;
 
     const nameToUse = getSetting('agent_name') || 'Asistente';
     const userNameToUse = getSetting('user_name') || 'Usuario';
@@ -189,94 +260,39 @@ export async function processUserMessage(userId: string, source: string, message
     const provider = getSetting('model_provider') || process.env.LLM_PROVIDER || 'openrouter';
     let model = getSetting('model_name') || process.env.MODEL_NAME || (provider === 'openai' ? 'gpt-4o-mini' : 'openrouter/free');
 
-    // Mapeo forzado para mayor robustez si el instalador us\u00f3 nombres antiguos o gen\u00e9ricos
-    if (provider === 'openai' && (model.includes('openrouter') || model === '' || model === 'gpt-5.2' || model === 'n/a')) {
-        model = 'gpt-4o-mini';
-    } else if (provider === 'groq' && (model.includes('openrouter') || model === '' || model === 'n/a')) {
-        model = 'llama-3.3-70b-versatile';
-    } else if (provider === 'anthropic' && (model.includes('openrouter') || model === '' || model === 'n/a')) {
-        model = 'claude-3-5-sonnet-20241022';
-    } else if (provider === 'google' && (model.includes('openrouter') || model === '' || model === 'n/a')) {
-        model = 'gemini-1.5-flash';
-    }
-
-    if (provider !== 'openrouter' && model.includes('/')) {
-        model = model.split('/').pop() || model;
-    }
-
-    console.log(`[Core] Configuraci\u00f3n LLM detectada -> Proveedor: ${provider}, Modelo: ${model}, Origen: ${getSetting('model_provider') ? 'Base de Datos' : 'Variables de Entorno (.env)'}`);
-
+    // --- System Prompt Builder ---
+    const systemPromptTemplate = `Eres un asistente de IA llamado {agent_name}. Tu usuario es {user_name}.\nTu personalidad: {agent_personality}\nTu misión: {agent_function}\n\nHabla siempre en castellano. Eres capaz de recordar contexto.`;
     let fullSystemPrompt = systemPromptTemplate
         .replace('{agent_name}', nameToUse)
         .replace('{user_name}', userNameToUse)
         .replace('{agent_personality}', personalityToUse)
         .replace('{agent_function}', functionToUse);
 
-    // Inyectar contexto de Memoria Avanzada (Fase 8)
     fullSystemPrompt += getMemoryPrompt();
+    const voiceContext = isAudio ? "EL USUARIO TE HA ENVIADO UNA NOTA DE VOZ. Responde con 'speak_message'." : "Responde por texto.";
+    fullSystemPrompt += `\n\nDIRECTRICES:\n${voiceContext}\n\nUsa las herramientas autónomamente. No pidas permiso si tienes una herramienta que soluciona la petición del usuario.`;
 
-    // Instrucciones din\u00e1micas para el uso de VOZ y Hosting
-    const voiceContext = isAudio
-        ? "EL USUARIO TE HA ENVIADO UNA NOTA DE VOZ. Debes responderle usando la herramienta 'speak_message'."
-        : "EL USUARIO TE HA ESCRITO POR TEXTO. Responde \u00daNICAMENTE por texto, a menos que te pida expl\u00edcitamente un audio.";
-
-    fullSystemPrompt += `\n\nDIRECTRICES CR\u00cdTICAS:\n1. USO DE VOZ (speak_message):\n${voiceContext}\n- Si el usuario te pide que hables pero la herramienta est\u00e1 desactivada, DEBES usar 'toggle_skill(skillId: "voice", enabled: true)' para activarla t\u00f4 mismo antes de hablar.\n- IMPORTANTE: Si al intentar hablar notas que falta una configuraci\u00f3n cr\u00edtica (como la API Key de ElevenLabs), DEBES informar al usuario y ped\u00edrsela amablemente para poder completar la configuraci\u00f3n.\n\n2. USO DE HERRAMIENTAS ACTIVAS:\n- NUNCA respondas que no puedes hacer algo sin verificar primero el listado expl\u00edcito de funciones que se te ha entregado en este turno.\n- MEMORIA A LARGO PLAZO: Si el usuario te indica un dato importante, te pide recordar un hecho, o establece una regla que debe aplicar en el futuro, SIEMPRE usa OBLIGATORIAMENTE la herramienta 'update_memory' para asegurar que lo recuerdas. Las cosas no se guardan solas.\n- CONFIGURACI\u00d3N DEL SISTEMA: Si el usuario te dicta o pide guardar una API Key (ej. de OpenAI, Anthropic, ElevenLabs, etc.) o te pide cambiar un proveedor, DEBES usar OBLIGATORIAMENTE la herramienta 'update_setting' para guardar instant\u00e1neamente la clave en su base de datos en vez de intentar usar scripts de Bash locales.\n- AN\u00c1LISIS DE C\u00d3DIGO LOCAL: Usa bash para 'grep', lectura r\u00e1pida, o scripting en python/node.\n- ESCRITURA: Para escribir c\u00f3digo que te pida el usuario, USA UNICAMENTE 'write_file_local' indicando TODA la ruta absoluta correcta.\n\n3. HOSTING DE PROYECTOS WEB:\n- Si el usuario te pide crear una p\u00e1gina web o aplicaci\u00f3n frontend, DEBES usar la herramienta 'write_file_local' o 'run_shell_local' para crear los archivos en la ruta: 'src/web/public/sites/[nombre-del-proyecto]/'.\n- IMPORTANTE: No uses rutas relativas vagas, usa la ruta completa desde la ra\u00edz del proyecto si es necesario, o asume que est\u00e1s en la ra\u00edz.\n- Una vez creados, DEBES proporcionar al usuario el enlace para visualizarla: 'http://localhost:3005/sites/[nombre-del-proyecto]/index.html'.\n- NO te limites a pasar el c\u00f3digo, cr\u00e9alo f\u00edsicamente en esa ruta para que sea accesible.\n\n4. AUTONOM\u00cdA Y AUTO-APRENDIZAJE:\n- Eres un agente autodidacta. Tu objetivo es resolver problemas de forma independiente.\n- EVITA darle comandos al usuario para que los ejecute. Tu objetivo es resolverlo todo t\u00fa mismo.\n- Si te falta una herramienta para una tarea compleja (ej: auditor\u00eda de puertos, an\u00e1lisis de certificados), crea los archivos necesarios y usa 'package_skill' para autoinstalarte esa capacidad.\n- TAREAS MULTI-AGENTE (Fase 13): Si el usuario te pide investigar, resumir o procesar m\u00faltiples cosas complejas o diversas a la vez, DEBES usar la herramienta 'delegate_tasks' para repartir el trabajo entre tus agentes de relevo en paralelo y as\u00ed ahorrar tiempo.\n- Reflexiona sobre tus errores (Post-mortem) y ajusta tu l\u00f3gica en el siguiente paso.\n- Usa 'list_dir_local' y 'read_file_local' proactivamente para entender tu entorno si es necesario.`;
-
-    // --- BOOTSTRAP MECHANISM (OpenClaw inspired) ---
+    // Bootstrap
     const bootstrapFiles = ['package.json', 'README.md', 'src/index.ts'];
     let bootstrapContext = '';
     for (const file of bootstrapFiles) {
         try {
             const filePath = join(process.cwd(), file);
             if (fs.existsSync(filePath)) {
-                const stats = fs.statSync(filePath);
-                if (stats.size < 50000) {
-                    const content = fs.readFileSync(filePath, 'utf8');
-                    bootstrapContext += `\n[ARCHIVO CRÍTICO: ${file}]:\n${content}\n`;
-                }
+                const content = fs.readFileSync(filePath, 'utf8');
+                bootstrapContext += `\n[ARCHIVO: ${file}]:\n${content}\n`;
             }
-        } catch (e) { /* ignore */ }
+        } catch (e) {}
     }
-    if (bootstrapContext) {
-        fullSystemPrompt += `\n\nBOOTSTRAP CONTEXT (Estado actual del proyecto):\n${bootstrapContext}`;
-    }
+    if (bootstrapContext) fullSystemPrompt += `\n\nBOOTSTRAP CONTEXT:\n${bootstrapContext}`;
 
     const extraSkills = getEnabledSkillsContext();
-    if (extraSkills) {
-        fullSystemPrompt += `\n\nAdicionalmente, el usuario ha habilitado directrices MCP (Machine Control Protocol / Habilidades) en tu n\u00facleo. Debes incorporar este conocimiento profundamente en tu metodolog\u00eda a partir de ahora:\n${extraSkills}`;
-    }
+    if (extraSkills) fullSystemPrompt += `\n\nHABILIDADES ACTIVAS:\n${extraSkills}`;
 
-    let currentIteration = 0;
-    let fullAccumulatedText = '';
     const dbMessages = Array.from(getRecentMessages(10, sessionId));
-
-    // Construir el mensaje actual (puede ser multimodal)
-    let currentUserMsg: any;
-    if (imageAttachments.length > 0 && provider !== 'anthropic') {
-        // Para OpenAI-compatible providers
-        const parts: any[] = [];
-        parts.push({ type: 'text', text: cleanUserText || 'Analiza la imagen adjunta.' });
-
-        for (const img of imageAttachments) {
-            try {
-                if (img.url && img.url.startsWith('http')) {
-                    // Preferir URL pública si existe
-                    parts.push({ type: 'image_url', image_url: { url: img.url } });
-                } else if (img.path && isProbablyLocalFilePath(img.path) && fs.existsSync(img.path)) {
-                    const buf = fs.readFileSync(img.path);
-                    const mime = guessMimeFromPath(img.path);
-                    const b64 = buf.toString('base64');
-                    parts.push({ type: 'image_url', image_url: { url: `data:${mime};base64,${b64}` } });
-                }
-            } catch (e) {
-                // Si falla, omitimos esa imagen
-            }
-        }
-
-        currentUserMsg = { role: 'user', content: parts };
-    } else {
-        currentUserMsg = { role: 'user', content: cleanUserText };
-    }
+    let currentUserMsg: any = (imageAttachments.length > 0 && provider !== 'anthropic') 
+        ? { role: 'user', content: [{ type: 'text', text: cleanUserText }, ...imageAttachments.map(img => ({ type: 'image_url', image_url: { url: img.url || `data:${guessMimeFromPath(img.path)};base64,${fs.readFileSync(img.path).toString('base64')}` } }))] }
+        : { role: 'user', content: cleanUserText };
 
     const thread: any[] = [
         { role: 'system', content: fullSystemPrompt },
@@ -284,67 +300,34 @@ export async function processUserMessage(userId: string, source: string, message
         currentUserMsg
     ];
 
+    let currentIteration = 0;
+    let fullAccumulatedText = '';
+
     while (currentIteration < MAX_ITERATIONS) {
         currentIteration++;
-
         try {
             const mcpTools = getMCPTools();
-            let tools = [...getActiveTools(), ...mcpTools];
-
-            const needsVoice = isAudio || cleanUserText.toLowerCase().includes('h\u00e1blame') || cleanUserText.toLowerCase().includes('audio') || cleanUserText.toLowerCase().includes('voz');
-            if (!needsVoice) {
-                tools = tools.filter(t => (t.function?.name || t.name) !== 'speak_message');
-            }
-
+            const tools = [...getActiveTools(), ...mcpTools];
             const responseMessage = await chatCompletion(model, provider, thread, tools, undefined, onDelta);
             thread.push(responseMessage);
 
-            // Acumular contenido de texto si existe
             if (responseMessage.content) {
                 let newContent = responseMessage.content.trim();
-                
-                // DEDUPLICACIÓN: Evitar que el modelo repita lo que ya dijo en turnos anteriores
-                // (a veces algunos modelos repiten su pensamiento previo al continuar)
-                if (fullAccumulatedText && newContent.startsWith(fullAccumulatedText.trim().substring(0, 100))) {
-                    // Si empieza de forma idéntica (primeros 100 chars), intentamos un recorte inteligente
-                    if (newContent.length > fullAccumulatedText.trim().length) {
-                        newContent = newContent.substring(fullAccumulatedText.trim().length).trim();
-                    } else {
-                        newContent = ''; // Era un duplicado exacto o más corto
-                    }
+                if (fullAccumulatedText && newContent.startsWith(fullAccumulatedText.substring(0, 50))) {
+                    newContent = newContent.substring(fullAccumulatedText.length).trim();
                 }
-
                 if (newContent) {
-                    if (fullAccumulatedText) fullAccumulatedText += '\n\n';
-                    fullAccumulatedText += newContent;
+                    fullAccumulatedText += (fullAccumulatedText ? '\n\n' : '') + newContent;
                 }
             }
 
-            if ('tool_calls' in responseMessage && (responseMessage as any).tool_calls && (responseMessage as any).tool_calls.length > 0) {
-                const msg = responseMessage as any;
-                console.log(`[Agent] Se invocan ${msg.tool_calls.length} herramientas...`);
-                for (const toolCall of msg.tool_calls) {
-                    if (!toolCall || !toolCall.function || !toolCall.function.name) {
-                        console.warn('[Agent] toolCall malformado, omitiendo:', JSON.stringify(toolCall));
-                        thread.push({
-                            role: 'tool',
-                            tool_call_id: toolCall?.id || 'unknown',
-                            content: 'Error: tool call malformado'
-                        });
-                        continue;
-                    }
-                    let functionResult;
-                    const isMCPTool = mcpTools.some(t => (t.function?.name || t.name) === toolCall.function.name);
-                    if (isMCPTool) {
-                        functionResult = await executeMCPTool(toolCall.function.name, JSON.parse(toolCall.function.arguments || '{}'));
-                    } else {
-                        functionResult = await executeToolCall(toolCall);
-                    }
-                    thread.push({
-                        role: 'tool',
-                        tool_call_id: toolCall.id,
-                        content: functionResult || 'success'
-                    });
+            if ('tool_calls' in responseMessage && (responseMessage as any).tool_calls?.length > 0) {
+                for (const toolCall of (responseMessage as any).tool_calls) {
+                    const isMCP = mcpTools.some(t => (t.function?.name || t.name) === toolCall.function.name);
+                    const result = isMCP 
+                        ? await executeMCPTool(toolCall.function.name, JSON.parse(toolCall.function.arguments))
+                        : await executeToolCall(toolCall);
+                    thread.push({ role: 'tool', tool_call_id: toolCall.id, content: result || 'success' });
                 }
                 continue;
             }
@@ -353,11 +336,11 @@ export async function processUserMessage(userId: string, source: string, message
                 addMessage('assistant', fullAccumulatedText, sessionId);
                 return fullAccumulatedText;
             }
-            return "Lo siento, la respuesta generada estaba vac\u00eda.";
+            return "Respuesta vacía.";
         } catch (error: any) {
-            console.error('[Agent Loop] Error interno:', error);
-            return `Lo siento, ocurri\u00f3 un error interno consultando el modelo (${error.message || 'Desconocido'}). Revisa tu API key y tu conexi\u00f3n.`;
+            console.error('[Agent Logic] Error:', error);
+            return `Error: ${error.message}`;
         }
     }
-    return "He alcanzado el l\u00edmite de operaciones mentales seguidas. Por favor, int\u00e9ntalo de nuevo o di algo diferente.";
+    return "Límite de iteraciones alcanzado.";
 }
