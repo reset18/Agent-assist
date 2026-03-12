@@ -158,7 +158,10 @@ export async function processUserMessage(userId: string, source: string, message
     }
     state.processedIds.add(messageHash);
     // Limpieza periódica de IDs procesados para evitar fuga de memoria
-    if (state.processedIds.size > 100) state.processedIds.delete(state.processedIds.values().next().value);
+    if (state.processedIds.size > 100) {
+        const first = state.processedIds.values().next().value;
+        if (first) state.processedIds.delete(first);
+    }
 
     // Encolar mensaje
     state.messages.push({ text: message, isAudio, onDelta, userId, source });
