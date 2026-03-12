@@ -147,7 +147,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         model: effectiveModel,
         input,
         store: false,
-        stream: false
+        stream: true
     };
     if (systemInstruction) {
         body.instructions = systemInstruction;
@@ -162,7 +162,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     }
 
     const agentVersion = getSetting('agent_version') || 'v0.2.x';
-    console.log(`[LLM/OAuth ${agentVersion}] Calling Codex Responses API (Sync): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
+    console.log(`[LLM/OAuth ${agentVersion}] Calling Codex Responses API (Streaming): model=${effectiveModel} (requested=${model}), tokenPrefix=${apiKey.substring(0, 10)}...`);
 
     const res = await fetch('https://chatgpt.com/backend-api/codex/responses', {
         method: 'POST',
@@ -178,35 +178,132 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
         throw new Error(`${res.status} ${errText}`);
     }
 
-    const data: any = await res.json();
-    
-    // El objeto de respuesta en modo síncrono suele contener ya todo
-    let fullText = extractTextFromResponseObject(data);
-    let toolCalls: any[] = [];
+    // Procesar el stream SSE para reconstruir la respuesta completa
+    const reader = res.body?.getReader();
+    if (!reader) throw new Error("No se pudo obtener el reader del stream");
 
-    // Extraer tool_calls si vienen de forma nativa en el objeto message u output
-    const msgObj = data.message || (data.choices && data.choices[0]?.message);
-    if (msgObj?.tool_calls) {
-        toolCalls = msgObj.tool_calls;
-    } else if (Array.isArray(data.output)) {
-        // En algunas variantes de Codex, las herramientas vienen en el array output como partes tipo function
-        for (const part of data.output) {
-            if (part?.type === 'function' || part?.tool_call) {
-                const tc = part.tool_call || part;
-                toolCalls.push({
-                    id: tc.id || `call_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-                    type: 'function',
-                    function: {
-                        name: tc.name || tc.function?.name || '',
-                        arguments: tc.arguments || tc.function?.arguments || ''
+    let fullText = '';
+    const toolCallsMap = new Map<string, any>();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    // Algunos streams devuelven el texto final en un objeto response al final.
+    // Guardamos la última respuesta completa por si no hubo deltas.
+    let lastResponseObject: any = null;
+    const debugLLM = getSetting('debug_llm') === '1';
+
+    const appendText = (t: any) => {
+        if (!t) return;
+        if (typeof t === 'string') fullText += t;
+        else if (typeof t === 'object') {
+            if (typeof t.text === 'string') fullText += t.text;
+            else if (typeof t.content === 'string') fullText += t.content;
+            else if (typeof t.delta === 'string') fullText += t.delta;
+        }
+    };
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
+
+            const dataStr = trimmedLine.replace('data: ', '');
+            if (dataStr === '[DONE]') break;
+
+            try {
+                const data = JSON.parse(dataStr);
+                if (debugLLM) console.log(`[Codex/Stream] Event Type: ${data.type}`);
+
+                // 0) Verificar si hay errores explícitos en el stream
+                if (data?.type === 'error' || data?.error) {
+                    const errMsg = data.error?.message || data.message || JSON.stringify(data.error || data);
+                    throw new Error(`Codex Stream Error: ${errMsg}`);
+                }
+
+                // Guardar respuesta completa si viene en eventos tipo completed
+                if (data?.type === 'response.completed' && data.response) {
+                    lastResponseObject = data.response;
+                    if (data.response?.usage) {
+                        const usage = data.response.usage;
+                        addTokenUsage('openai', (usage.input_tokens || 0) + (usage.output_tokens || 0));
                     }
-                });
+                }
+
+                // Capturar texto (muchas variantes y muy permisivo)
+                const isDelta = data.type?.includes('.delta') || data.delta !== undefined || data.text !== undefined || data.content !== undefined;
+                const isTool = data.type?.includes('tool_call') || data.type?.includes('part.added') || data.tool_call !== undefined || data.tool_calls !== undefined;
+
+                if (isDelta && !isTool) {
+                    // Algunos eventos usan data.delta, otros data.text, otros data.content
+                    if (data.delta !== undefined) appendText(data.delta);
+                    else if (data.text !== undefined) appendText(data.text);
+                    else if (data.content !== undefined) appendText(data.content);
+                    else if (data?.message?.delta !== undefined) appendText(data.message.delta);
+                }
+
+                // Algunas implementaciones envían eventos done con texto final.
+                // IMPORTANTE: Solo añadir si fullText está vacío para evitar duplicados si ya recibimos deltas anteriormente.
+                else if (data.type?.includes('.done') && !isTool) {
+                    if (!fullText) {
+                        if (data.text !== undefined) appendText(data.text);
+                        else if (data.content !== undefined) appendText(data.content);
+                    }
+                }
+
+                // Capturar inicio de llamada a herramienta
+                else if ((data.type === 'response.tool_call.added' || data.type === 'response.part.added') && (data.tool_call || data.part)) {
+                    const tc = data.tool_call || data.part;
+                    if (tc && tc.type === 'function') {
+                        toolCallsMap.set(tc.id, {
+                            id: tc.id,
+                            type: 'function',
+                            function: {
+                                name: tc.function?.name || '',
+                                arguments: tc.function?.arguments || ''
+                            }
+                        });
+                    }
+                }
+
+                // Capturar deltas de argumentos de herramientas
+                else if ((data.type === 'response.tool_call.arguments.delta' || data.type === 'response.tool_call.delta' || data.type === 'response.part.delta') && data.delta) {
+                    const tcIdx = data.tool_call_id || data.part_id || (data.tool_call && data.tool_call.id);
+                    const tc = toolCallsMap.get(tcIdx);
+                    if (tc) {
+                        if (typeof data.delta === 'string') {
+                            tc.function.arguments += data.delta;
+                        } else if (data.delta.arguments) {
+                            tc.function.arguments += data.delta.arguments;
+                        }
+                    }
+                }
+
+                // LÍMITE DE SEGURIDAD: Evitar volcados infinitos si el modelo entra en bucle
+                if (fullText.length > 100000) {
+                    console.warn('[LLM/Codex] Límite de seguridad alcanzado (100k chars), truncando stream.');
+                    reader.cancel();
+                    break;
+                }
+            } catch (e: any) {
+                if (e.message?.includes('Codex Stream Error')) throw e;
+                console.warn(`[Codex SSE Diagnostic] Evento no reconocido o error: ${trimmedLine}`);
             }
         }
     }
 
-    if (data.usage) {
-        addTokenUsage('openai', (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0));
+    let toolCalls = Array.from(toolCallsMap.values());
+
+    // Fallback mejorado: si no hubo deltas pero sí vino un objeto response al final, extraer texto.
+    // Solo lo hacemos si fullText está vacío para evitar duplicados.
+    if (!fullText.trim() && lastResponseObject) {
+        fullText = extractTextFromResponseObject(lastResponseObject);
     }
 
     // --- DETECCIÓN DE HERRAMIENTAS EN CRUDO (JSON) PARA CODEX ---
@@ -242,7 +339,7 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     }
 
     if (!fullText && toolCalls.length === 0) {
-        console.error(`[LLM/Codex] Respuesta vacía. Data: ${JSON.stringify(data).substring(0, 500)}`);
+        console.error(`[LLM/Codex] Respuesta vacía. Last object: ${JSON.stringify(lastResponseObject).substring(0, 500)}`);
         throw new Error(`La respuesta del modelo está vacía. Intenta de nuevo o revisa tu cuenta.`);
     }
 
