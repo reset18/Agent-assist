@@ -223,8 +223,12 @@ async function runProcessorQueue(sessionId: string) {
                     combinedOnDelta
                 );
 
-                // Resolver todas las promesas del burst con la misma respuesta
-                for (const m of burst) m.resolve(response);
+                // Resolver la primera promesa con la respuesta, y las demás con vacío
+                // Esto evita que bots como Telegram respondan N veces a la misma ráfaga
+                burst[0].resolve(response);
+                for (let i = 1; i < burst.length; i++) {
+                    burst[i].resolve("");
+                }
             } catch (err: any) {
                 console.error(`[Agent/Processor] Error en sesión ${sessionId}:`, err);
                 for (const m of burst) m.reject(err);
@@ -316,11 +320,16 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
     const extraSkills = getEnabledSkillsContext();
     if (extraSkills) fullSystemPrompt += `\n\nHABILIDADES ACTIVAS:\n${extraSkills}`;
 
-    // Obtener historial. Tomamos 11 para poder descartar el último si es el mismo que acabamos de guardar
-    let dbMessages = Array.from(getRecentMessages(11, sessionId));
-    if (dbMessages.length > 0 && dbMessages[dbMessages.length - 1].role === 'user') {
-        // Descartamos el último mensaje de la DB en el hilo, ya que lo añadiremos abajo de forma manual (multimodal)
-        dbMessages.pop();
+    // Obtener historial. 
+    const dbMessages = Array.from(getRecentMessages(12, sessionId));
+    // DEDUPLICACIÓN DE HISTORIAL: Si el último mensaje es del usuario y es igual al que vamos a enviar, lo quitamos de la lista
+    // para no enviarlo repetido (ya que currentUserMsg ya lo contiene, quizás con imágenes)
+    const normalizedNew = normalizeTextForComparison(cleanUserText);
+    if (dbMessages.length > 0) {
+        const lastMsg = dbMessages[dbMessages.length - 1];
+        if (lastMsg.role === 'user' && normalizeTextForComparison(lastMsg.content) === normalizedNew) {
+            dbMessages.pop();
+        }
     }
 
     let currentUserMsg: any = (imageAttachments.length > 0 && provider !== 'anthropic') 
@@ -333,6 +342,11 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
         currentUserMsg
     ];
 
+    console.log(`[Agent Logic] Procesando: isAudio=${isAudio}, textLength=${cleanUserText.length}, historySize=${dbMessages.length}`);
+    if (getSetting('debug_llm') === '1') {
+        process.stdout.write(`[Debug LLM] Hilo enviado (${thread.length} msgs): ` + JSON.stringify(thread.map(m => ({r: m.role, len: (m.content?.length || 0)}))) + '\n');
+    }
+
     let currentIteration = 0;
     let fullAccumulatedText = '';
 
@@ -340,7 +354,13 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
         currentIteration++;
         try {
             const mcpTools = getMCPTools();
-            const tools = [...getActiveTools(), ...mcpTools];
+            let tools = [...getActiveTools(), ...mcpTools];
+
+            const needsVoice = isAudio || cleanUserText.toLowerCase().includes('háblame') || cleanUserText.toLowerCase().includes('audio') || cleanUserText.toLowerCase().includes('voz');
+            if (!needsVoice) {
+                tools = tools.filter(t => (t.function?.name || t.name) !== 'speak_message');
+            }
+
             const responseMessage = await chatCompletion(model, provider, thread, tools, undefined, onDelta);
             thread.push(responseMessage);
 
