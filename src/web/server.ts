@@ -14,6 +14,14 @@ const app = express();
 app.use(express.json());
 app.use(express.static(join(__dirname, 'public')));
 
+// Cache-busting: Asegurar que index.html no se guarde en caché para que las actualizaciones sean inmediatas
+app.get('/', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile(join(__dirname, 'public', 'index.html'));
+});
+
 // API Config
 app.get('/api/settings', (req, res) => {
     const provider = getSetting('model_provider') || process.env.LLM_PROVIDER || 'openrouter';
