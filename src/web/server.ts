@@ -793,13 +793,8 @@ app.post('/api/chat', async (req, res) => {
     const { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ error: 'Mensaje vacío' });
     try {
-        // processUserMessage ahora gestiona colas internamente
+        // processUserMessage ahora espera a que se complete el procesamiento (aunque esté en cola)
         const reply = await processUserMessage('web_user', 'web', message, false, sessionId || 'default');
-        
-        // Si el mensaje fue encolado, devolvemos un estado informativo
-        if (reply === "Mensaje encolado mientras el agente piensa...") {
-            return res.json({ reply: "", queued: true });
-        }
         
         res.json({ reply });
     } catch (e: any) {
@@ -835,12 +830,7 @@ app.get('/api/chat/stream', async (req, res) => {
             }
         );
 
-        // Si es una respuesta encolada, notificamos al cliente
-        if (reply === "Mensaje encolado mientras el agente piensa...") {
-            sendEvent('status', { message: 'Tu mensaje ha sido encolado. El agente responderá en breve.' });
-        } else {
-            sendEvent('done', { fullText: reply });
-        }
+        sendEvent('done', { fullText: reply });
     } catch (e: any) {
         sendEvent('error', { message: e.message });
     } finally {

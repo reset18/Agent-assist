@@ -12,7 +12,15 @@ const MAX_ITERATIONS = 30;
 // --- ESTADO GLOBAL DE COLAS (OpenClaw Parity) ---
 const sessionQueues: Record<string, {
     busy: boolean;
-    messages: { text: string; isAudio: boolean; onDelta?: (delta: any) => void; userId: string; source: string }[];
+    messages: { 
+        text: string; 
+        isAudio: boolean; 
+        onDelta?: (delta: any) => void; 
+        userId: string; 
+        source: string; 
+        resolve: (val: string) => void; 
+        reject: (err: any) => void 
+    }[];
     processedIds: Set<string>;
 }> = {};
 
@@ -145,7 +153,7 @@ function stripTelegramAttachmentsBlock(message: string) {
 /**
  * Función principal expuesta al exterior. Implementa colas por sesión.
  */
-export async function processUserMessage(userId: string, source: string, message: string, isAudio: boolean = false, sessionId = 'default', onDelta?: (delta: any) => void): Promise<string | any> {
+export async function processUserMessage(userId: string, source: string, message: string, isAudio: boolean = false, sessionId = 'default', onDelta?: (delta: any) => void): Promise<string> {
     const state = getSessionState(sessionId);
     
     // Deduplicación por contenido (OpenClaw approach)
@@ -163,26 +171,26 @@ export async function processUserMessage(userId: string, source: string, message
         if (first) state.processedIds.delete(first);
     }
 
-    // Encolar mensaje
-    state.messages.push({ text: message, isAudio, onDelta, userId, source });
+    // Crear promesa para este mensaje
+    return new Promise((resolve, reject) => {
+        state.messages.push({ text: message, isAudio, onDelta, userId, source, resolve, reject });
 
-    if (state.busy) {
-        console.log(`[Agent/Queue] Sesión ${sessionId} ocupada. Mensaje encolado (Posición: ${state.messages.length})`);
-        // Devolvemos una promesa que se resolverá cuando el proceso termine (opcional si usamos SSE)
-        return "Mensaje encolado mientras el agente piensa...";
-    }
-
-    return runProcessorQueue(sessionId);
+        if (!state.busy) {
+            runProcessorQueue(sessionId).catch(e => console.error(`[Agent/Queue] Error fatal en cola ${sessionId}:`, e));
+        } else {
+            console.log(`[Agent/Queue] Sesión ${sessionId} ocupada. Mensaje encolado (Total: ${state.messages.length})`);
+        }
+    });
 }
 
 /**
  * Procesador de la cola de la sesión.
  */
-async function runProcessorQueue(sessionId: string): Promise<string> {
+async function runProcessorQueue(sessionId: string) {
     const state = getSessionState(sessionId);
+    if (state.busy) return;
+    
     state.busy = true;
-
-    let finalResponse = "";
 
     try {
         while (state.messages.length > 0) {
@@ -194,20 +202,33 @@ async function runProcessorQueue(sessionId: string): Promise<string> {
 
             console.log(`[Agent/Processor] Procesando ráfaga de ${burst.length} mensajes en sesión ${sessionId}`);
             
-            finalResponse = await _executeAgentLogic(
-                primaryMessage.userId, 
-                primaryMessage.source, 
-                combinedText, 
-                isAudioBurst, 
-                sessionId, 
-                primaryMessage.onDelta
-            );
+            try {
+                // Combinar todos los callbacks onDelta del burst
+                const combinedOnDelta = (delta: any) => {
+                    for (const m of burst) {
+                        if (m.onDelta) m.onDelta(delta);
+                    }
+                };
+
+                const response = await _executeAgentLogic(
+                    primaryMessage.userId, 
+                    primaryMessage.source, 
+                    combinedText, 
+                    isAudioBurst, 
+                    sessionId, 
+                    combinedOnDelta
+                );
+
+                // Resolver todas las promesas del burst con la misma respuesta
+                for (const m of burst) m.resolve(response);
+            } catch (err: any) {
+                console.error(`[Agent/Processor] Error en sesión ${sessionId}:`, err);
+                for (const m of burst) m.reject(err);
+            }
         }
     } finally {
         state.busy = false;
     }
-
-    return finalResponse;
 }
 
 /**
