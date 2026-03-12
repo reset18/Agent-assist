@@ -2987,9 +2987,9 @@
             // Bloquear entrada mientras se procesa
             input.disabled = true;
             const sendBtn = document.querySelector('.send-btn-inside');
-            if (sendBtn) (sendBtn as any).disabled = true;
-            if (sendBtn) (sendBtn as any).style.opacity = '0.5';
-            if (sendBtn) (sendBtn as any).style.cursor = 'not-allowed';
+            if (sendBtn) sendBtn.disabled = true;
+            if (sendBtn) sendBtn.style.opacity = '0.5';
+            if (sendBtn) sendBtn.style.cursor = 'not-allowed';
 
             // Indicación de carga estilo ChatGPT
             const typingWrapper = document.createElement('div');
@@ -3090,9 +3090,9 @@
                     chatBusySending = false;
                     input.disabled = false;
                     const sendBtn = document.querySelector('.send-btn-inside');
-                    if (sendBtn) (sendBtn as any).disabled = false;
-                    if (sendBtn) (sendBtn as any).style.opacity = '1';
-                    if (sendBtn) (sendBtn as any).style.cursor = 'pointer';
+                    if (sendBtn) sendBtn.disabled = false;
+                    if (sendBtn) sendBtn.style.opacity = '1';
+                    if (sendBtn) sendBtn.style.cursor = 'pointer';
                     input.focus();
                 } else if (data.type === 'error') {
                     eventSource.close();
