@@ -64,6 +64,59 @@ async function sendWithAudioIntercept(ctx: any, response: string) {
     }
 }
 
+async function sendAudioOnlyReply(ctx: any, reply: string) {
+    const audioRegex = /\[AUDIO:\s*(\/media\/[^\]]+)\]/g;
+    const matches = [...reply.matchAll(audioRegex)];
+
+    if (matches.length > 0) {
+        for (const m of matches) {
+            const audioPath = m[1];
+            const fullPath = path.join(process.cwd(), audioPath);
+            try {
+                if (fullPath.toLowerCase().endsWith('.ogg')) {
+                    await ctx.replyWithVoice(new InputFile(fullPath));
+                } else {
+                    await ctx.replyWithAudio(new InputFile(fullPath));
+                }
+            } catch (e) {
+                console.error('[Telegram] Error enviando audio:', e);
+            }
+        }
+        return;
+    }
+
+    const clean = (reply || '').trim();
+    if (!clean) return;
+
+    try {
+        const { execute_speak_message } = await import('../agent/tools/speak_message.js');
+        const ttsResult = await execute_speak_message({ text_to_speak: clean });
+        const ttsMatches = [...ttsResult.matchAll(/\[AUDIO:\s*(\/media\/[^\]]+)\]/g)];
+
+        for (const tm of ttsMatches) {
+            const p = tm[1];
+            const fullPath = path.join(process.cwd(), p);
+            if (fullPath.toLowerCase().endsWith('.ogg')) {
+                await ctx.replyWithVoice(new InputFile(fullPath));
+            } else {
+                await ctx.replyWithAudio(new InputFile(fullPath));
+            }
+        }
+    } catch (e) {
+        console.error('[Telegram] Error generando TTS de fallback:', e);
+    }
+}
+
+async function processTelegramAudioBuffer(ctx: any, userId: string, audioBuffer: Buffer, filename: string) {
+    const transcript = await transcribeAudio(audioBuffer, filename);
+
+    const sessionId = 'telegram_default';
+    createSession(sessionId, 'Chat de Telegram', 'telegram');
+    const reply = await processUserMessage(userId, 'telegram', transcript, true, sessionId);
+
+    await sendAudioOnlyReply(ctx, reply);
+}
+
 async function ensureTelegramMediaDir() {
     const mediaDir = path.join(process.cwd(), 'data', 'telegram_media');
     await fs.promises.mkdir(mediaDir, { recursive: true });
@@ -141,12 +194,33 @@ export async function startTelegramBot() {
         }
     });
 
-    // Adjuntos: fotos, documentos, etc.
-    bot.on('message', async (ctx) => {
-        // Evitar capturar texto/voz que ya tienen su handler
-        if ((ctx.message as any).text) return;
-        if ((ctx.message as any).voice || (ctx.message as any).audio) return;
+    bot.on(['message:voice', 'message:audio'], async (ctx) => {
+        const userId = ctx.from.id.toString();
+        const fileId = ctx.message.voice?.file_id || (ctx.message as any).audio?.file_id;
 
+        if (!fileId) return;
+
+        try {
+            await ctx.replyWithChatAction('typing');
+            await ctx.reply('escuchando audio', { parse_mode: 'Markdown' });
+
+            const file = await ctx.api.getFile(fileId);
+            const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
+
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Error descargando audio de Telegram');
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+
+            await processTelegramAudioBuffer(ctx, userId, buffer, 'telegram_audio.ogg');
+        } catch (e: any) {
+            console.error('[Telegram] Error procesando audio:', e);
+            await ctx.reply('No he podido transcribir o procesar el audio. ' + (e.message || ''), { parse_mode: 'Markdown' });
+        }
+    });
+
+    // Adjuntos: fotos y documentos (incluye audio enviado como "archivo")
+    bot.on(['message:photo', 'message:document'], async (ctx) => {
         const userId = ctx.from?.id?.toString();
         if (!userId) return;
 
@@ -166,6 +240,16 @@ export async function startTelegramBot() {
             if (msg.document?.file_id) {
                 const mime = msg.document.mime_type || '';
                 const fname = msg.document.file_name || 'telegram_document';
+
+                if (mime.startsWith('audio/')) {
+                    await ctx.replyWithChatAction('typing');
+                    await ctx.reply('escuchando audio', { parse_mode: 'Markdown' });
+                    const { outPath } = await downloadTelegramFileToDisk(ctx, token, msg.document.file_id, fname);
+                    const buffer = await fs.promises.readFile(outPath);
+                    await processTelegramAudioBuffer(ctx, userId, buffer, fname || 'telegram_audio_document');
+                    return;
+                }
+
                 const { outPath, url } = await downloadTelegramFileToDisk(ctx, token, msg.document.file_id, fname);
                 attachments.push({ type: mime.startsWith('image/') ? 'image' : 'document', path: outPath, url });
             }
@@ -190,87 +274,6 @@ export async function startTelegramBot() {
         } catch (e: any) {
             console.error('[Telegram] Error procesando adjunto:', e);
             await ctx.reply('No he podido descargar o procesar el adjunto. ' + (e.message || ''), { parse_mode: 'Markdown' });
-        }
-    });
-
-    bot.on(['message:voice', 'message:audio'], async (ctx) => {
-        const userId = ctx.from.id.toString();
-        const fileId = ctx.message.voice?.file_id || (ctx.message as any).audio?.file_id;
-
-        if (!fileId) return;
-
-        try {
-            await ctx.replyWithChatAction('typing');
-            // Regla estricta de Kevin: el texto debe ser exactamente una línea
-            await ctx.reply('escuchando audio', { parse_mode: 'Markdown' });
-
-            const file = await ctx.api.getFile(fileId);
-            const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
-
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Error descargando audio de Telegram');
-            const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-
-            const transcript = await transcribeAudio(buffer, 'telegram_audio.ogg');
-
-            const sessionId = 'telegram_default';
-            createSession(sessionId, 'Chat de Telegram', 'telegram');
-            const reply = await processUserMessage(userId, 'telegram', transcript, true, sessionId);
-
-            // Si el usuario habló por audio, respondemos siempre con audio.
-            // - En texto: SOLO "escuchando audio" (ya enviado arriba)
-            // - En Telegram: mandamos nota de voz si el motor genera [AUDIO: ...]
-            // - Si no hay audio generado, generamos uno nosotros con TTS.
-            const audioRegex = /\[AUDIO:\s*(\/media\/[^\]]+)\]/g;
-            const matches = [...reply.matchAll(audioRegex)];
-
-            if (matches.length > 0) {
-                // Mandar únicamente los audios detectados, sin texto adicional
-                for (const m of matches) {
-                    const audioPath = m[1];
-                    const fullPath = path.join(process.cwd(), audioPath);
-                    try {
-                        if (fullPath.toLowerCase().endsWith('.ogg')) {
-                            await ctx.replyWithVoice(new InputFile(fullPath));
-                        } else {
-                            await ctx.replyWithAudio(new InputFile(fullPath));
-                        }
-                    } catch (e) {
-                        console.error('[Telegram] Error enviando audio:', e);
-                    }
-                }
-            } else {
-                // Fallback: convertir el reply (limpio) a TTS y enviarlo
-                const clean = reply.trim();
-                if (clean) {
-                    try {
-                        const { execute_speak_message } = await import('../agent/tools/speak_message.js');
-                        const ttsResult = await execute_speak_message({ text_to_speak: clean });
-                        const ttsMatches = [...ttsResult.matchAll(/\[AUDIO:\s*(\/media\/[^\]]+)\]/g)];
-                        if (ttsMatches.length > 0) {
-                            for (const tm of ttsMatches) {
-                                const p = tm[1];
-                                const fullPath = path.join(process.cwd(), p);
-                                if (fullPath.toLowerCase().endsWith('.ogg')) {
-                                    await ctx.replyWithVoice(new InputFile(fullPath));
-                                } else {
-                                    await ctx.replyWithAudio(new InputFile(fullPath));
-                                }
-                            }
-                        } else {
-                            // Último fallback: si TTS no devuelve tag, mandar como texto (pero eso rompería la regla)
-                            // Mejor avisar en logs y no mandar nada extra.
-                            console.warn('[Telegram] TTS no devolvió [AUDIO:], no se envía texto para respetar la regla.');
-                        }
-                    } catch (e) {
-                        console.error('[Telegram] Error generando TTS de fallback:', e);
-                    }
-                }
-            }
-        } catch (e: any) {
-            console.error('[Telegram] Error procesando audio:', e);
-            await ctx.reply('No he podido transcribir o procesar el audio. ' + (e.message || ''), { parse_mode: 'Markdown' });
         }
     });
 

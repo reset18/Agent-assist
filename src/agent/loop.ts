@@ -191,7 +191,7 @@ class StreamDeduplicator {
     wrap(onDelta?: (delta: any) => void) {
         if (!onDelta) return undefined;
         return (delta: any) => {
-            if (delta.type === 'delta' && delta.delta) {
+            if ((delta.type === 'delta' || delta.type === 'text') && delta.delta) {
                 const newText = delta.delta;
                 // Si el nuevo texto ya está contenido al final de lo que llevamos, lo ignoramos
                 if (this.fullOutput.endsWith(newText)) return;
@@ -438,17 +438,6 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
             const responseMessage = await chatCompletion(model, provider, thread, tools, undefined, onDelta);
             thread.push(responseMessage);
 
-            if (responseMessage.content) {
-                const newContent = responseMessage.content.trim();
-                const merged = fuzzyMerge(fullAccumulatedText, newContent);
-                
-                if (getSetting('debug_llm') === '1' && merged.length < fullAccumulatedText.length + newContent.length) {
-                    console.log(`[Fuzzy Merger] Detectado solapamiento. Recortado de ${newContent.length} a ${merged.length - fullAccumulatedText.length} chars.`);
-                }
-                
-                fullAccumulatedText = merged;
-            }
-
             if ('tool_calls' in responseMessage && (responseMessage as any).tool_calls?.length > 0) {
                 for (const toolCall of (responseMessage as any).tool_calls) {
                     const isMCP = mcpTools.some(t => (t.function?.name || t.name) === toolCall.function.name);
@@ -458,6 +447,17 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
                     thread.push({ role: 'tool', tool_call_id: toolCall.id, content: result || 'success' });
                 }
                 continue;
+            }
+
+            if (responseMessage.content) {
+                const newContent = responseMessage.content.trim();
+                const merged = fuzzyMerge(fullAccumulatedText, newContent);
+
+                if (getSetting('debug_llm') === '1' && merged.length < fullAccumulatedText.length + newContent.length) {
+                    console.log(`[Fuzzy Merger] Detectado solapamiento. Recortado de ${newContent.length} a ${merged.length - fullAccumulatedText.length} chars.`);
+                }
+
+                fullAccumulatedText = merged;
             }
 
             if (fullAccumulatedText) {
