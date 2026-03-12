@@ -300,10 +300,13 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
                     else if (data?.message?.delta !== undefined) appendText(data.message.delta);
                 }
 
-                // Algunas implementaciones envían eventos done con texto final
+                // Algunas implementaciones envían eventos done con texto final.
+                // IMPORTANTE: Solo añadir si fullText está vacío para evitar duplicados si ya recibimos deltas anteriormente.
                 else if (data.type?.includes('.done') && !isTool) {
-                    if (data.text !== undefined) appendText(data.text);
-                    else if (data.content !== undefined) appendText(data.content);
+                    if (!fullText) {
+                        if (data.text !== undefined) appendText(data.text);
+                        else if (data.content !== undefined) appendText(data.content);
+                    }
                 }
 
                 // Capturar inicio de llamada a herramienta
@@ -349,8 +352,9 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
 
     let toolCalls = Array.from(toolCallsMap.values());
 
-    // Fallback mejorado: si no hubo deltas pero sí vino un objeto response al final, extraer texto
-    if (!fullText && lastResponseObject) {
+    // Fallback mejorado: si no hubo deltas pero sí vino un objeto response al final, extraer texto.
+    // Solo lo hacemos si fullText está vacío para evitar duplicados.
+    if (!fullText.trim() && lastResponseObject) {
         fullText = extractTextFromResponseObject(lastResponseObject);
     }
 
