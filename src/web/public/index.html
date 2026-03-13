@@ -2838,6 +2838,19 @@
             out = out.replace(/#\s*Plan Mode\s*-\s*System Reminder[\s\S]*$/gi, '').trim();
             out = out.replace(/CRITICAL:\s*Plan mode ACTIVE[\s\S]*$/gi, '').trim();
             out = out.replace(/\{\s*"command"\s*:\s*"[\s\S]*?\}\s*$/gi, '').trim();
+
+            const leakMarkers = [
+                /Your operational mode has changed/i,
+                /plan to build/i,
+                /active\.sort\(key=lambda/i,
+                /ipaddress\.ip_network/i,
+                /Pásamelo y te lo dejo limpio/i,
+                /paréntesis suicidas/i
+            ];
+            if (leakMarkers.some((rx) => rx.test(out))) {
+                return 'Perdona, se coló contenido interno por error. ¿Me repites lo que necesitas y te respondo directo?';
+            }
+
             return out;
         }
 
