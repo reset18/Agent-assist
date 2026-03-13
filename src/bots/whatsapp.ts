@@ -11,6 +11,16 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+function sanitizeBotText(text: string) {
+    if (!text) return '';
+    let out = String(text);
+    out = out.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, '').trim();
+    out = out.replace(/&lt;system-reminder&gt;[\s\S]*?&lt;\/system-reminder&gt;/gi, '').trim();
+    out = out.replace(/#\s*Plan Mode\s*-\s*System Reminder[\s\S]*$/gi, '').trim();
+    out = out.replace(/CRITICAL:\s*Plan mode ACTIVE[\s\S]*$/gi, '').trim();
+    return out;
+}
+
 function resolveMediaFilePath(audioPath: string) {
     const normalized = audioPath.startsWith('/') ? audioPath.slice(1) : audioPath;
     const candidates = [
@@ -54,6 +64,7 @@ async function saveIncomingAudioForWeb(buffer: Buffer, extOrMime: string) {
 export let whatsappGlobalState = { status: 'initializing', qr: '' };
 
 async function sendWithAudioIntercept(msg: any, response: string) {
+    response = sanitizeBotText(response);
     const audioRegex = /\[AUDIO:\s*(\/media\/[^\]]+)\]/g;
     let match;
     let audios: string[] = [];
@@ -64,9 +75,9 @@ async function sendWithAudioIntercept(msg: any, response: string) {
         cleanText = cleanText.replace(match[0], '').trim();
     }
 
-    if (cleanText) {
-        await msg.reply(cleanText);
-    }
+        if (cleanText) {
+            await msg.reply(cleanText);
+        }
 
     for (const audioPath of audios) {
         const fullPath = resolveMediaFilePath(audioPath);
@@ -151,7 +162,7 @@ export async function startWhatsappBot() {
                 await sendWithAudioIntercept(msg, response);
             } catch (e: any) {
                 console.error('[WhatsApp] Error procesando audio:', e);
-                await msg.reply('No he podido transcribir o procesar el audio. ' + e.message);
+                await msg.reply('No he podido transcribir o procesar el audio. Inténtalo de nuevo en unos segundos.');
             }
         }
     });

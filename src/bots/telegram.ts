@@ -9,6 +9,16 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+function sanitizeBotText(text: string) {
+    if (!text) return '';
+    let out = String(text);
+    out = out.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, '').trim();
+    out = out.replace(/&lt;system-reminder&gt;[\s\S]*?&lt;\/system-reminder&gt;/gi, '').trim();
+    out = out.replace(/#\s*Plan Mode\s*-\s*System Reminder[\s\S]*$/gi, '').trim();
+    out = out.replace(/CRITICAL:\s*Plan mode ACTIVE[\s\S]*$/gi, '').trim();
+    return out;
+}
+
 function resolveMediaFilePath(audioPath: string) {
     const normalized = audioPath.startsWith('/') ? audioPath.slice(1) : audioPath;
     const candidates = [
@@ -59,6 +69,7 @@ async function saveIncomingAudioForWeb(buffer: Buffer, extOrFilename: string) {
 }
 
 async function splitAndSend(ctx: any, text: string) {
+    text = sanitizeBotText(text);
     const CHUNK_LIMIT = 4000;
     if (text.length <= CHUNK_LIMIT) {
         return await ctx.reply(text, { parse_mode: 'Markdown' });
@@ -83,6 +94,7 @@ async function splitAndSend(ctx: any, text: string) {
 }
 
 async function sendWithAudioIntercept(ctx: any, response: string) {
+    response = sanitizeBotText(response);
     const audioRegex = /\[AUDIO:\s*(\/media\/[^\]]+)\]/g;
     let match;
     const audios: string[] = [];
@@ -114,6 +126,7 @@ async function sendWithAudioIntercept(ctx: any, response: string) {
 }
 
 async function sendAudioOnlyReply(ctx: any, reply: string) {
+    reply = sanitizeBotText(reply);
     const audioRegex = /\[AUDIO:\s*(\/media\/[^\]]+)\]/g;
     const matches = [...reply.matchAll(audioRegex)];
 
@@ -282,7 +295,7 @@ export async function startTelegramBot() {
             await processTelegramAudioBuffer(ctx, userId, buffer, filename);
         } catch (e: any) {
             console.error('[Telegram] Error procesando audio:', e);
-            await ctx.reply('No he podido transcribir o procesar el audio. ' + (e.message || ''), { parse_mode: 'Markdown' });
+            await ctx.reply('No he podido transcribir o procesar el audio. Inténtalo de nuevo en unos segundos.', { parse_mode: 'Markdown' });
         }
     };
 
@@ -360,7 +373,7 @@ export async function startTelegramBot() {
             await sendWithAudioIntercept(ctx, response);
         } catch (e: any) {
             console.error('[Telegram] Error procesando adjunto:', e);
-            await ctx.reply('No he podido descargar o procesar el adjunto. ' + (e.message || ''), { parse_mode: 'Markdown' });
+            await ctx.reply('No he podido descargar o procesar el adjunto. Inténtalo de nuevo en unos segundos.', { parse_mode: 'Markdown' });
         }
     });
 
