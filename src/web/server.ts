@@ -661,6 +661,7 @@ app.post('/api/voice/test-tts', async (req, res) => {
 
         const models = model === 'auto' ? ['gpt-4o-mini-tts', 'tts-1', 'tts-1-hd'] : [model];
         let lastError = '';
+        let deniedCount = 0;
 
         for (const candidate of models) {
             const resp = await fetch('https://api.openai.com/v1/audio/speech', {
@@ -678,6 +679,19 @@ app.post('/api/voice/test-tts', async (req, res) => {
 
             const err = await resp.text();
             lastError = `${resp.status}: ${err}`;
+
+            const denied = resp.status === 403 && (
+                err.includes('does not have access to model') ||
+                err.includes('model_not_found')
+            );
+            if (denied) deniedCount++;
+        }
+
+        if (deniedCount === models.length) {
+            return res.status(400).json({
+                success: false,
+                error: `Tu proyecto OpenAI no tiene acceso a modelos TTS (${models.join(', ')}). Usa motor local (Piper) o ElevenLabs.`
+            });
         }
 
         return res.status(400).json({ success: false, error: `TTS no disponible: ${lastError}` });

@@ -1969,6 +1969,7 @@
                                         OpenAI)</option>
                                     <option value="elevenlabs">ElevenLabs (Voces Premium / Clonadas)
                                     </option>
+                                    <option value="local">Local (Piper en servidor)</option>
                                 </select>
                                 <span class="helper-text">Nota: Whisper es transcripción (STT), no síntesis de voz. Para enviar notas de voz con OpenAI se usa TTS (`tts-1`) y requiere API Key de plataforma.</span>
                             </div>
@@ -2931,7 +2932,16 @@
                 const openaiVoice = document.getElementById('openai_voice_id');
                 if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
                 const openaiTtsModel = document.getElementById('openai_tts_model');
-                if (openaiTtsModel) openaiTtsModel.value = data.openai_tts_model || 'auto';
+                if (openaiTtsModel) {
+                    const selected = data.openai_tts_model || 'auto';
+                    if (!openaiTtsModel.querySelector(`option[value="${selected}"]`)) {
+                        const opt = document.createElement('option');
+                        opt.value = selected;
+                        opt.textContent = `${selected} (actual)`;
+                        openaiTtsModel.appendChild(opt);
+                    }
+                    openaiTtsModel.value = selected;
+                }
                 const openaiKey = document.getElementById('openai_api_key_audio');
                 if (openaiKey) openaiKey.value = data.openai_api_key_audio || '';
 
