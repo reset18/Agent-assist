@@ -60,6 +60,21 @@ CREATE INDEX IF NOT EXISTS idx_memories_session_id ON memories(session_id);
 CREATE INDEX IF NOT EXISTS idx_memories_updated_at ON memories(updated_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_memories_fingerprint ON memories(fingerprint);
 
+CREATE TABLE IF NOT EXISTS integration_state (
+  integration_id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,
+  base_url TEXT,
+  auth_setting_key TEXT,
+  enabled INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'unknown',
+  last_ok_at DATETIME,
+  last_error TEXT,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_integration_state_provider ON integration_state(provider);
+CREATE INDEX IF NOT EXISTS idx_integration_state_enabled ON integration_state(enabled);
+
 -- Valores por defecto iniciales
 INSERT OR IGNORE INTO sessions (id, name) VALUES ('default', 'Chat Principal');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('agent_name', 'AgentAssist');

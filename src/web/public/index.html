@@ -3398,11 +3398,25 @@
             const skillId = window.currentSkillConfigId;
             if (!skillId) return;
             const status = document.getElementById('skill_config_status');
+            const fieldsContainer = document.getElementById('skill_config_fields');
             if (!status) return;
+
+            const payload = {};
+            if (fieldsContainer) {
+                fieldsContainer.querySelectorAll('[id^="skill_cfg_field_"]').forEach((el) => {
+                    const key = el.id.replace('skill_cfg_field_', '');
+                    payload[key] = el.value;
+                });
+            }
+
             status.textContent = 'Probando conexión...';
             status.style.color = 'var(--primary)';
 
-            const r = await fetch(`/api/skills/${encodeURIComponent(skillId)}/test`, { method: 'POST' });
+            const r = await fetch(`/api/skills/${encodeURIComponent(skillId)}/test`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
             const data = await r.json();
             if (!r.ok || !data.success) {
                 status.textContent = `❌ ${data.error || 'Test fallido.'}`;

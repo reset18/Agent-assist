@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { addOrUpdateMemory, getSetting, listMemories, type MemoryRecord } from '../db/index.js';
+import { addOrUpdateMemory, getSetting, listIntegrationStates, listMemories, type MemoryRecord } from '../db/index.js';
 
 export const MEMORY_DIR = path.join(process.cwd(), 'memory');
 
@@ -48,8 +48,25 @@ export function getMemoryPrompt(): string {
     });
 
     memoryPrompt += 'Si descubres nueva información crítica sobre el usuario o tus tareas, usa la herramienta "update_memory" para añadirla a memoria_agente.md.\n';
+    memoryPrompt += getOperationalIntegrationsPrompt();
     memoryPrompt += '============================================\n';
     return memoryPrompt;
+}
+
+export function getOperationalIntegrationsPrompt(): string {
+    const active = listIntegrationStates(true);
+    if (!active.length) return '';
+
+    let prompt = '\n\n[ESTADO OPERATIVO PERSISTENTE]\n';
+    prompt += 'Estas integraciones existen y deben considerarse activas salvo error explicito en runtime:\n';
+    for (const item of active) {
+        const status = item.status || 'unknown';
+        const base = item.base_url ? ` | base_url: ${item.base_url}` : '';
+        const okAt = item.last_ok_at ? ` | ultimo_ok: ${item.last_ok_at}` : '';
+        prompt += `- ${item.integration_id} (${item.provider}) | status: ${status}${base}${okAt}\n`;
+    }
+    prompt += 'No digas que una integracion no existe si aparece aqui; primero intenta usarla y si falla reporta error real.\n';
+    return prompt;
 }
 
 const SECRET_LIKE_RX = /(api[_-]?key|token|secret|password|passwd|bearer|authorization|sk-[a-z0-9]{10,})/i;

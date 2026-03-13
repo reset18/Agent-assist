@@ -4,7 +4,7 @@ import { dirname, join } from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import AdmZip from 'adm-zip';
-import { getSetting, setSetting, getLLMAccounts, saveLLMAccount, removeLLMAccount, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, deleteSession, getTokenUsageHistory, getToolRuntimeMetricsHistory, listMemories, deleteMemory, clearMemories, getMemoryStats } from '../db/index.js';
+import { getSetting, setSetting, getLLMAccounts, saveLLMAccount, removeLLMAccount, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, deleteSession, getTokenUsageHistory, getToolRuntimeMetricsHistory, listMemories, deleteMemory, clearMemories, getMemoryStats, upsertIntegrationState, updateIntegrationEnabled, getIntegrationState, listIntegrationStates } from '../db/index.js';
 import { whatsappGlobalState } from '../bots/whatsapp.js';
 import { getToolRuntimeDiagnostics } from '../agent/loop.js';
 
@@ -916,7 +916,12 @@ app.post('/api/settings', (req, res) => {
     // Guardar dinámicamente cualquier skill enviada
     for (const key of Object.keys(req.body)) {
         if (key.startsWith('skill_enabled_')) {
-            setSetting(key, req.body[key] ? '1' : '0');
+            const enabled = !!req.body[key];
+            setSetting(key, enabled ? '1' : '0');
+            const skillId = key.replace('skill_enabled_', '');
+            if (isIntegrationSkill(skillId)) {
+                updateIntegrationEnabled(resolveIntegrationIdFromSkill(skillId), enabled);
+            }
         }
     }
 
@@ -1186,6 +1191,17 @@ function getSkillConfigSchema(skillId: string) {
     ];
 }
 
+function isIntegrationSkill(skillId: string) {
+    const id = (skillId || '').toLowerCase();
+    return id === 'integrations.zip' || id.includes('home') || id.includes('assistant') || id.includes('api');
+}
+
+function resolveIntegrationIdFromSkill(skillId: string) {
+    const id = (skillId || '').toLowerCase();
+    if (id === 'integrations.zip' || id.includes('home') || id.includes('assistant')) return 'home_assistant';
+    return id.replace(/\.zip$/i, '').replace(/[^a-z0-9_]+/g, '_') || 'generic_integration';
+}
+
 function getSkillConfig(skillId: string) {
     const schema = getSkillConfigSchema(skillId);
     const config: Record<string, string> = {};
@@ -1220,6 +1236,27 @@ app.post('/api/skills/:id/config', (req, res) => {
             setSetting(settingKey, value);
         }
 
+        if (isIntegrationSkill(skillId)) {
+            const integrationId = resolveIntegrationIdFromSkill(skillId);
+            const url = String(body.home_assistant_url ?? getSetting(`skill_cfg_${skillId}_home_assistant_url`) ?? '').trim();
+            const token = String(body.home_assistant_token ?? getSetting(`skill_cfg_${skillId}_home_assistant_token`) ?? '').trim();
+            const enabled = getSetting(`skill_enabled_${skillId}`) === '1' || (!!url && !!token);
+
+            if (enabled) {
+                setSetting(`skill_enabled_${skillId}`, '1');
+            }
+
+            upsertIntegrationState({
+                integrationId,
+                provider: integrationId,
+                baseUrl: url || null,
+                authSettingKey: token ? `skill_cfg_${skillId}_home_assistant_token` : null,
+                enabled,
+                status: 'unknown',
+                lastError: null,
+            });
+        }
+
         res.json({ success: true });
     } catch (e: any) {
         res.status(500).json({ success: false, error: e.message });
@@ -1233,8 +1270,14 @@ app.post('/api/skills/:id/test', async (req, res) => {
             return res.json({ success: true, message: 'Esta skill no requiere test remoto específico.' });
         }
 
-        const url = String(getSetting(`skill_cfg_${skillId}_home_assistant_url`) || '').trim();
-        const token = String(getSetting(`skill_cfg_${skillId}_home_assistant_token`) || '').trim();
+        const body = req.body || {};
+        if (body.home_assistant_url !== undefined) setSetting(`skill_cfg_${skillId}_home_assistant_url`, String(body.home_assistant_url));
+        if (body.home_assistant_token !== undefined) setSetting(`skill_cfg_${skillId}_home_assistant_token`, String(body.home_assistant_token));
+        if (body.home_assistant_ws_url !== undefined) setSetting(`skill_cfg_${skillId}_home_assistant_ws_url`, String(body.home_assistant_ws_url));
+        if (body.entity_filter !== undefined) setSetting(`skill_cfg_${skillId}_entity_filter`, String(body.entity_filter));
+
+        const url = String(body.home_assistant_url ?? (getSetting(`skill_cfg_${skillId}_home_assistant_url`) || '')).trim();
+        const token = String(body.home_assistant_token ?? (getSetting(`skill_cfg_${skillId}_home_assistant_token`) || '')).trim();
 
         if (!url || !token) {
             return res.status(400).json({ success: false, error: 'Faltan URL o token de Home Assistant.' });
@@ -1250,11 +1293,41 @@ app.post('/api/skills/:id/test', async (req, res) => {
 
         if (!testResp.ok) {
             const txt = await testResp.text();
+            upsertIntegrationState({
+                integrationId: 'home_assistant',
+                provider: 'home_assistant',
+                baseUrl: normalizedUrl,
+                authSettingKey: `skill_cfg_${skillId}_home_assistant_token`,
+                enabled: getSetting(`skill_enabled_${skillId}`) === '1',
+                status: 'error',
+                lastError: `HTTP ${testResp.status}: ${txt.slice(0, 180)}`,
+            });
             return res.status(400).json({ success: false, error: `Home Assistant respondió ${testResp.status}: ${txt.slice(0, 180)}` });
         }
 
+        setSetting(`skill_enabled_${skillId}`, '1');
+        upsertIntegrationState({
+            integrationId: 'home_assistant',
+            provider: 'home_assistant',
+            baseUrl: normalizedUrl,
+            authSettingKey: `skill_cfg_${skillId}_home_assistant_token`,
+            enabled: true,
+            status: 'connected',
+            lastOkAt: new Date().toISOString(),
+            lastError: null,
+        });
+
         return res.json({ success: true, message: 'Conexión con Home Assistant correcta.' });
     } catch (e: any) {
+        upsertIntegrationState({
+            integrationId: 'home_assistant',
+            provider: 'home_assistant',
+            baseUrl: String(getSetting(`skill_cfg_integrations.zip_home_assistant_url`) || '').trim() || null,
+            authSettingKey: `skill_cfg_integrations.zip_home_assistant_token`,
+            enabled: getSetting(`skill_enabled_integrations.zip`) === '1',
+            status: 'error',
+            lastError: e.message || 'Error probando la skill.',
+        });
         return res.status(500).json({ success: false, error: e.message || 'Error probando la skill.' });
     }
 });
@@ -1283,6 +1356,19 @@ app.get('/api/tokens/history', (req, res) => {
         res.json({ history });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/integrations/state', (req, res) => {
+    try {
+        const integrationId = String(req.query.integrationId || '').trim();
+        if (integrationId) {
+            const item = getIntegrationState(integrationId);
+            return res.json({ success: true, integration: item });
+        }
+        return res.json({ success: true, integrations: listIntegrationStates(false) });
+    } catch (e: any) {
+        return res.status(500).json({ success: false, error: e.message || 'Error leyendo estado de integraciones.' });
     }
 });
 

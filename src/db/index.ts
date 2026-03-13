@@ -79,6 +79,22 @@ export function initDb() {
         db.exec(`CREATE INDEX IF NOT EXISTS idx_memories_updated_at ON memories(updated_at DESC)`);
         db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_memories_fingerprint ON memories(fingerprint)`);
 
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS integration_state (
+                integration_id TEXT PRIMARY KEY,
+                provider TEXT NOT NULL,
+                base_url TEXT,
+                auth_setting_key TEXT,
+                enabled INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'unknown',
+                last_ok_at DATETIME,
+                last_error TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_integration_state_provider ON integration_state(provider)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_integration_state_enabled ON integration_state(enabled)`);
+
         db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('auto_memory_enabled', '1')").run();
     } catch (err) {
         console.error("[DB] Error en migración:", err);
@@ -319,6 +335,70 @@ export function getMemoryStats(sessionId?: string) {
         global: global.c || 0,
         session: session.c || 0,
     };
+}
+
+export interface IntegrationStateRecord {
+    integration_id: string;
+    provider: string;
+    base_url: string | null;
+    auth_setting_key: string | null;
+    enabled: number;
+    status: string;
+    last_ok_at: string | null;
+    last_error: string | null;
+    updated_at: string;
+}
+
+export function upsertIntegrationState(input: {
+    integrationId: string;
+    provider: string;
+    baseUrl?: string | null;
+    authSettingKey?: string | null;
+    enabled?: boolean;
+    status?: 'unknown' | 'connected' | 'error';
+    lastOkAt?: string | null;
+    lastError?: string | null;
+}) {
+    const integrationId = String(input.integrationId || '').trim();
+    if (!integrationId) return;
+    const provider = String(input.provider || '').trim() || 'generic';
+    const baseUrl = input.baseUrl == null ? null : String(input.baseUrl).trim() || null;
+    const authSettingKey = input.authSettingKey == null ? null : String(input.authSettingKey).trim() || null;
+    const enabled = input.enabled ? 1 : 0;
+    const status = input.status || 'unknown';
+    const lastOkAt = input.lastOkAt == null ? null : input.lastOkAt;
+    const lastError = input.lastError == null ? null : String(input.lastError).slice(0, 500);
+
+    db.prepare(`
+        INSERT INTO integration_state (integration_id, provider, base_url, auth_setting_key, enabled, status, last_ok_at, last_error, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(integration_id) DO UPDATE SET
+            provider = excluded.provider,
+            base_url = excluded.base_url,
+            auth_setting_key = excluded.auth_setting_key,
+            enabled = excluded.enabled,
+            status = excluded.status,
+            last_ok_at = excluded.last_ok_at,
+            last_error = excluded.last_error,
+            updated_at = CURRENT_TIMESTAMP
+    `).run(integrationId, provider, baseUrl, authSettingKey, enabled, status, lastOkAt, lastError);
+}
+
+export function updateIntegrationEnabled(integrationId: string, enabled: boolean) {
+    db.prepare('UPDATE integration_state SET enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE integration_id = ?')
+        .run(enabled ? 1 : 0, integrationId);
+}
+
+export function listIntegrationStates(enabledOnly = false): IntegrationStateRecord[] {
+    const sql = enabledOnly
+        ? 'SELECT * FROM integration_state WHERE enabled = 1 ORDER BY updated_at DESC'
+        : 'SELECT * FROM integration_state ORDER BY updated_at DESC';
+    return db.prepare(sql).all() as IntegrationStateRecord[];
+}
+
+export function getIntegrationState(integrationId: string): IntegrationStateRecord | null {
+    const row = db.prepare('SELECT * FROM integration_state WHERE integration_id = ?').get(integrationId) as IntegrationStateRecord | undefined;
+    return row || null;
 }
 
 // ==========================
