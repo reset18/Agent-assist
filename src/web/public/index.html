@@ -1996,6 +1996,22 @@
                                     <span class="helper-text">Usará la clave de arriba. Si está vacía, usará la clave
                                         LLM principal.</span>
                                 </div>
+
+                                <div class="form-group" style="margin-top: 15px;">
+                                    <label for="openai_tts_model">Modelo TTS de OpenAI</label>
+                                    <select id="openai_tts_model" onchange="saveSettings()">
+                                        <option value="auto">auto (recomendado)</option>
+                                        <option value="gpt-4o-mini-tts">gpt-4o-mini-tts</option>
+                                        <option value="tts-1">tts-1</option>
+                                        <option value="tts-1-hd">tts-1-hd</option>
+                                    </select>
+                                    <span class="helper-text">Auto prueba modelos por orden hasta encontrar uno disponible para tu proyecto.</span>
+                                </div>
+
+                                <div class="form-group" style="margin-top: 10px;">
+                                    <button type="button" class="secondary-btn" onclick="testOpenAITtsConfig()">Probar voz OpenAI</button>
+                                    <span id="openai_tts_test_status" class="helper-text" style="display:block; margin-top:8px;"></span>
+                                </div>
                             </div>
 
                             <!-- Campos ElevenLabs -->
@@ -2348,7 +2364,16 @@
                 }
                 const d = new Date(parsed);
                 if (Number.isNaN(d.getTime())) return '';
-                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const now = new Date();
+                const sameDay = d.getFullYear() === now.getFullYear() &&
+                    d.getMonth() === now.getMonth() &&
+                    d.getDate() === now.getDate();
+                if (sameDay) {
+                    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+                const datePart = d.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+                const timePart = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return `${datePart} ${timePart}`;
             } catch {
                 return '';
             }
@@ -2905,6 +2930,8 @@
 
                 const openaiVoice = document.getElementById('openai_voice_id');
                 if (openaiVoice) openaiVoice.value = data.openai_voice_id || 'alloy';
+                const openaiTtsModel = document.getElementById('openai_tts_model');
+                if (openaiTtsModel) openaiTtsModel.value = data.openai_tts_model || 'auto';
                 const openaiKey = document.getElementById('openai_api_key_audio');
                 if (openaiKey) openaiKey.value = data.openai_api_key_audio || '';
 
@@ -3220,6 +3247,7 @@
                 voice_engine: document.getElementById('voice_engine')?.value || 'openai',
                 openai_api_key_audio: document.getElementById('openai_api_key_audio')?.value || '',
                 openai_voice_id: document.getElementById('openai_voice_id')?.value || 'alloy',
+                openai_tts_model: document.getElementById('openai_tts_model')?.value || 'auto',
                 elevenlabs_api_key: document.getElementById('elevenlabs_api_key')?.value || '',
                 elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || '',
                 llm_primary_account_id: document.getElementById('llm_primary_account_id')?.value || '',
@@ -4143,6 +4171,37 @@
                     container.appendChild(box);
                 });
             } catch (e) { }
+        }
+
+        async function testOpenAITtsConfig() {
+            const statusEl = document.getElementById('openai_tts_test_status');
+            const apiKey = document.getElementById('openai_api_key_audio')?.value || '';
+            const voiceId = document.getElementById('openai_voice_id')?.value || 'alloy';
+            const model = document.getElementById('openai_tts_model')?.value || 'auto';
+
+            if (!statusEl) return;
+            statusEl.textContent = 'Probando TTS...';
+            statusEl.style.color = 'var(--primary)';
+
+            try {
+                const r = await fetch('/api/voice/test-tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, voiceId, model })
+                });
+                const data = await r.json();
+                if (!r.ok || !data.success) {
+                    statusEl.textContent = `❌ ${data.error || 'No se pudo validar TTS'}`;
+                    statusEl.style.color = 'var(--danger)';
+                    return;
+                }
+
+                statusEl.textContent = `✅ TTS operativo (modelo: ${data.modelUsed || model})`;
+                statusEl.style.color = 'var(--success)';
+            } catch (e) {
+                statusEl.textContent = '❌ Error de red validando TTS.';
+                statusEl.style.color = 'var(--danger)';
+            }
         }
 
         // saveMultiTierSettings ahora se maneja por saveSettings genérico

@@ -43,6 +43,32 @@ async function tryGenerateLocalPiperAudioTag(text: string): Promise<string | nul
     }
 }
 
+async function requestOpenAITts(apiKey: string, model: string, voice: string, input: string) {
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model,
+            input,
+            voice
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.text();
+        const err: any = new Error(`OpenAI TTS falló con status: ${response.status} - ${error}`);
+        err.status = response.status;
+        err.raw = error;
+        throw err;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+}
+
 export const speak_message_def = {
     type: "function",
     function: {
@@ -72,7 +98,7 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
         return "Las capacidades de voz están deshabilitadas. Por favor, indícale al usuario: El audio no se ha mandado porque las capacidades de voz están desactivadas en los ajustes.";
     }
 
-    let audioBuffer: Buffer;
+    let audioBuffer: Buffer | null = null;
 
     try {
         if (engine === 'local') {
@@ -175,41 +201,45 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
                 throw new Error("No hay una API Key de OpenAI Platform válida para TTS. Si usas cuenta free por OAuth, configura motor local (Piper) o añade OpenAI API Key en Voz.");
             }
 
-            const response = await fetch('https://api.openai.com/v1/audio/speech', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: "tts-1",
-                    input: args.text_to_speak,
-                    voice: voiceId
-                })
-            });
+            const configuredModel = (getSetting('openai_tts_model') || 'auto').trim();
+            const modelCandidates = configuredModel === 'auto'
+                ? ['gpt-4o-mini-tts', 'tts-1', 'tts-1-hd']
+                : [configuredModel];
 
-            if (!response.ok) {
-                const error = await response.text();
+            let lastError: any = null;
+            let deniedByAccess = false;
+            for (const modelCandidate of modelCandidates) {
+                try {
+                    audioBuffer = await requestOpenAITts(apiKey, modelCandidate, voiceId, args.text_to_speak);
+                    deniedByAccess = false;
+                    break;
+                } catch (e: any) {
+                    lastError = e;
+                    const raw = String(e?.raw || e?.message || '');
+                    const status = Number(e?.status || 0);
+                    const modelAccessDenied = status === 403 && (
+                        raw.includes('does not have access to model') ||
+                        raw.includes('model_not_found')
+                    );
+                    if (modelAccessDenied) {
+                        deniedByAccess = true;
+                        continue;
+                    }
+                    throw e;
+                }
+            }
 
-                const modelAccessDenied = response.status === 403 && (
-                    error.includes('does not have access to model') ||
-                    error.includes('model_not_found')
-                );
-
-                if (modelAccessDenied) {
-                    console.warn('[Voice Engine] OpenAI TTS sin acceso al modelo. Intentando fallback local (Piper)...');
+            if (!audioBuffer) {
+                if (deniedByAccess) {
+                    console.warn('[Voice Engine] OpenAI TTS sin acceso a modelos configurados. Intentando fallback local (Piper)...');
                     const localTag = await tryGenerateLocalPiperAudioTag(args.text_to_speak);
                     if (localTag) {
                         return localTag;
                     }
-                    throw new Error('Tu proyecto OpenAI no tiene acceso al modelo TTS configurado y no se pudo usar fallback local. Activa motor local o cambia a ElevenLabs.');
+                    throw new Error('Tu proyecto OpenAI no tiene acceso a modelos TTS y no se pudo usar fallback local. Activa motor local o cambia a ElevenLabs.');
                 }
-
-                throw new Error(`OpenAI TTS falló con status: ${response.status} - ${error}`);
+                throw lastError || new Error('No se pudo generar audio con OpenAI TTS.');
             }
-
-            const arrayBuffer = await response.arrayBuffer();
-            audioBuffer = Buffer.from(arrayBuffer);
         }
 
         const mediaDir = path.join(__dirname, '..', '..', 'web', 'public', 'media');
@@ -219,6 +249,10 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
 
         const filename = `voice_${Date.now()}.mp3`;
         const filePath = path.join(mediaDir, filename);
+
+        if (!audioBuffer) {
+            throw new Error('No se pudo generar audio con el motor seleccionado.');
+        }
 
         fs.writeFileSync(filePath, audioBuffer);
 
