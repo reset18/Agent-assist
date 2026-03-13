@@ -294,6 +294,15 @@ function enforceSpanishOutput(text: string) {
     return 'Entendido 😄 ¿Qué quieres que haga ahora mismo?';
 }
 
+function sanitizeInternalArtifacts(text: string) {
+    if (!text) return text;
+    let out = text;
+    out = out.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, '').trim();
+    out = out.replace(/#\s*Plan Mode\s*-\s*System Reminder[\s\S]*$/gi, '').trim();
+    out = out.replace(/CRITICAL:\s*Plan mode ACTIVE[\s\S]*$/gi, '').trim();
+    return out;
+}
+
 function stableStringify(value: any): string {
     const normalize = (input: any): any => {
         if (input === null || input === undefined) return input;
@@ -392,7 +401,7 @@ function recordLoopSignal(args: { sessionId: string; source: string; toolName: s
     addToolRuntimeMetric(args.blocked ? 'loop_block' : 'loop_warning', args.sessionId, args.source, args.toolName, args.reason);
 }
 
-const DEFAULT_LOOP_WARNING_BUCKET_SIZE = 3;
+const DEFAULT_LOOP_WARNING_BUCKET_SIZE = 6;
 const MAX_LOOP_WARNING_KEYS = 128;
 
 class ToolLoopGuard {
@@ -408,8 +417,8 @@ class ToolLoopGuard {
 
     constructor(config?: { warningThreshold?: number; criticalThreshold?: number; globalThreshold?: number; }) {
         this.warningThreshold = config?.warningThreshold || DEFAULT_LOOP_WARNING_BUCKET_SIZE;
-        this.criticalThreshold = config?.criticalThreshold || 6;
-        this.globalThreshold = config?.globalThreshold || 20;
+        this.criticalThreshold = config?.criticalThreshold || 12;
+        this.globalThreshold = config?.globalThreshold || 40;
     }
 
     register(toolName: string, args: any, result?: string, error?: string) {
@@ -466,7 +475,7 @@ class ToolLoopGuard {
             };
         }
 
-        if (this.consecutiveSameTool >= 8) {
+        if (this.consecutiveSameTool >= 14) {
             return {
                 blocked: true,
                 level: 'critical',
@@ -853,10 +862,13 @@ async function _executeAgentLogic(
                     if (loopCheck.blocked) {
                         console.error(`[Agent/LoopGuard] Bucle de herramientas detectado (${loopCheck.reason}).`);
                         recordLoopSignal({ sessionId, source, toolName, reason: loopCheck.reason, blocked: true });
+                        if (fullAccumulatedText && !isAudio) {
+                            return persistTurn(sanitizeInternalArtifacts(enforceSpanishOutput(fullAccumulatedText)));
+                        }
                         const forcedReply = isAudio
                             ? 'No he podido completar la respuesta en voz por un bucle interno. Reintenta con una nota más corta.'
                             : 'He detectado un bucle interno ejecutando herramientas. Reformula tu petición y lo intento de nuevo.';
-                        return persistTurn(forcedReply);
+                        return persistTurn(sanitizeInternalArtifacts(forcedReply));
                     }
 
                     if (
@@ -866,7 +878,7 @@ async function _executeAgentLogic(
                         const finalAudioReply = typeof result === 'string' && result.trim()
                             ? result
                             : 'No he podido generar la nota de voz.';
-                        return persistTurn(finalAudioReply);
+                        return persistTurn(sanitizeInternalArtifacts(finalAudioReply));
                     }
                 }
                 continue;
@@ -888,13 +900,13 @@ async function _executeAgentLogic(
                 if (onDelta) {
                     onDelta({ type: 'status', stage: 'finalizing', message: 'Preparando respuesta final...' });
                 }
-                return persistTurn(enforceSpanishOutput(fullAccumulatedText));
+                return persistTurn(sanitizeInternalArtifacts(enforceSpanishOutput(fullAccumulatedText)));
             }
             return "Respuesta vacía.";
         } catch (error: any) {
             console.error('[Agent Logic] Error:', error);
-            return `Error: ${error.message}`;
+            return sanitizeInternalArtifacts(`Error: ${error.message}`);
         }
     }
-    return "Límite de iteraciones alcanzado.";
+    return sanitizeInternalArtifacts("Límite de iteraciones alcanzado.");
 }

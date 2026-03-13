@@ -3460,6 +3460,12 @@
             const responseContent = document.createElement('div');
             responseContent.className = 'response-content';
 
+            const setThinkingStatus = (msg) => {
+                thinkingBox.style.display = 'block';
+                thinkingBox.querySelector('.thinking-content').textContent = msg || 'Procesando...';
+                isThinking = true;
+            };
+
             botBubble.appendChild(thinkingBox);
             botBubble.appendChild(responseContent);
             botContentWrapper.appendChild(botSenderName);
@@ -3472,6 +3478,8 @@
             let accumulatedReasoning = '';
             let isThinking = false;
 
+            setThinkingStatus('Analizando tu solicitud...');
+
             const eventSource = new EventSource(`/api/chat/stream?message=${encodeURIComponent(text)}&sessionId=${encodeURIComponent(window.currentSessionId || 'default')}`);
 
             eventSource.onmessage = (event) => {
@@ -3480,12 +3488,7 @@
                 if (data.type === 'status') {
                     if (chat.contains(typingWrapper)) chat.removeChild(typingWrapper);
                     botWrapper.style.display = 'flex';
-                    if (window.appSettings?.ui_show_thinking) {
-                        thinkingBox.style.display = 'block';
-                        const statusMsg = data.message || 'Pensando...';
-                        thinkingBox.querySelector('.thinking-content').textContent = statusMsg;
-                    }
-                    isThinking = true;
+                    setThinkingStatus(data.message || 'Pensando...');
                     chat.scrollTop = chat.scrollHeight;
                 } else if (data.type === 'delta') {
                     if (chat.contains(typingWrapper)) chat.removeChild(typingWrapper);
@@ -3493,14 +3496,11 @@
 
                     if (data.type_delta === 'reasoning' || data.reasoning) {
                         accumulatedReasoning = 'Procesando...';
-                        if (window.appSettings?.ui_show_thinking) {
-                            thinkingBox.style.display = 'block';
-                            thinkingBox.querySelector('.thinking-content').textContent = accumulatedReasoning;
-                        }
+                        setThinkingStatus(accumulatedReasoning);
                     } else {
                         const delta = data.delta || '';
                         accumulatedText += delta;
-                        if (window.appSettings?.ui_show_thinking && accumulatedText.length > 0 && isThinking) {
+                        if (accumulatedText.length > 0 && isThinking) {
                             thinkingBox.style.display = 'none';
                             isThinking = false;
                         }
@@ -3511,7 +3511,7 @@
                     eventSource.close();
                     if (chat.contains(typingWrapper)) chat.removeChild(typingWrapper);
                     botWrapper.style.display = 'flex';
-                    if (window.appSettings?.ui_show_thinking) thinkingBox.style.display = 'none';
+                    thinkingBox.style.display = 'none';
                     responseContent.innerHTML = formatChatText(data.reply);
                     chat.scrollTop = chat.scrollHeight;
                     chatBusySending = false;
