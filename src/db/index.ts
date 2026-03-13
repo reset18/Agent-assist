@@ -266,7 +266,7 @@ export function listMemories(options?: { scope?: MemoryScope | 'all'; sessionId?
     }
 
     if (sessionId) {
-        where.push('(session_id = ? OR (scope = \"global\"))');
+        where.push("(session_id = ? OR (scope = 'global'))");
         args.push(sessionId);
     }
 
