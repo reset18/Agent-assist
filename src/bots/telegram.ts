@@ -71,8 +71,21 @@ async function saveIncomingAudioForWeb(buffer: Buffer, extOrFilename: string) {
 async function splitAndSend(ctx: any, text: string) {
     text = sanitizeBotText(text);
     const CHUNK_LIMIT = 4000;
+
+    const replyWithFallback = async (chunk: string) => {
+        try {
+            return await ctx.reply(chunk, { parse_mode: 'Markdown' });
+        } catch (err: any) {
+            const msg = String(err?.description || err?.message || '').toLowerCase();
+            if (msg.includes("can't parse entities") || msg.includes('parse entities')) {
+                return await ctx.reply(chunk);
+            }
+            throw err;
+        }
+    };
+
     if (text.length <= CHUNK_LIMIT) {
-        return await ctx.reply(text, { parse_mode: 'Markdown' });
+        return await replyWithFallback(text);
     }
 
     const chunks = [];
@@ -89,7 +102,7 @@ async function splitAndSend(ctx: any, text: string) {
     }
 
     for (const chunk of chunks) {
-        if (chunk) await ctx.reply(chunk, { parse_mode: 'Markdown' });
+        if (chunk) await replyWithFallback(chunk);
     }
 }
 
@@ -151,7 +164,7 @@ async function sendAudioOnlyReply(ctx: any, reply: string) {
     if (!clean) return;
 
     if (clean.includes('Límite de iteraciones alcanzado') || clean.startsWith('Error:')) {
-        await ctx.reply(clean, { parse_mode: 'Markdown' });
+        await splitAndSend(ctx, clean);
         return;
     }
 
@@ -273,7 +286,7 @@ export async function startTelegramBot() {
             await sendWithAudioIntercept(ctx, response);
         } catch (e: any) {
             console.error('[Telegram] Error procesando texto:', e);
-            await ctx.reply('Ha ocurrido un error interno tratando tu mensaje.', { parse_mode: 'Markdown' });
+            await splitAndSend(ctx, 'Ha ocurrido un error interno tratando tu mensaje.');
         }
     });
 
@@ -282,7 +295,7 @@ export async function startTelegramBot() {
 
         try {
             await ctx.replyWithChatAction('typing');
-            await ctx.reply('🎤 Escuchando audio.', { parse_mode: 'Markdown' });
+            await splitAndSend(ctx, '🎤 Escuchando audio.');
 
             const file = await ctx.api.getFile(fileId);
             const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
@@ -295,7 +308,7 @@ export async function startTelegramBot() {
             await processTelegramAudioBuffer(ctx, userId, buffer, filename);
         } catch (e: any) {
             console.error('[Telegram] Error procesando audio:', e);
-            await ctx.reply('No he podido transcribir o procesar el audio. Inténtalo de nuevo en unos segundos.', { parse_mode: 'Markdown' });
+            await splitAndSend(ctx, 'No he podido transcribir o procesar el audio. Inténtalo de nuevo en unos segundos.');
         }
     };
 
@@ -343,7 +356,7 @@ export async function startTelegramBot() {
 
                 if (mime.startsWith('audio/')) {
                     await ctx.replyWithChatAction('typing');
-                    await ctx.reply('🎤 Escuchando audio.', { parse_mode: 'Markdown' });
+                    await splitAndSend(ctx, '🎤 Escuchando audio.');
                     const { outPath } = await downloadTelegramFileToDisk(ctx, token, msg.document.file_id, fname);
                     const buffer = await fs.promises.readFile(outPath);
                     await processTelegramAudioBuffer(ctx, userId, buffer, fname || 'telegram_audio_document');
@@ -356,7 +369,7 @@ export async function startTelegramBot() {
 
             if (attachments.length === 0) {
                 // Otros tipos no soportados por ahora
-                await ctx.reply('He recibido un mensaje con adjunto, pero de momento solo proceso fotos y documentos.', { parse_mode: 'Markdown' });
+                await splitAndSend(ctx, 'He recibido un mensaje con adjunto, pero de momento solo proceso fotos y documentos.');
                 return;
             }
 
@@ -373,7 +386,7 @@ export async function startTelegramBot() {
             await sendWithAudioIntercept(ctx, response);
         } catch (e: any) {
             console.error('[Telegram] Error procesando adjunto:', e);
-            await ctx.reply('No he podido descargar o procesar el adjunto. Inténtalo de nuevo en unos segundos.', { parse_mode: 'Markdown' });
+            await splitAndSend(ctx, 'No he podido descargar o procesar el adjunto. Inténtalo de nuevo en unos segundos.');
         }
     });
 
