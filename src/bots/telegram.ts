@@ -269,7 +269,7 @@ export async function startTelegramBot() {
 
         try {
             await ctx.replyWithChatAction('typing');
-            await ctx.reply('escuchando audio', { parse_mode: 'Markdown' });
+            await ctx.reply('🎤 Escuchando audio.', { parse_mode: 'Markdown' });
 
             const file = await ctx.api.getFile(fileId);
             const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
@@ -330,7 +330,7 @@ export async function startTelegramBot() {
 
                 if (mime.startsWith('audio/')) {
                     await ctx.replyWithChatAction('typing');
-                    await ctx.reply('escuchando audio', { parse_mode: 'Markdown' });
+                    await ctx.reply('🎤 Escuchando audio.', { parse_mode: 'Markdown' });
                     const { outPath } = await downloadTelegramFileToDisk(ctx, token, msg.document.file_id, fname);
                     const buffer = await fs.promises.readFile(outPath);
                     await processTelegramAudioBuffer(ctx, userId, buffer, fname || 'telegram_audio_document');

@@ -74,10 +74,10 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
                 const wavFilename = `${base}.wav`;
                 const wavPath = path.join(mediaDir, wavFilename);
                 fs.renameSync(tempWav, wavPath);
-                return `Éxito. El audio fue generado (formato WAV). [AUDIO: /media/${wavFilename}]`;
+                return `[AUDIO: /media/${wavFilename}]`;
             }
 
-            return `Éxito. El audio fue generado e incrustado. Por favor, para que el usuario pueda reproducirlo, debes acabar tu mensaje de texto respondiendo EXACTAMENTE la siguiente etiqueta oculta al final del todo:\n[AUDIO: /media/${oggFilename}]`;
+            return `[AUDIO: /media/${oggFilename}]`;
         } else if (engine === 'openrouter') {
             const apiKey = getSetting('llm_key_openrouter') || process.env.OPENROUTER_API_KEY;
             if (!apiKey) throw new Error("Falta API Key de OpenRouter para Voz.");
@@ -168,7 +168,7 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
 
         fs.writeFileSync(filePath, audioBuffer);
 
-        return `Éxito. El audio fue generado e incrustado. Por favor, para que el usuario pueda reproducirlo, debes acabar tu mensaje de texto respondiendo EXACTAMENTE la siguiente etiqueta oculta al final del todo:\n[AUDIO: /media/${filename}]`;
+        return `[AUDIO: /media/${filename}]`;
     } catch (error: any) {
         console.error('[Voice Engine] Error generando voz:', error);
         return `Error interno generando voz: ${error.message}`;
