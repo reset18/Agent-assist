@@ -3492,8 +3492,7 @@
                     botWrapper.style.display = 'flex';
 
                     if (data.type_delta === 'reasoning' || data.reasoning) {
-                        const delta = data.delta || '';
-                        accumulatedReasoning += delta;
+                        accumulatedReasoning = 'Procesando...';
                         if (window.appSettings?.ui_show_thinking) {
                             thinkingBox.style.display = 'block';
                             thinkingBox.querySelector('.thinking-content').textContent = accumulatedReasoning;

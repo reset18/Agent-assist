@@ -1206,7 +1206,8 @@ app.get('/api/chat/stream', async (req, res) => {
                 if (delta.type === 'status' || delta.stage) {
                     sendEvent({ type: 'status', stage: delta.stage || 'thinking', message: delta.message || '' });
                 } else if (delta.reasoning) {
-                    sendEvent({ type: 'delta', reasoning: true, delta: delta.reasoning });
+                    // No exponer razonamiento crudo al frontend (puede incluir contenido interno)
+                    sendEvent({ type: 'status', stage: 'thinking', message: 'Procesando...' });
                 } else if (delta.content) {
                     sendEvent({ type: 'delta', delta: delta.content });
                 }
