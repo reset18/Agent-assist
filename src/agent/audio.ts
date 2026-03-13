@@ -3,6 +3,22 @@ import path from 'path';
 import os from 'os';
 import { getSetting, getLLMAccounts } from '../db/index.js';
 
+function isOauthLikeKey(key: string) {
+    if (!key) return false;
+    return key.startsWith('eyJ');
+}
+
+function guessAudioMime(filename: string) {
+    const lower = (filename || '').toLowerCase();
+    if (lower.endsWith('.ogg') || lower.endsWith('.oga')) return 'audio/ogg';
+    if (lower.endsWith('.mp3')) return 'audio/mpeg';
+    if (lower.endsWith('.wav')) return 'audio/wav';
+    if (lower.endsWith('.webm')) return 'audio/webm';
+    if (lower.endsWith('.m4a')) return 'audio/mp4';
+    if (lower.endsWith('.mp4')) return 'audio/mp4';
+    return 'application/octet-stream';
+}
+
 export async function transcribeAudio(audioBuffer: Buffer, filename: string): Promise<string> {
     const voiceEngine = getSetting('stt_engine') || 'cloud';
 
@@ -25,17 +41,18 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
     }
 
     const provider = getSetting('model_provider') || 'openrouter';
-    const mainApiKey = getSetting('llm_api_key') || '';
+    const mainApiKeyRaw = getSetting('llm_api_key') || '';
+    const mainApiKey = isOauthLikeKey(mainApiKeyRaw) ? '' : mainApiKeyRaw;
     const audioApiKey = getSetting('openai_api_key_audio') || '';
     const accounts = getLLMAccounts();
 
     const getPreferredAccountKey = (p: string) => {
         const primaryId = getSetting('llm_primary_account_id');
         if (primaryId) {
-            const primary = accounts.find(a => a.id === primaryId && a.provider === p && !a.isOauth && !!a.apiKey);
+            const primary = accounts.find(a => a.id === primaryId && a.provider === p && !a.isOauth && !!a.apiKey && !isOauthLikeKey(a.apiKey));
             if (primary?.apiKey) return primary.apiKey;
         }
-        const any = accounts.find(a => a.provider === p && !a.isOauth && !!a.apiKey);
+        const any = accounts.find(a => a.provider === p && !a.isOauth && !!a.apiKey && !isOauthLikeKey(a.apiKey));
         return any?.apiKey || '';
     };
 
@@ -90,7 +107,7 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
     if (!apiKey) throw new Error('API Key para la transcripción no encontrada.');
 
     const form = new FormData();
-    const blob = new Blob([new Uint8Array(audioBuffer)]);
+    const blob = new Blob([new Uint8Array(audioBuffer)], { type: guessAudioMime(filename) });
     form.append('file', blob, filename);
     form.append('model', model);
     form.append('response_format', 'json');
@@ -116,7 +133,7 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
             throw new Error('La respuesta de transcripción no contiene texto válido.');
         }
     } catch (error: any) {
-        console.error('[Audio] Error transcribiendo archivo:', error.message);
+        console.error(`[Audio] Error transcribiendo archivo (${transcriptionUrl}, model=${model}):`, error.message);
         throw error;
     }
 }

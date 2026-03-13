@@ -6,9 +6,25 @@ import { transcribeAudio } from '../agent/audio.js';
 import { createSession } from '../db/index.js';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+function resolveMediaFilePath(audioPath: string) {
+    const normalized = audioPath.startsWith('/') ? audioPath.slice(1) : audioPath;
+    const candidates = [
+        path.join(process.cwd(), normalized),
+        path.join(process.cwd(), 'dist', 'web', 'public', normalized),
+        path.join(process.cwd(), 'src', 'web', 'public', normalized)
+    ];
+
+    for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) return candidate;
+    }
+
+    return path.join(process.cwd(), normalized);
+}
 
 export let whatsappGlobalState = { status: 'initializing', qr: '' };
 
@@ -28,7 +44,7 @@ async function sendWithAudioIntercept(msg: any, response: string) {
     }
 
     for (const audioPath of audios) {
-        const fullPath = path.join(process.cwd(), audioPath);
+        const fullPath = resolveMediaFilePath(audioPath);
         try {
             const media = MessageMedia.fromFilePath(fullPath);
             await msg.reply(media, undefined, { sendAudioAsVoice: true });

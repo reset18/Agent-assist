@@ -9,6 +9,21 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+function resolveMediaFilePath(audioPath: string) {
+    const normalized = audioPath.startsWith('/') ? audioPath.slice(1) : audioPath;
+    const candidates = [
+        path.join(process.cwd(), normalized),
+        path.join(process.cwd(), 'dist', 'web', 'public', normalized),
+        path.join(process.cwd(), 'src', 'web', 'public', normalized)
+    ];
+
+    for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) return candidate;
+    }
+
+    return path.join(process.cwd(), normalized);
+}
+
 async function splitAndSend(ctx: any, text: string) {
     const CHUNK_LIMIT = 4000;
     if (text.length <= CHUNK_LIMIT) {
@@ -49,7 +64,7 @@ async function sendWithAudioIntercept(ctx: any, response: string) {
     }
 
     for (const audioPath of audios) {
-        const fullPath = path.join(process.cwd(), audioPath);
+        const fullPath = resolveMediaFilePath(audioPath);
         try {
             // Telegram: replyWithVoice espera OGG/Opus para nota de voz.
             // Si llega un .mp3, lo enviamos como audio normal para evitar fallo.
@@ -71,7 +86,7 @@ async function sendAudioOnlyReply(ctx: any, reply: string) {
     if (matches.length > 0) {
         for (const m of matches) {
             const audioPath = m[1];
-            const fullPath = path.join(process.cwd(), audioPath);
+            const fullPath = resolveMediaFilePath(audioPath);
             try {
                 if (fullPath.toLowerCase().endsWith('.ogg')) {
                     await ctx.replyWithVoice(new InputFile(fullPath));
@@ -95,7 +110,7 @@ async function sendAudioOnlyReply(ctx: any, reply: string) {
 
         for (const tm of ttsMatches) {
             const p = tm[1];
-            const fullPath = path.join(process.cwd(), p);
+            const fullPath = resolveMediaFilePath(p);
             if (fullPath.toLowerCase().endsWith('.ogg')) {
                 await ctx.replyWithVoice(new InputFile(fullPath));
             } else {
