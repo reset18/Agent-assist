@@ -3921,7 +3921,7 @@
                                     <strong>✅ Cuenta vinculada.</strong> Selecciona o escribe el ID del modelo:
                                 </p>
                                 <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 8px;">
-                                    Se muestran modelos del catálogo de tu cuenta y sugerencias compatibles para planes free.
+                                    Se muestran modelos del catálogo real de tu cuenta para Codex.
                                 </p>
                                 <select id="oauth_model_select" style="width: 100%; margin-bottom: 10px;">
                                     <!-- Populated below -->
@@ -3945,22 +3945,14 @@
                             });
                         }
 
-                        // Sugerencias útiles para cuentas free si no vienen en catálogo
-                        const suggestedFreeModels = [
-                            'gpt-5.3-instant',
-                            'gpt-5.2',
-                            'gpt-5.2-codex',
-                            'gpt-4o-mini',
-                            'auto'
-                        ];
-                        suggestedFreeModels.forEach(id => {
-                            if (addedIds.has(id)) return;
-                            addedIds.add(id);
-                            const opt = document.createElement('option');
-                            opt.value = id;
-                            opt.textContent = `${id} (Sugerido)`;
-                            select.appendChild(opt);
-                        });
+                        // Siempre mantener auto disponible, pero sin sugerencias fijas que puedan no ser compatibles.
+                        if (!addedIds.has('auto')) {
+                            const optAuto = document.createElement('option');
+                            optAuto.value = 'auto';
+                            optAuto.textContent = 'auto';
+                            select.appendChild(optAuto);
+                            addedIds.add('auto');
+                        }
 
                         // Opción Manual
                         const optManual = document.createElement('option');
@@ -3988,13 +3980,9 @@
                         const pasteArea = document.getElementById('oauth_paste_area');
                         pasteArea.innerHTML = `
                                 <p style="font-size: 12px; color: var(--danger); margin: 0 0 8px;">
-                                    ⚠️ No se pudieron obtener los modelos. Introduce ID manual o usa el default:
+                                    ⚠️ No se pudieron obtener los modelos del catálogo. Usa auto o escribe ID manual:
                                 </p>
                                 <select id="oauth_model_select" style="width: 100%; margin-bottom: 10px;">
-                                    <option value="gpt-5.3-instant">gpt-5.3-instant</option>
-                                    <option value="gpt-5.2">gpt-5.2</option>
-                                    <option value="gpt-4o-mini">gpt-4o-mini</option>
-                                    <option value="o1">o1</option>
                                     <option value="auto">auto</option>
                                     <option value="manual">✏️ Escribir ID Manualmente...</option>
                                 </select>
@@ -4041,7 +4029,12 @@
                 });
                 const validationData = await validation.json();
                 if (!validation.ok || !validationData.success) {
-                    statusEl.textContent = '❌ Modelo no disponible para esta cuenta: ' + (validationData.error || model);
+                    const rawError = String(validationData.error || 'Modelo no válido para esta cuenta.');
+                    const codexUnsupported = rawError.toLowerCase().includes('not supported when using codex with a chatgpt account');
+                    const friendly = codexUnsupported
+                        ? 'Este modelo existe en ChatGPT pero no es compatible con Codex en esta cuenta. Elige uno del catálogo o usa auto.'
+                        : rawError;
+                    statusEl.textContent = '❌ Modelo no disponible para esta cuenta: ' + friendly;
                     statusEl.style.color = 'var(--danger)';
                     return;
                 }
