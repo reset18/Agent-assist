@@ -24,6 +24,14 @@ function resolveMediaFilePath(audioPath: string) {
     return path.join(process.cwd(), normalized);
 }
 
+function preferVoiceFilePath(filePath: string) {
+    if (filePath.toLowerCase().endsWith('.mp3')) {
+        const oggPath = filePath.replace(/\.mp3$/i, '.ogg');
+        if (fs.existsSync(oggPath)) return oggPath;
+    }
+    return filePath;
+}
+
 async function splitAndSend(ctx: any, text: string) {
     const CHUNK_LIMIT = 4000;
     if (text.length <= CHUNK_LIMIT) {
@@ -64,7 +72,7 @@ async function sendWithAudioIntercept(ctx: any, response: string) {
     }
 
     for (const audioPath of audios) {
-        const fullPath = resolveMediaFilePath(audioPath);
+        const fullPath = preferVoiceFilePath(resolveMediaFilePath(audioPath));
         try {
             // Telegram: replyWithVoice espera OGG/Opus para nota de voz.
             // Si llega un .mp3, lo enviamos como audio normal para evitar fallo.
@@ -86,7 +94,7 @@ async function sendAudioOnlyReply(ctx: any, reply: string) {
     if (matches.length > 0) {
         for (const m of matches) {
             const audioPath = m[1];
-            const fullPath = resolveMediaFilePath(audioPath);
+            const fullPath = preferVoiceFilePath(resolveMediaFilePath(audioPath));
             try {
                 if (fullPath.toLowerCase().endsWith('.ogg')) {
                     await ctx.replyWithVoice(new InputFile(fullPath));
@@ -103,6 +111,11 @@ async function sendAudioOnlyReply(ctx: any, reply: string) {
     const clean = (reply || '').trim();
     if (!clean) return;
 
+    if (clean.includes('Límite de iteraciones alcanzado') || clean.startsWith('Error:')) {
+        await ctx.reply(clean, { parse_mode: 'Markdown' });
+        return;
+    }
+
     try {
         const { execute_speak_message } = await import('../agent/tools/speak_message.js');
         const ttsResult = await execute_speak_message({ text_to_speak: clean });
@@ -110,7 +123,7 @@ async function sendAudioOnlyReply(ctx: any, reply: string) {
 
         for (const tm of ttsMatches) {
             const p = tm[1];
-            const fullPath = resolveMediaFilePath(p);
+            const fullPath = preferVoiceFilePath(resolveMediaFilePath(p));
             if (fullPath.toLowerCase().endsWith('.ogg')) {
                 await ctx.replyWithVoice(new InputFile(fullPath));
             } else {

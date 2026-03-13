@@ -445,6 +445,18 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
                         ? await executeMCPTool(toolCall.function.name, JSON.parse(toolCall.function.arguments))
                         : await executeToolCall(toolCall);
                     thread.push({ role: 'tool', tool_call_id: toolCall.id, content: result || 'success' });
+
+                    if (
+                        isAudio &&
+                        toolCall.function?.name === 'speak_message' &&
+                        typeof result === 'string' &&
+                        result.includes('[AUDIO:')
+                    ) {
+                        const cleanUserTextForDb = stripTelegramAttachmentsBlock(message) || message;
+                        addMessage('user', cleanUserTextForDb, sessionId);
+                        addMessage('assistant', result, sessionId);
+                        return result;
+                    }
                 }
                 continue;
             }
