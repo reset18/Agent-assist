@@ -72,20 +72,8 @@ async function splitAndSend(ctx: any, text: string) {
     text = sanitizeBotText(text);
     const CHUNK_LIMIT = 4000;
 
-    const replyWithFallback = async (chunk: string) => {
-        try {
-            return await ctx.reply(chunk, { parse_mode: 'Markdown' });
-        } catch (err: any) {
-            const msg = String(err?.description || err?.message || '').toLowerCase();
-            if (msg.includes("can't parse entities") || msg.includes('parse entities')) {
-                return await ctx.reply(chunk);
-            }
-            throw err;
-        }
-    };
-
     if (text.length <= CHUNK_LIMIT) {
-        return await replyWithFallback(text);
+        return await ctx.reply(text);
     }
 
     const chunks = [];
@@ -102,7 +90,7 @@ async function splitAndSend(ctx: any, text: string) {
     }
 
     for (const chunk of chunks) {
-        if (chunk) await replyWithFallback(chunk);
+        if (chunk) await ctx.reply(chunk);
     }
 }
 
