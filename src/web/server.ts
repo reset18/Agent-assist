@@ -1061,6 +1061,29 @@ app.get('/api/tokens/today', (req, res) => {
 
 app.get('/api/skills', (req, res) => {
     try {
+        const getSkillConfigSchema = (skillId: string) => {
+            const id = (skillId || '').toLowerCase();
+            if (id === 'integrations.zip' || id.includes('home') || id.includes('assistant')) {
+                return [
+                    { key: 'home_assistant_url', label: 'Home Assistant URL', type: 'text', placeholder: 'http://192.168.1.10:8123', required: true },
+                    { key: 'home_assistant_token', label: 'Long-Lived Access Token', type: 'password', placeholder: 'eyJ0eXAiOiJKV1QiLCJhbGciOi...', required: true },
+                    { key: 'home_assistant_ws_url', label: 'WebSocket URL (opcional)', type: 'text', placeholder: 'ws://192.168.1.10:8123/api/websocket', required: false },
+                    { key: 'entity_filter', label: 'Filtro de entidades (opcional)', type: 'text', placeholder: 'light.,switch.,sensor.', required: false }
+                ];
+            }
+
+            if (id === 'gog.zip') {
+                return [
+                    { key: 'gog_client_secret', label: 'Ruta client_secret.json', type: 'text', placeholder: '/ruta/client_secret.json', required: false },
+                    { key: 'gog_email', label: 'Email Gmail', type: 'email', placeholder: 'usuario@gmail.com', required: false }
+                ];
+            }
+
+            return [
+                { key: 'custom_notes', label: 'Notas de configuración', type: 'textarea', placeholder: 'Parámetros libres para esta skill', required: false }
+            ];
+        };
+
         const mcpPath = join(process.cwd(), 'MCP');
         if (!fs.existsSync(mcpPath)) {
             return res.json({ skills: [] });
@@ -1123,7 +1146,7 @@ app.get('/api/skills', (req, res) => {
 
                     const enabled = getSetting(`skill_enabled_${file}`) === '1';
                     const emoji = getEmoji(name);
-                    skills.push({ id: file, name, description, enabled, emoji });
+                    skills.push({ id: file, name, description, enabled, emoji, configSchema: getSkillConfigSchema(file) });
                 }
             } catch (err) {
                 console.error(`[Skills] Error procesando archivo ZIP ${file}:`, err);
@@ -1133,6 +1156,100 @@ app.get('/api/skills', (req, res) => {
         res.json({ skills });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+function getSkillConfigSchema(skillId: string) {
+    const id = (skillId || '').toLowerCase();
+    if (id === 'integrations.zip' || id.includes('home') || id.includes('assistant')) {
+        return [
+            { key: 'home_assistant_url', label: 'Home Assistant URL', type: 'text', required: true },
+            { key: 'home_assistant_token', label: 'Long-Lived Access Token', type: 'password', required: true },
+            { key: 'home_assistant_ws_url', label: 'WebSocket URL', type: 'text', required: false },
+            { key: 'entity_filter', label: 'Filtro de entidades', type: 'text', required: false }
+        ];
+    }
+    if (id === 'gog.zip') {
+        return [
+            { key: 'gog_client_secret', label: 'Ruta client_secret.json', type: 'text', required: false },
+            { key: 'gog_email', label: 'Email Gmail', type: 'email', required: false }
+        ];
+    }
+    return [
+        { key: 'custom_notes', label: 'Notas de configuración', type: 'textarea', required: false }
+    ];
+}
+
+function getSkillConfig(skillId: string) {
+    const schema = getSkillConfigSchema(skillId);
+    const config: Record<string, string> = {};
+    for (const field of schema) {
+        const settingKey = `skill_cfg_${skillId}_${field.key}`;
+        config[field.key] = getSetting(settingKey) || '';
+    }
+    return { schema, config };
+}
+
+app.get('/api/skills/:id/config', (req, res) => {
+    try {
+        const skillId = req.params.id;
+        const { schema, config } = getSkillConfig(skillId);
+        res.json({ success: true, skillId, schema, config });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/skills/:id/config', (req, res) => {
+    try {
+        const skillId = req.params.id;
+        const { schema } = getSkillConfig(skillId);
+        const body = req.body || {};
+
+        for (const field of schema) {
+            const raw = body[field.key];
+            if (raw === undefined) continue;
+            const value = String(raw);
+            const settingKey = `skill_cfg_${skillId}_${field.key}`;
+            setSetting(settingKey, value);
+        }
+
+        res.json({ success: true });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.post('/api/skills/:id/test', async (req, res) => {
+    try {
+        const skillId = req.params.id;
+        if (skillId !== 'integrations.zip') {
+            return res.json({ success: true, message: 'Esta skill no requiere test remoto específico.' });
+        }
+
+        const url = String(getSetting(`skill_cfg_${skillId}_home_assistant_url`) || '').trim();
+        const token = String(getSetting(`skill_cfg_${skillId}_home_assistant_token`) || '').trim();
+
+        if (!url || !token) {
+            return res.status(400).json({ success: false, error: 'Faltan URL o token de Home Assistant.' });
+        }
+
+        const normalizedUrl = url.replace(/\/$/, '');
+        const testResp = await fetch(`${normalizedUrl}/api/`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!testResp.ok) {
+            const txt = await testResp.text();
+            return res.status(400).json({ success: false, error: `Home Assistant respondió ${testResp.status}: ${txt.slice(0, 180)}` });
+        }
+
+        return res.json({ success: true, message: 'Conexión con Home Assistant correcta.' });
+    } catch (e: any) {
+        return res.status(500).json({ success: false, error: e.message || 'Error probando la skill.' });
     }
 });
 

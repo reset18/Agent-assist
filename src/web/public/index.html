@@ -2249,6 +2249,24 @@
         </div>
     </div>
 
+    <!-- Modal de Configuración de Skill -->
+    <div class="modal-overlay" id="skill_config_modal" style="display:none;">
+        <div class="modal" style="max-width: 620px;">
+            <h3 id="skill_config_title" style="border:none; margin-bottom: 8px;">Configurar skill</h3>
+            <p id="skill_config_subtitle" style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">Edita los parámetros de esta skill.</p>
+
+            <div id="skill_config_fields"></div>
+
+            <div style="display:flex; gap: 10px; margin-top: 18px;">
+                <button class="secondary-btn" style="flex:1;" onclick="closeSkillConfigModal()">Cerrar</button>
+                <button class="secondary-btn" style="flex:1;" onclick="testSkillConfig()">Probar conexión</button>
+                <button class="primary-btn" style="flex:1;" onclick="saveSkillConfig()">Guardar</button>
+            </div>
+
+            <div id="skill_config_status" style="margin-top: 12px; font-size: 12px;"></div>
+        </div>
+    </div>
+
     <script>
         // Sistema de Registro de Errores Críticos (Detección para el usuario)
         // --- SISTEMA DE DIAGN├ôSTICO VISUAL ---
@@ -3095,7 +3113,7 @@
                         <div class="skill-header">
                             <div class="skill-title-area">
                                 <div class="skill-emoji">${skill.emoji || 'ÔÜí'}</div>
-                                <div class="skill-title">
+                                <div class="skill-title" style="cursor:pointer;" onclick="openSkillConfigModal('${skill.id}')">
                                     ${skill.name}
                                     <div class="info-icon">
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px; height:16px;">
@@ -3114,7 +3132,10 @@
                             <span class="skill-status-badge ${skill.enabled ? 'badge-active' : 'badge-inactive'}">
                                 ${skill.enabled ? 'Activa' : 'Desactivada'}
                             </span>
-                            <span style="font-size: 11px; color: var(--text-muted); opacity: 0.7;">${skill.id}</span>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <button class="secondary-btn" style="padding: 4px 10px; font-size: 11px;" onclick="openSkillConfigModal('${skill.id}')">Configurar</button>
+                                <span style="font-size: 11px; color: var(--text-muted); opacity: 0.7;">${skill.id}</span>
+                            </div>
                         </div>
                     `;
 
@@ -3199,6 +3220,131 @@
             // Auto-guardar
             saveSettings();
         };
+
+        window.currentSkillConfigId = null;
+
+        window.openSkillConfigModal = async function (skillId) {
+            try {
+                window.currentSkillConfigId = skillId;
+                const modal = document.getElementById('skill_config_modal');
+                const title = document.getElementById('skill_config_title');
+                const subtitle = document.getElementById('skill_config_subtitle');
+                const fields = document.getElementById('skill_config_fields');
+                const status = document.getElementById('skill_config_status');
+                if (!modal || !title || !subtitle || !fields || !status) return;
+
+                status.textContent = 'Cargando configuración...';
+                status.style.color = 'var(--text-muted)';
+
+                const skill = (window.allSkillsCache || []).find(s => s.id === skillId);
+                title.textContent = `Configurar: ${skill?.name || skillId}`;
+                subtitle.textContent = skill?.description || 'Edita y guarda los parámetros de esta skill.';
+
+                const r = await fetch(`/api/skills/${encodeURIComponent(skillId)}/config`);
+                const data = await r.json();
+                if (!r.ok || !data.success) {
+                    status.textContent = `❌ ${data.error || 'No se pudo cargar la configuración.'}`;
+                    status.style.color = 'var(--danger)';
+                    modal.style.display = 'flex';
+                    return;
+                }
+
+                fields.innerHTML = '';
+                (data.schema || []).forEach(field => {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'form-group';
+                    wrap.style.marginBottom = '12px';
+
+                    const label = document.createElement('label');
+                    label.textContent = field.label || field.key;
+                    wrap.appendChild(label);
+
+                    let input;
+                    if (field.type === 'textarea') {
+                        input = document.createElement('textarea');
+                        input.rows = 3;
+                    } else {
+                        input = document.createElement('input');
+                        input.type = field.type || 'text';
+                    }
+                    input.id = `skill_cfg_field_${field.key}`;
+                    input.value = (data.config && data.config[field.key]) || '';
+                    input.placeholder = field.placeholder || '';
+                    input.style.width = '100%';
+                    wrap.appendChild(input);
+
+                    fields.appendChild(wrap);
+                });
+
+                status.textContent = 'Configuración cargada.';
+                status.style.color = 'var(--text-muted)';
+                modal.style.display = 'flex';
+            } catch (e) {
+                const status = document.getElementById('skill_config_status');
+                if (status) {
+                    status.textContent = '❌ Error cargando configuración de skill.';
+                    status.style.color = 'var(--danger)';
+                }
+            }
+        };
+
+        window.closeSkillConfigModal = function () {
+            const modal = document.getElementById('skill_config_modal');
+            if (modal) modal.style.display = 'none';
+        };
+
+        window.saveSkillConfig = async function () {
+            const skillId = window.currentSkillConfigId;
+            if (!skillId) return;
+            const status = document.getElementById('skill_config_status');
+            const fieldsContainer = document.getElementById('skill_config_fields');
+            if (!status || !fieldsContainer) return;
+
+            const payload = {};
+            fieldsContainer.querySelectorAll('[id^="skill_cfg_field_"]').forEach((el) => {
+                const key = el.id.replace('skill_cfg_field_', '');
+                payload[key] = el.value;
+            });
+
+            status.textContent = 'Guardando...';
+            status.style.color = 'var(--primary)';
+
+            const r = await fetch(`/api/skills/${encodeURIComponent(skillId)}/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await r.json();
+            if (!r.ok || !data.success) {
+                status.textContent = `❌ ${data.error || 'No se pudo guardar.'}`;
+                status.style.color = 'var(--danger)';
+                return;
+            }
+
+            status.textContent = '✅ Configuración guardada.';
+            status.style.color = 'var(--success)';
+        };
+
+        window.testSkillConfig = async function () {
+            const skillId = window.currentSkillConfigId;
+            if (!skillId) return;
+            const status = document.getElementById('skill_config_status');
+            if (!status) return;
+            status.textContent = 'Probando conexión...';
+            status.style.color = 'var(--primary)';
+
+            const r = await fetch(`/api/skills/${encodeURIComponent(skillId)}/test`, { method: 'POST' });
+            const data = await r.json();
+            if (!r.ok || !data.success) {
+                status.textContent = `❌ ${data.error || 'Test fallido.'}`;
+                status.style.color = 'var(--danger)';
+                return;
+            }
+
+            status.textContent = `✅ ${data.message || 'Conexión correcta.'}`;
+            status.style.color = 'var(--success)';
+        };
+
         loadMCPSkills();
 
         // Cargar Historial de Chat y aplicar Polling
