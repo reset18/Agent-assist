@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import AdmZip from 'adm-zip';
 import { getSetting, setSetting, getLLMAccounts, saveLLMAccount, removeLLMAccount, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, deleteSession, getTokenUsageHistory } from '../db/index.js';
 import { whatsappGlobalState } from '../bots/whatsapp.js';
+import { getToolRuntimeDiagnostics } from '../agent/loop.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -93,6 +94,11 @@ app.get('/api/settings', (req, res) => {
         codex_compaction_enabled: getSetting('codex_compaction_enabled') !== '0',
         codex_compact_threshold: getSetting('codex_compact_threshold') || '80000',
         ui_show_thinking: getSetting('ui_show_thinking') === '1',
+        tool_hooks_enabled: getSetting('tool_hooks_enabled') !== '0',
+        tool_hooks_strict_mode: getSetting('tool_hooks_strict_mode') !== '0',
+        tool_loop_warning_threshold: getSetting('tool_loop_warning_threshold') || '3',
+        tool_loop_critical_threshold: getSetting('tool_loop_critical_threshold') || '6',
+        tool_loop_global_threshold: getSetting('tool_loop_global_threshold') || '20',
     });
 });
 
@@ -470,8 +476,13 @@ app.get('/api/status', (req, res) => {
             primary: getSetting('llm_primary_provider'),
             secondary: getSetting('llm_secondary_provider'),
             tertiary: getSetting('llm_tertiary_provider')
-        }
+        },
+        runtimeGuards: getToolRuntimeDiagnostics(),
     });
+});
+
+app.get('/api/tool-runtime', (req, res) => {
+    res.json(getToolRuntimeDiagnostics());
 });
 
 function updateEnv(key: string, value: string) {
@@ -513,6 +524,12 @@ app.post('/api/settings', (req, res) => {
         llm_secondary_account_id, llm_secondary_model,
         llm_tertiary_account_id, llm_tertiary_model
     } = req.body;
+
+    if (req.body.tool_hooks_enabled !== undefined) setSetting('tool_hooks_enabled', req.body.tool_hooks_enabled ? '1' : '0');
+    if (req.body.tool_hooks_strict_mode !== undefined) setSetting('tool_hooks_strict_mode', req.body.tool_hooks_strict_mode ? '1' : '0');
+    if (req.body.tool_loop_warning_threshold !== undefined) setSetting('tool_loop_warning_threshold', String(req.body.tool_loop_warning_threshold));
+    if (req.body.tool_loop_critical_threshold !== undefined) setSetting('tool_loop_critical_threshold', String(req.body.tool_loop_critical_threshold));
+    if (req.body.tool_loop_global_threshold !== undefined) setSetting('tool_loop_global_threshold', String(req.body.tool_loop_global_threshold));
 
     if (llm_primary_account_id !== undefined) setSetting('llm_primary_account_id', llm_primary_account_id);
     if (llm_primary_model !== undefined) setSetting('llm_primary_model', llm_primary_model);

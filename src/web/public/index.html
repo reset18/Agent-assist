@@ -1297,6 +1297,36 @@
                             </label>
                         </div>
 
+                        <div style="margin-top: 14px; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border); background: rgba(var(--bg-rgb), 0.2);">
+                            <div style="font-weight: 700; font-size: 14px; margin-bottom: 10px;">Plan B: Hooks de Herramientas (OpenClaw)</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                                <label class="toggle-switch" style="display:flex; align-items:center; justify-content: space-between; width:100%; background: var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 12px;">
+                                    <span style="font-size: 13px;">Hooks habilitados</span>
+                                    <input type="checkbox" id="tool_hooks_enabled" onchange="saveSettings()" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <label class="toggle-switch" style="display:flex; align-items:center; justify-content: space-between; width:100%; background: var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 12px;">
+                                    <span style="font-size: 13px;">Modo estricto</span>
+                                    <input type="checkbox" id="tool_hooks_strict_mode" onchange="saveSettings()" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px;">
+                                <div class="form-group" style="margin:0;">
+                                    <label for="tool_loop_warning_threshold">Umbral warning</label>
+                                    <input type="number" min="1" id="tool_loop_warning_threshold" onchange="saveSettings()" />
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label for="tool_loop_critical_threshold">Umbral crítico</label>
+                                    <input type="number" min="2" id="tool_loop_critical_threshold" onchange="saveSettings()" />
+                                </div>
+                                <div class="form-group" style="margin:0;">
+                                    <label for="tool_loop_global_threshold">Corte global</label>
+                                    <input type="number" min="3" id="tool_loop_global_threshold" onchange="saveSettings()" />
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="form-group" style="margin-top: 20px;">
                             <button class="primary-btn" onclick="saveRelaySettings()"
                                 style="width: 100%; height: 42px; border-radius: 10px;">Guardar Relevos</button>
@@ -1391,6 +1421,39 @@
                     </div>
                     <div style="height: 300px; position: relative;">
                         <canvas id="usageChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <h3 style="margin: 0; border: none; padding: 0;">Estabilidad de Herramientas (Plan B)</h3>
+                        <button class="secondary-btn" style="padding: 6px 12px; font-size: 12px;" onclick="loadToolRuntimeStatus()">Actualizar</button>
+                    </div>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px;">
+                        <div style="background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
+                            <div style="font-size: 11px; color: var(--text-muted);">Bloqueos before</div>
+                            <div id="diag_before_blocked" style="font-size: 22px; font-weight: 700;">0</div>
+                        </div>
+                        <div style="background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
+                            <div style="font-size: 11px; color: var(--text-muted);">OK after</div>
+                            <div id="diag_after_success" style="font-size: 22px; font-weight: 700;">0</div>
+                        </div>
+                        <div style="background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
+                            <div style="font-size: 11px; color: var(--text-muted);">Errores tool</div>
+                            <div id="diag_on_error" style="font-size: 22px; font-weight: 700;">0</div>
+                        </div>
+                        <div style="background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
+                            <div style="font-size: 11px; color: var(--text-muted);">Loop warnings</div>
+                            <div id="diag_loop_warn" style="font-size: 22px; font-weight: 700;">0</div>
+                        </div>
+                        <div style="background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
+                            <div style="font-size: 11px; color: var(--text-muted);">Loop bloqueos</div>
+                            <div id="diag_loop_block" style="font-size: 22px; font-weight: 700;">0</div>
+                        </div>
+                    </div>
+                    <div id="diag_runtime_config" style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Cargando configuración...</div>
+                    <div id="diag_runtime_events" style="font-family: monospace; font-size: 11px; line-height: 1.35; max-height: 180px; overflow:auto; background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
+                        Cargando eventos...
                     </div>
                 </div>
             </div>
@@ -2193,6 +2256,7 @@
                 if (pageId === 'consumos') {
                     loadUsageHistory();
                     loadTokenUsage();
+                    loadToolRuntimeStatus();
                 }
 
                 if (window.innerWidth <= 768) sidebar.classList.remove('mobile-open');
@@ -2421,6 +2485,43 @@
             }, 1500);
         }
 
+        async function loadToolRuntimeStatus() {
+            try {
+                const r = await fetch('/api/tool-runtime?t=' + Date.now(), { cache: 'no-store' });
+                const data = await r.json();
+                const c = data?.counters || {};
+                const cfg = data?.config || {};
+
+                const setText = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = String(value ?? 0);
+                };
+
+                setText('diag_before_blocked', c.beforeBlocked || 0);
+                setText('diag_after_success', c.afterSuccess || 0);
+                setText('diag_on_error', c.onError || 0);
+                setText('diag_loop_warn', c.loopWarnings || 0);
+                setText('diag_loop_block', c.loopBlocks || 0);
+
+                const cfgEl = document.getElementById('diag_runtime_config');
+                if (cfgEl) {
+                    cfgEl.textContent = `hooksEnabled=${cfg.hooksEnabled ? 'true' : 'false'} | strictMode=${cfg.strictMode ? 'true' : 'false'} | warning=${cfg.warningThreshold ?? '-'} | critical=${cfg.criticalThreshold ?? '-'} | global=${cfg.globalThreshold ?? '-'}`;
+                }
+
+                const eventsEl = document.getElementById('diag_runtime_events');
+                if (eventsEl) {
+                    const rows = (data?.recentEvents || []).slice(0, 20).map(e => {
+                        const ts = (e.at || '').replace('T', ' ').replace('Z', '');
+                        return `[${ts}] ${e.type} ${e.toolName}${e.reason ? ' -> ' + e.reason : ''}`;
+                    });
+                    eventsEl.textContent = rows.length > 0 ? rows.join('\n') : 'Sin eventos aún.';
+                }
+            } catch (e) {
+                const eventsEl = document.getElementById('diag_runtime_events');
+                if (eventsEl) eventsEl.textContent = 'Error cargando diagnóstico de herramientas.';
+            }
+        }
+
         async function createNewChatSession() {
             const name = prompt("Nombre del nuevo chat:", `Nuevo Chat ${new Date().toLocaleTimeString()}`);
             if (!name) return;
@@ -2632,6 +2733,22 @@
 
                 if (document.getElementById('llm_relay_hopping_disabled')) {
                     document.getElementById('llm_relay_hopping_disabled').checked = data.llm_relay_hopping_enabled === false;
+                }
+
+                if (document.getElementById('tool_hooks_enabled')) {
+                    document.getElementById('tool_hooks_enabled').checked = data.tool_hooks_enabled !== false;
+                }
+                if (document.getElementById('tool_hooks_strict_mode')) {
+                    document.getElementById('tool_hooks_strict_mode').checked = data.tool_hooks_strict_mode !== false;
+                }
+                if (document.getElementById('tool_loop_warning_threshold')) {
+                    document.getElementById('tool_loop_warning_threshold').value = data.tool_loop_warning_threshold || '3';
+                }
+                if (document.getElementById('tool_loop_critical_threshold')) {
+                    document.getElementById('tool_loop_critical_threshold').value = data.tool_loop_critical_threshold || '6';
+                }
+                if (document.getElementById('tool_loop_global_threshold')) {
+                    document.getElementById('tool_loop_global_threshold').value = data.tool_loop_global_threshold || '20';
                 }
 
                 const openaiVoice = document.getElementById('openai_voice_id');
@@ -2877,6 +2994,12 @@
             }
         }, 3000);
 
+        setInterval(() => {
+            if (document.getElementById('consumos').classList.contains('active')) {
+                loadToolRuntimeStatus();
+            }
+        }, 8000);
+
         // Funciones para mostrar u ocultar la configuración según si están habilitados
         function toggleTelegramConfig(noSave = false) {
             const el = document.getElementById('bot_telegram_enabled');
@@ -2940,7 +3063,12 @@
                 llm_secondary_account_id: document.getElementById('llm_secondary_account_id')?.value || '',
                 llm_secondary_model: document.getElementById('llm_secondary_model')?.value || '',
                 llm_tertiary_account_id: document.getElementById('llm_tertiary_account_id')?.value || '',
-                llm_tertiary_model: document.getElementById('llm_tertiary_model')?.value || ''
+                llm_tertiary_model: document.getElementById('llm_tertiary_model')?.value || '',
+                tool_hooks_enabled: document.getElementById('tool_hooks_enabled')?.checked ?? true,
+                tool_hooks_strict_mode: document.getElementById('tool_hooks_strict_mode')?.checked ?? true,
+                tool_loop_warning_threshold: parseInt(document.getElementById('tool_loop_warning_threshold')?.value || '3', 10),
+                tool_loop_critical_threshold: parseInt(document.getElementById('tool_loop_critical_threshold')?.value || '6', 10),
+                tool_loop_global_threshold: parseInt(document.getElementById('tool_loop_global_threshold')?.value || '20', 10)
             };
 
             const gogClientEl = document.getElementById('gog_client_secret');

@@ -10,6 +10,68 @@ import { createHash } from 'crypto';
 
 const MAX_ITERATIONS = 30;
 
+type RuntimeHookEvent = {
+    at: string;
+    type: 'before' | 'after' | 'error' | 'loop_warning' | 'loop_block';
+    sessionId: string;
+    source: string;
+    toolName: string;
+    reason?: string;
+};
+
+const runtimeHookEvents: RuntimeHookEvent[] = [];
+const MAX_RUNTIME_HOOK_EVENTS = 200;
+
+const runtimeHookCounters = {
+    beforeBlocked: 0,
+    afterSuccess: 0,
+    onError: 0,
+    loopWarnings: 0,
+    loopBlocks: 0,
+};
+
+function pushRuntimeHookEvent(event: RuntimeHookEvent) {
+    runtimeHookEvents.push(event);
+    if (runtimeHookEvents.length > MAX_RUNTIME_HOOK_EVENTS) {
+        runtimeHookEvents.shift();
+    }
+}
+
+function readBoolSetting(key: string, fallback: boolean) {
+    const v = getSetting(key);
+    if (v === null) return fallback;
+    return v === '1' || v.toLowerCase() === 'true';
+}
+
+function readIntSetting(key: string, fallback: number) {
+    const raw = getSetting(key);
+    const n = raw ? parseInt(raw, 10) : NaN;
+    if (!Number.isFinite(n) || n <= 0) return fallback;
+    return n;
+}
+
+function getRuntimeGuardConfig() {
+    const warningThreshold = readIntSetting('tool_loop_warning_threshold', 3);
+    const criticalThreshold = Math.max(readIntSetting('tool_loop_critical_threshold', 6), warningThreshold + 1);
+    const globalThreshold = Math.max(readIntSetting('tool_loop_global_threshold', 20), criticalThreshold + 1);
+
+    return {
+        hooksEnabled: readBoolSetting('tool_hooks_enabled', true),
+        strictMode: readBoolSetting('tool_hooks_strict_mode', true),
+        warningThreshold,
+        criticalThreshold,
+        globalThreshold,
+    };
+}
+
+export function getToolRuntimeDiagnostics() {
+    return {
+        config: getRuntimeGuardConfig(),
+        counters: { ...runtimeHookCounters },
+        recentEvents: [...runtimeHookEvents].reverse().slice(0, 40),
+    };
+}
+
 // --- ESTADO GLOBAL DE COLAS (OpenClaw Parity) ---
 const sessionQueues: Record<string, {
     busy: boolean;
@@ -245,7 +307,72 @@ function isPlainObject(value: any): value is Record<string, any> {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-const LOOP_WARNING_BUCKET_SIZE = 3;
+function runBeforeToolCallHook(args: {
+    sessionId: string;
+    source: string;
+    toolName: string;
+    toolArgs: any;
+    allowedTools: Set<string>;
+    isAudio: boolean;
+}) {
+    const cfg = getRuntimeGuardConfig();
+    if (!cfg.hooksEnabled) {
+        return { blocked: false, reason: '', adjustedArgs: args.toolArgs };
+    }
+
+    if (!args.toolName || !args.allowedTools.has(args.toolName)) {
+        const reason = `Tool no permitida para este turno: ${args.toolName || 'unknown'}`;
+        pushRuntimeHookEvent({ at: new Date().toISOString(), type: 'before', sessionId: args.sessionId, source: args.source, toolName: args.toolName || 'unknown', reason });
+        if (cfg.strictMode) {
+            runtimeHookCounters.beforeBlocked++;
+            return { blocked: true, reason, adjustedArgs: {} };
+        }
+    }
+
+    if (args.isAudio && args.toolName !== 'speak_message') {
+        const reason = `En modo audio solo se permite speak_message: ${args.toolName || 'unknown'}`;
+        pushRuntimeHookEvent({ at: new Date().toISOString(), type: 'before', sessionId: args.sessionId, source: args.source, toolName: args.toolName || 'unknown', reason });
+        runtimeHookCounters.beforeBlocked++;
+        return { blocked: true, reason, adjustedArgs: {} };
+    }
+
+    if (!isPlainObject(args.toolArgs)) {
+        const reason = `Parámetros inválidos para ${args.toolName}. Se esperaba un objeto JSON.`;
+        pushRuntimeHookEvent({ at: new Date().toISOString(), type: 'before', sessionId: args.sessionId, source: args.source, toolName: args.toolName || 'unknown', reason });
+        if (cfg.strictMode) {
+            runtimeHookCounters.beforeBlocked++;
+            return { blocked: true, reason, adjustedArgs: {} };
+        }
+    }
+
+    return { blocked: false, reason: '', adjustedArgs: isPlainObject(args.toolArgs) ? args.toolArgs : {} };
+}
+
+function runAfterToolCallHook(args: { sessionId: string; source: string; toolName: string; }) {
+    runtimeHookCounters.afterSuccess++;
+    pushRuntimeHookEvent({ at: new Date().toISOString(), type: 'after', sessionId: args.sessionId, source: args.source, toolName: args.toolName });
+}
+
+function runToolErrorHook(args: { sessionId: string; source: string; toolName: string; reason: string; }) {
+    runtimeHookCounters.onError++;
+    pushRuntimeHookEvent({ at: new Date().toISOString(), type: 'error', sessionId: args.sessionId, source: args.source, toolName: args.toolName, reason: args.reason });
+}
+
+function recordLoopSignal(args: { sessionId: string; source: string; toolName: string; reason: string; blocked: boolean; }) {
+    if (args.blocked) runtimeHookCounters.loopBlocks++;
+    else runtimeHookCounters.loopWarnings++;
+
+    pushRuntimeHookEvent({
+        at: new Date().toISOString(),
+        type: args.blocked ? 'loop_block' : 'loop_warning',
+        sessionId: args.sessionId,
+        source: args.source,
+        toolName: args.toolName,
+        reason: args.reason,
+    });
+}
+
+const DEFAULT_LOOP_WARNING_BUCKET_SIZE = 3;
 const MAX_LOOP_WARNING_KEYS = 128;
 
 class ToolLoopGuard {
@@ -255,6 +382,15 @@ class ToolLoopGuard {
     private totalToolCalls = 0;
     private consecutiveSameTool = 0;
     private lastToolName = '';
+    private warningThreshold: number;
+    private criticalThreshold: number;
+    private globalThreshold: number;
+
+    constructor(config?: { warningThreshold?: number; criticalThreshold?: number; globalThreshold?: number; }) {
+        this.warningThreshold = config?.warningThreshold || DEFAULT_LOOP_WARNING_BUCKET_SIZE;
+        this.criticalThreshold = config?.criticalThreshold || 6;
+        this.globalThreshold = config?.globalThreshold || 20;
+    }
 
     register(toolName: string, args: any, result?: string, error?: string) {
         this.totalToolCalls++;
@@ -285,9 +421,9 @@ class ToolLoopGuard {
         }
 
         const warningKey = `np:${toolName}:${argsHash}`;
-        const warningBucket = Math.floor(noProgressCount / LOOP_WARNING_BUCKET_SIZE);
+        const warningBucket = Math.floor(noProgressCount / this.warningThreshold);
         const lastBucket = this.warningBuckets.get(warningKey) || 0;
-        if (warningBucket > lastBucket && noProgressCount >= LOOP_WARNING_BUCKET_SIZE) {
+        if (warningBucket > lastBucket && noProgressCount >= this.warningThreshold) {
             this.warningBuckets.set(warningKey, warningBucket);
             if (this.warningBuckets.size > MAX_LOOP_WARNING_KEYS) {
                 const first = this.warningBuckets.keys().next().value;
@@ -301,7 +437,7 @@ class ToolLoopGuard {
             };
         }
 
-        if (noProgressCount >= 6) {
+        if (noProgressCount >= this.criticalThreshold) {
             return {
                 blocked: true,
                 level: 'critical',
@@ -319,7 +455,7 @@ class ToolLoopGuard {
             };
         }
 
-        if (this.totalToolCalls >= 20) {
+        if (this.totalToolCalls >= this.globalThreshold) {
             return {
                 blocked: true,
                 level: 'critical',
@@ -560,7 +696,12 @@ async function _executeAgentLogic(
 
     let currentIteration = 0;
     let fullAccumulatedText = '';
-    const toolLoopGuard = new ToolLoopGuard();
+    const runtimeGuardConfig = getRuntimeGuardConfig();
+    const toolLoopGuard = new ToolLoopGuard({
+        warningThreshold: runtimeGuardConfig.warningThreshold,
+        criticalThreshold: runtimeGuardConfig.criticalThreshold,
+        globalThreshold: runtimeGuardConfig.globalThreshold,
+    });
     let nonVoiceToolHitsInAudio = 0;
     let beforeToolBlockedHits = 0;
     const userMessageForDb = (isAudio && displayMessage && displayMessage.trim())
@@ -597,16 +738,37 @@ async function _executeAgentLogic(
                     const toolName = toolCall?.function?.name || '';
                     const rawArgs = toolCall?.function?.arguments || '{}';
                     const toolCallId = toolCall?.id || `call_local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                    const isMCP = mcpTools.some(t => (t.function?.name || t.name) === toolName);
+                    let parsedArgs: any = {};
+                    try {
+                        parsedArgs = JSON.parse(rawArgs || '{}');
+                    } catch {
+                        parsedArgs = {};
+                    }
 
-                    if (!toolName || !allowedToolNames.has(toolName)) {
+                    const before = runBeforeToolCallHook({
+                        sessionId,
+                        source,
+                        toolName,
+                        toolArgs: parsedArgs,
+                        allowedTools: allowedToolNames,
+                        isAudio,
+                    });
+                    if (before.blocked) {
                         beforeToolBlockedHits++;
-                        const reason = `Herramienta no permitida o desconocida en este turno: ${toolName || 'unknown'}`;
-                        console.warn(`[Agent/BeforeTool] ${reason} (hit=${beforeToolBlockedHits})`);
+                        if (isAudio && toolName !== 'speak_message') {
+                            nonVoiceToolHitsInAudio++;
+                        }
+                        console.warn(`[Agent/BeforeTool] ${before.reason} (hit=${beforeToolBlockedHits})`);
                         thread.push({
                             role: 'tool',
                             tool_call_id: toolCallId,
-                            content: JSON.stringify({ status: 'error', message: reason })
+                            content: JSON.stringify({ status: 'error', message: before.reason })
                         });
+
+                        if (isAudio && nonVoiceToolHitsInAudio >= 2) {
+                            return persistTurn('No he podido generar la nota de voz correctamente. Intenta reenviar el audio.');
+                        }
 
                         if (beforeToolBlockedHits >= 2) {
                             const forcedReply = isAudio
@@ -617,42 +779,26 @@ async function _executeAgentLogic(
                         continue;
                     }
 
-                    if (isAudio && toolName !== 'speak_message') {
-                        nonVoiceToolHitsInAudio++;
-                        console.warn(`[Agent/AudioGuard] Tool no permitida en audio: ${toolName || '(vacía)'} (hit=${nonVoiceToolHitsInAudio})`);
-                        thread.push({
-                            role: 'tool',
-                            tool_call_id: toolCallId,
-                            content: JSON.stringify({
-                                status: 'error',
-                                message: `En modo audio solo está permitida la herramienta speak_message. Recibida: ${toolName || 'unknown'}`
-                            })
-                        });
-
-                        if (nonVoiceToolHitsInAudio >= 2) {
-                            return persistTurn('No he podido generar la nota de voz correctamente. Intenta reenviar el audio.');
-                        }
-                        continue;
-                    }
-
-                    const isMCP = mcpTools.some(t => (t.function?.name || t.name) === toolName);
-                    let parsedArgs: any = {};
-                    let argsAreValidObject = true;
+                    const finalArgs = before.adjustedArgs;
+                    let result = '';
                     try {
-                        parsedArgs = JSON.parse(rawArgs || '{}');
-                        if (!isPlainObject(parsedArgs)) {
-                            argsAreValidObject = false;
-                            parsedArgs = {};
+                        if (isMCP) {
+                            result = await executeMCPTool(toolName, finalArgs);
+                        } else {
+                            const normalizedToolCall = {
+                                ...toolCall,
+                                function: {
+                                    ...(toolCall?.function || {}),
+                                    name: toolName,
+                                    arguments: JSON.stringify(finalArgs || {})
+                                }
+                            };
+                            result = await executeToolCall(normalizedToolCall);
                         }
-                    } catch {
-                        argsAreValidObject = false;
-                        parsedArgs = {};
-                    }
-
-                    if (rawArgs && rawArgs !== '{}' && !argsAreValidObject) {
-                        beforeToolBlockedHits++;
-                        const reason = `Parámetros inválidos para ${toolName}. Se esperaba objeto JSON.`;
-                        console.warn(`[Agent/BeforeTool] ${reason} (hit=${beforeToolBlockedHits})`);
+                        runAfterToolCallHook({ sessionId, source, toolName });
+                    } catch (toolError: any) {
+                        const reason = toolError?.message || String(toolError);
+                        runToolErrorHook({ sessionId, source, toolName, reason });
                         thread.push({
                             role: 'tool',
                             tool_call_id: toolCallId,
@@ -660,18 +806,16 @@ async function _executeAgentLogic(
                         });
                         continue;
                     }
-
-                    const result = isMCP 
-                        ? await executeMCPTool(toolName, parsedArgs)
-                        : await executeToolCall(toolCall);
                     thread.push({ role: 'tool', tool_call_id: toolCallId, content: result || 'success' });
 
-                    const loopCheck = toolLoopGuard.register(toolName, parsedArgs, String(result || ''));
+                    const loopCheck = toolLoopGuard.register(toolName, finalArgs, String(result || ''));
                     if (!loopCheck.blocked && loopCheck.level === 'warning') {
                         console.warn(`[Agent/LoopGuard] Warning: ${loopCheck.reason} (count=${loopCheck.count})`);
+                        recordLoopSignal({ sessionId, source, toolName, reason: loopCheck.reason, blocked: false });
                     }
                     if (loopCheck.blocked) {
                         console.error(`[Agent/LoopGuard] Bucle de herramientas detectado (${loopCheck.reason}).`);
+                        recordLoopSignal({ sessionId, source, toolName, reason: loopCheck.reason, blocked: true });
                         const forcedReply = isAudio
                             ? 'No he podido completar la respuesta en voz por un bucle interno. Reintenta con una nota más corta.'
                             : 'He detectado un bucle interno ejecutando herramientas. Reformula tu petición y lo intento de nuevo.';
