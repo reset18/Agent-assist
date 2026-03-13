@@ -1074,6 +1074,47 @@
             .sidebar.mobile-open {
                 transform: translateX(0);
             }
+
+            #floating_hamburger {
+                display: flex !important;
+                position: fixed !important;
+                top: 10px !important;
+                left: 10px !important;
+                z-index: 1200 !important;
+                background: var(--card) !important;
+                border: 1px solid var(--border) !important;
+                box-shadow: var(--shadow-md) !important;
+            }
+
+            #chat .chat-container>div:first-child {
+                padding: 10px 12px 10px 52px !important;
+            }
+
+            .top-bar-actions {
+                gap: 6px !important;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+            }
+
+            #sessions_select.sessions-select {
+                padding: 6px 26px 6px 10px !important;
+                font-size: 12px !important;
+                max-width: 145px;
+            }
+
+            #new_chat_btn,
+            #delete_chat_btn {
+                padding: 6px 10px !important;
+                font-size: 12px !important;
+                border-radius: 10px !important;
+            }
+
+            #new_chat_btn svg,
+            #delete_chat_btn svg {
+                width: 12px !important;
+                height: 12px !important;
+                margin-right: 4px !important;
+            }
         }
     </style>
 </head>
