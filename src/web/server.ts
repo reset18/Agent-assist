@@ -405,6 +405,76 @@ app.get('/api/check-update', async (req, res) => {
     }
 });
 
+function normalizeCodexModelList(rawData: any) {
+    const rawModels = Array.isArray(rawData?.models)
+        ? rawData.models
+        : Array.isArray(rawData?.data)
+            ? rawData.data
+            : [];
+
+    const out: Array<{ id: string; slug: string; name: string }> = [];
+    const seen = new Set<string>();
+
+    for (const m of rawModels) {
+        const id = String(m?.slug || m?.id || m?.name || '').trim();
+        if (!id) continue;
+
+        const disabled = m?.disabled === true || m?.is_disabled === true || m?.active === false;
+        if (disabled) continue;
+
+        if (seen.has(id)) continue;
+        seen.add(id);
+
+        out.push({
+            id,
+            slug: id,
+            name: String(m?.title || m?.display_name || m?.name || id)
+        });
+    }
+
+    const score = (id: string) => {
+        const n = id.toLowerCase();
+        if (n.startsWith('gpt-5')) return 0;
+        if (n.startsWith('gpt-4o')) return 1;
+        if (n.startsWith('o1') || n.startsWith('o3') || n.startsWith('o4')) return 2;
+        if (n.startsWith('gpt-4')) return 3;
+        return 5;
+    };
+
+    out.sort((a, b) => {
+        const sa = score(a.id);
+        const sb = score(b.id);
+        if (sa !== sb) return sa - sb;
+        return a.id.localeCompare(b.id);
+    });
+
+    return out;
+}
+
+async function validateCodexModelForAccount(accessToken: string, model: string) {
+    const body = {
+        model,
+        input: [{ role: 'user', content: 'ping' }],
+        store: false,
+        stream: false,
+        max_output_tokens: 8
+    };
+
+    const resp = await fetch('https://chatgpt.com/backend-api/codex/responses', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!resp.ok) {
+        const err = await resp.text();
+        throw new Error(`Modelo no válido para esta cuenta (${resp.status}): ${err.slice(0, 220)}`);
+    }
+}
+
 // Proxy para obtener modelos de ChatGPT Codex (v0.2.51)
 app.get('/api/auth/:provider/models', async (req, res) => {
     const accountId = req.query.accountId as string;
@@ -418,11 +488,40 @@ app.get('/api/auth/:provider/models', async (req, res) => {
         const fetchModels = await fetch('https://chatgpt.com/backend-api/models', {
             headers: { 'Authorization': `Bearer ${acc.apiKey}` }
         });
+        if (!fetchModels.ok) {
+            const err = await fetchModels.text();
+            return res.status(fetchModels.status).json({ error: `Error obteniendo catálogo: ${err.slice(0, 220)}` });
+        }
+
         const data: any = await fetchModels.json();
-        // El formato suele ser { models: [...] }
-        res.json(data);
+        const models = normalizeCodexModelList(data);
+        res.json({ models });
     } catch (e: any) {
         res.status(500).json({ error: 'Error fetching models: ' + e.message });
+    }
+});
+
+app.post('/api/auth/:provider/validate-model', async (req, res) => {
+    const { provider } = req.params;
+    const { accountId, model } = req.body || {};
+    if (provider !== 'openai') {
+        return res.status(400).json({ success: false, error: 'Validación soportada solo para OpenAI OAuth.' });
+    }
+    if (!accountId || !model) {
+        return res.status(400).json({ success: false, error: 'Faltan accountId o model.' });
+    }
+
+    const accounts = getLLMAccounts();
+    const acc = accounts.find((a) => a.id === accountId);
+    if (!acc || !acc.apiKey) {
+        return res.status(404).json({ success: false, error: 'Cuenta no encontrada o sin token.' });
+    }
+
+    try {
+        await validateCodexModelForAccount(acc.apiKey, String(model));
+        return res.json({ success: true });
+    } catch (e: any) {
+        return res.status(400).json({ success: false, error: e.message || 'Modelo no válido.' });
     }
 });
 

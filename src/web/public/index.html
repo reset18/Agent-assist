@@ -1235,8 +1235,6 @@
                         style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; margin-bottom: 20px;">
                         <div>
                             <h3 style="margin: 0; font-size: 18px;">Cuentas Vinculadas</h3>
-                            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Añade tus cuentas de
-                                OpenAI, Gemini, Anthropic u OpenRouter para usarlas en los relevos.</p>
                         </div>
                         <button class="primary-btn" onclick="openAddAccountModal()">+ Añadir Cuenta</button>
                     </div>
@@ -1475,6 +1473,14 @@
                         <div style="background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
                             <div style="font-size: 11px; color: var(--text-muted);">Bloqueos loop</div>
                             <div id="diag_loop_block" style="font-size: 22px; font-weight: 700;">0</div>
+                        </div>
+                        <div style="background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
+                            <div style="font-size: 11px; color: var(--text-muted);">Tasa de error</div>
+                            <div id="diag_error_rate" style="font-size: 22px; font-weight: 700;">0%</div>
+                        </div>
+                        <div style="background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
+                            <div style="font-size: 11px; color: var(--text-muted);">Tasa de bloqueos</div>
+                            <div id="diag_block_rate" style="font-size: 22px; font-weight: 700;">0%</div>
                         </div>
                     </div>
                     <div id="diag_runtime_config" style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Cargando configuración...</div>
@@ -2393,19 +2399,38 @@
 
         async function checkForUpdates() {
             try {
-                const r = await fetch('/api/check-update');
+                const r = await fetch('/api/check-update?t=' + Date.now(), { cache: 'no-store' });
                 const d = await r.json();
                 remoteVersion = d.remote;
                 currentVersion = d.current;
-                if (d.updateAvailable) {
-                    const updateNotification = document.getElementById('update_notification');
-                    if (updateNotification) updateNotification.style.display = 'flex';
-                    const updateVersionText = document.getElementById('update_version_text');
-                    if (updateVersionText) updateVersionText.textContent = `v${d.remote} disponible`;
-                    const btnSearch = document.getElementById('btn_search_updates');
-                    if (btnSearch) btnSearch.style.display = 'none';
+
+                const versionLabel = document.getElementById('ui_version_label');
+                if (versionLabel) {
+                    const currentTxt = currentVersion ? (currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`) : 'n/a';
+                    const remoteTxt = remoteVersion ? (remoteVersion.startsWith('v') ? remoteVersion : `v${remoteVersion}`) : 'n/a';
+                    versionLabel.textContent = `${currentTxt} local | ${remoteTxt} remoto`;
                 }
-            } catch (e) { }
+
+                const updateNotification = document.getElementById('update_notification');
+                const updateVersionText = document.getElementById('update_version_text');
+                const btnSearch = document.getElementById('btn_search_updates');
+
+                if (d.updateAvailable) {
+                    if (updateNotification) updateNotification.style.display = 'flex';
+                    if (updateVersionText) updateVersionText.textContent = `v${d.remote} disponible`;
+                    if (btnSearch) btnSearch.style.display = 'none';
+                } else {
+                    if (updateNotification) updateNotification.style.display = 'none';
+                    if (updateVersionText) {
+                        const shown = currentVersion.startsWith('v') ? currentVersion : `v${currentVersion}`;
+                        updateVersionText.textContent = `${shown} al día`;
+                    }
+                    if (btnSearch) btnSearch.style.display = 'flex';
+                }
+            } catch (e) {
+                const versionLabel = document.getElementById('ui_version_label');
+                if (versionLabel) versionLabel.textContent = 'No se pudo consultar versión remota';
+            }
         }
 
         async function checkForUpdatesManually() {
@@ -2522,6 +2547,16 @@
                 setText('diag_on_error', c.onError || 0);
                 setText('diag_loop_warn', c.loopWarnings || 0);
                 setText('diag_loop_block', c.loopBlocks || 0);
+
+                const ok = Number(c.afterSuccess || 0);
+                const err = Number(c.onError || 0);
+                const beforeBlocked = Number(c.beforeBlocked || 0);
+                const loopBlocked = Number(c.loopBlocks || 0);
+                const errorRate = (ok + err) > 0 ? (err * 100) / (ok + err) : 0;
+                const blockDenominator = ok + err + beforeBlocked + loopBlocked;
+                const blockRate = blockDenominator > 0 ? ((beforeBlocked + loopBlocked) * 100) / blockDenominator : 0;
+                setText('diag_error_rate', `${errorRate.toFixed(1)}%`);
+                setText('diag_block_rate', `${blockRate.toFixed(1)}%`);
 
                 const point = {
                     time: new Date().toLocaleTimeString(),
@@ -3066,12 +3101,17 @@
         // Carga inicial y encuesta de nuevos mensajes cada 3s por si se chatea desde Telegram/WA
         loadSessions();
         loadChatHistory();
+        checkForUpdates();
         setInterval(() => {
             // Solo hacer polling si la pestaña activa es 'chat'
             if (document.getElementById('chat').classList.contains('active')) {
                 loadChatHistory();
             }
         }, 3000);
+
+        setInterval(() => {
+            checkForUpdates();
+        }, 300000);
 
         setInterval(() => {
             if (document.getElementById('estabilidad').classList.contains('active')) {
@@ -3888,9 +3928,11 @@
                         const select = document.getElementById('oauth_model_select');
                         if (modData.models && modData.models.length > 0) {
                             modData.models.forEach(m => {
+                                const modelId = m.id || m.slug || m.name;
+                                if (!modelId) return;
                                 const opt = document.createElement('option');
-                                opt.value = m.slug;
-                                opt.textContent = m.slug;
+                                opt.value = modelId;
+                                opt.textContent = m.name ? `${modelId} - ${m.name}` : modelId;
                                 select.appendChild(opt);
                             });
                         } else {
@@ -3980,6 +4022,18 @@
             statusEl.style.color = 'var(--primary)';
 
             try {
+                const validation = await fetch(`/api/auth/${provider}/validate-model`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId, model })
+                });
+                const validationData = await validation.json();
+                if (!validation.ok || !validationData.success) {
+                    statusEl.textContent = '❌ Modelo no disponible para esta cuenta: ' + (validationData.error || model);
+                    statusEl.style.color = 'var(--danger)';
+                    return;
+                }
+
                 // 1. Actualizar el modelo en el registro de la cuenta
                 await fetch('/api/accounts/update-model', {
                     method: 'POST',

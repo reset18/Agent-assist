@@ -85,15 +85,17 @@ const sessionQueues: Record<string, {
         resolve: (val: string) => void; 
         reject: (err: any) => void 
     }[];
-    processedIds: Set<string>;
+    processedIds: Map<string, number>;
 }> = {};
+
+const DUPLICATE_WINDOW_MS = 8000;
 
 function getSessionState(sessionId: string) {
     if (!sessionQueues[sessionId]) {
         sessionQueues[sessionId] = {
             busy: false,
             messages: [],
-            processedIds: new Set()
+            processedIds: new Map()
         };
     }
     return sessionQueues[sessionId];
@@ -485,16 +487,27 @@ export async function processUserMessage(
     
     const normalized = normalizeTextForComparison(message);
     const messageHash = `${userId}:${normalized}`;
-    
-    // Deduplicación: No bloquear audios (las transcripciones pueden ser similares)
-    if (!isAudio && normalized.length > 2 && state.processedIds.has(messageHash)) {
-        console.warn(`[Agent/Queue] Bloqueado mensaje duplicado en sesión ${sessionId}: "${normalized.substring(0, 30)}..."`);
-        return ""; // Ignorar duplicado
+    const now = Date.now();
+
+    // Limpiar expirados para no crecer indefinidamente
+    for (const [key, ts] of state.processedIds.entries()) {
+        if ((now - ts) > DUPLICATE_WINDOW_MS) {
+            state.processedIds.delete(key);
+        }
     }
-    state.processedIds.add(messageHash);
-    // Limpieza periódica de IDs procesados para evitar fuga de memoria
-    if (state.processedIds.size > 100) {
-        const first = state.processedIds.values().next().value;
+    
+    // Deduplicación temporal: bloquear solo duplicados inmediatos (reintentos técnicos)
+    // No bloquear audios porque la transcripción puede repetir texto de forma legítima.
+    const previousTs = state.processedIds.get(messageHash);
+    if (!isAudio && normalized.length > 2 && previousTs && (now - previousTs) <= DUPLICATE_WINDOW_MS) {
+        console.warn(`[Agent/Queue] Bloqueado duplicado inmediato (${Math.round((now - previousTs) / 1000)}s) en sesión ${sessionId}: "${normalized.substring(0, 30)}..."`);
+        return "";
+    }
+    state.processedIds.set(messageHash, now);
+
+    // Tamaño máximo acotado
+    if (state.processedIds.size > 250) {
+        const first = state.processedIds.keys().next().value;
         if (first) state.processedIds.delete(first);
     }
 
