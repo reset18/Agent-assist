@@ -416,10 +416,18 @@ function normalizeCodexModelList(rawData: any) {
     const seen = new Set<string>();
 
     for (const m of rawModels) {
-        const id = String(m?.slug || m?.id || m?.name || '').trim();
+        const id = String(
+            m?.slug ||
+            m?.id ||
+            m?.model_slug ||
+            m?.default_model_slug ||
+            m?.name ||
+            ''
+        ).trim();
         if (!id) continue;
 
-        const disabled = m?.disabled === true || m?.is_disabled === true || m?.active === false;
+        // Algunos catálogos de cuenta devuelven flags inconsistentes; no filtramos por `active === false`.
+        const disabled = m?.disabled === true || m?.is_disabled === true;
         if (disabled) continue;
 
         if (seen.has(id)) continue;
@@ -454,6 +462,7 @@ function normalizeCodexModelList(rawData: any) {
 async function validateCodexModelForAccount(accessToken: string, model: string) {
     const body = {
         model,
+        instructions: 'Valida disponibilidad del modelo para esta cuenta.',
         input: [{ role: 'user', content: 'ping' }],
         store: false,
         stream: false,

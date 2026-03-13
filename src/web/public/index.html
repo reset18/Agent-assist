@@ -1970,6 +1970,7 @@
                                     <option value="elevenlabs">ElevenLabs (Voces Premium / Clonadas)
                                     </option>
                                 </select>
+                                <span class="helper-text">Nota: Whisper es transcripción (STT), no síntesis de voz. Para enviar notas de voz con OpenAI se usa TTS (`tts-1`) y requiere API Key de plataforma.</span>
                             </div>
 
                             <!-- Campos OpenAI -->
@@ -1980,6 +1981,7 @@
                                     <input type="password" id="openai_api_key_audio"
                                         placeholder="Opcional. Para usar voz si tu LLM no es OpenAI." autocomplete="off"
                                         onchange="saveSettings()" />
+                                    <span class="helper-text">Las cuentas OAuth free de ChatGPT no habilitan TTS por sí solas. Si no tienes API Key, usa motor local.</span>
                                 </div>
                                 <div class="form-group" style="margin-top: 15px;">
                                     <label for="openai_voice_id">Identidad Vocal de OpenAI</label>
@@ -3918,6 +3920,9 @@
                                 <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 8px;">
                                     <strong>✅ Cuenta vinculada.</strong> Selecciona o escribe el ID del modelo:
                                 </p>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 8px;">
+                                    Se muestran modelos del catálogo de tu cuenta y sugerencias compatibles para planes free.
+                                </p>
                                 <select id="oauth_model_select" style="width: 100%; margin-bottom: 10px;">
                                     <!-- Populated below -->
                                 </select>
@@ -3926,30 +3931,36 @@
                             `;
 
                         const select = document.getElementById('oauth_model_select');
+                        const addedIds = new Set();
                         if (modData.models && modData.models.length > 0) {
                             modData.models.forEach(m => {
                                 const modelId = m.id || m.slug || m.name;
                                 if (!modelId) return;
+                                if (addedIds.has(modelId)) return;
+                                addedIds.add(modelId);
                                 const opt = document.createElement('option');
                                 opt.value = modelId;
                                 opt.textContent = m.name ? `${modelId} - ${m.name}` : modelId;
                                 select.appendChild(opt);
                             });
-                        } else {
-                            // Modelos Sugeridos Modernos (GPT-5 series)
-                            const gpt5Models = [
-                                'gpt-5.4', 'gpt-5.3-codex', 'gpt-5.3-codex-spark', 
-                                'gpt-5.2-codex', 'gpt-5.2', 'gpt-5.1-codex-max', 
-                                'gpt-5.1', 'gpt-5.1-codex', 'gpt-5-codex', 
-                                'gpt-5-codex-mini', 'gpt-5'
-                            ];
-                            gpt5Models.forEach(id => {
-                                const opt = document.createElement('option');
-                                opt.value = id;
-                                opt.textContent = id;
-                                select.appendChild(opt);
-                            });
                         }
+
+                        // Sugerencias útiles para cuentas free si no vienen en catálogo
+                        const suggestedFreeModels = [
+                            'gpt-5.3-instant',
+                            'gpt-5.2',
+                            'gpt-5.2-codex',
+                            'gpt-4o-mini',
+                            'auto'
+                        ];
+                        suggestedFreeModels.forEach(id => {
+                            if (addedIds.has(id)) return;
+                            addedIds.add(id);
+                            const opt = document.createElement('option');
+                            opt.value = id;
+                            opt.textContent = `${id} (Sugerido)`;
+                            select.appendChild(opt);
+                        });
 
                         // Opción Manual
                         const optManual = document.createElement('option');
@@ -3980,7 +3991,8 @@
                                     ⚠️ No se pudieron obtener los modelos. Introduce ID manual o usa el default:
                                 </p>
                                 <select id="oauth_model_select" style="width: 100%; margin-bottom: 10px;">
-                                    <option value="gpt-4o">gpt-4o</option>
+                                    <option value="gpt-5.3-instant">gpt-5.3-instant</option>
+                                    <option value="gpt-5.2">gpt-5.2</option>
                                     <option value="gpt-4o-mini">gpt-4o-mini</option>
                                     <option value="o1">o1</option>
                                     <option value="auto">auto</option>

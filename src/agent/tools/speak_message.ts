@@ -6,6 +6,11 @@ import { getSetting } from '../../db/index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+function isOauthLikeKey(key: string) {
+    if (!key) return false;
+    return key.startsWith('eyJ');
+}
+
 export const speak_message_def = {
     type: "function",
     function: {
@@ -122,8 +127,10 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
             let apiKey = getSetting('openai_api_key_audio');
 
             // Si no hay clave específica de audio, usar la principal SOLO si estamos en modo OpenAI
+            // y si no es un token OAuth de ChatGPT Web.
             if (!apiKey && getSetting('model_provider') === 'openai') {
-                apiKey = getSetting('llm_api_key');
+                const main = getSetting('llm_api_key') || '';
+                apiKey = isOauthLikeKey(main) ? '' : main;
             }
 
             // Fallback final a la variable de entorno
@@ -133,7 +140,7 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
 
             const voiceId = getSetting('openai_voice_id') || 'alloy';
             if (!apiKey || apiKey === 'SUTITUYE POR EL TUYO') {
-                throw new Error("No hay una API Key de OpenAI válida configurada. Por favor configúrala en Habilidades > Voz.");
+                throw new Error("No hay una API Key de OpenAI Platform válida para TTS. Si usas cuenta free por OAuth, configura motor local (Piper) o añade OpenAI API Key en Voz.");
             }
 
             const response = await fetch('https://api.openai.com/v1/audio/speech', {
