@@ -94,8 +94,18 @@ export function getActiveTools() {
 }
 
 export async function executeToolCall(toolCall: any) {
-    const name = toolCall.function.name;
-    const args = JSON.parse(toolCall.function.arguments || '{}');
+    const name = toolCall?.function?.name;
+    if (!name || typeof name !== 'string') {
+        return `Tool call inválida: nombre de herramienta ausente.`;
+    }
+
+    let args: any = {};
+    try {
+        args = JSON.parse(toolCall?.function?.arguments || '{}');
+    } catch {
+        return `Tool ${name} recibió argumentos inválidos (JSON no parseable).`;
+    }
+
     const tool = (AVAILABLE_TOOLS as any)[name];
     if (tool) {
         try {

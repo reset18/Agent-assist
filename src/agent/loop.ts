@@ -216,6 +216,67 @@ class StreamDeduplicator {
     }
 }
 
+function stableStringify(value: any): string {
+    const normalize = (input: any): any => {
+        if (input === null || input === undefined) return input;
+        if (typeof input !== 'object') return input;
+        if (Array.isArray(input)) return input.map(normalize);
+        const out: Record<string, any> = {};
+        for (const key of Object.keys(input).sort()) {
+            out[key] = normalize(input[key]);
+        }
+        return out;
+    };
+
+    try {
+        return JSON.stringify(normalize(value));
+    } catch {
+        return String(value ?? '');
+    }
+}
+
+class ToolLoopGuard {
+    private signatureCount = new Map<string, number>();
+    private totalToolCalls = 0;
+    private consecutiveSameTool = 0;
+    private lastToolName = '';
+
+    register(toolName: string, args: any, result: string) {
+        this.totalToolCalls++;
+
+        if (toolName === this.lastToolName) this.consecutiveSameTool++;
+        else this.consecutiveSameTool = 1;
+        this.lastToolName = toolName;
+
+        const signature = `${toolName}::${stableStringify(args)}::${normalizeTextForComparison((result || '').slice(0, 600))}`;
+        const count = (this.signatureCount.get(signature) || 0) + 1;
+        this.signatureCount.set(signature, count);
+
+        if (count >= 4) {
+            return {
+                blocked: true,
+                reason: `firma_repetida(${toolName})`
+            };
+        }
+
+        if (this.consecutiveSameTool >= 8) {
+            return {
+                blocked: true,
+                reason: `misma_herramienta_en_cadena(${toolName})`
+            };
+        }
+
+        if (this.totalToolCalls >= 20) {
+            return {
+                blocked: true,
+                reason: 'exceso_total_de_herramientas'
+            };
+        }
+
+        return { blocked: false, reason: '' };
+    }
+}
+
 
 /**
  * Función principal expuesta al exterior. Implementa colas por sesión.
@@ -423,6 +484,14 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
 
     let currentIteration = 0;
     let fullAccumulatedText = '';
+    const toolLoopGuard = new ToolLoopGuard();
+    let nonVoiceToolHitsInAudio = 0;
+    const persistTurn = (assistantText: string) => {
+        const cleanUserTextForDb = stripTelegramAttachmentsBlock(message) || message;
+        addMessage('user', cleanUserTextForDb, sessionId);
+        addMessage('assistant', assistantText, sessionId);
+        return assistantText;
+    };
 
     while (currentIteration < MAX_ITERATIONS) {
         currentIteration++;
@@ -440,23 +509,56 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
 
             if ('tool_calls' in responseMessage && (responseMessage as any).tool_calls?.length > 0) {
                 for (const toolCall of (responseMessage as any).tool_calls) {
-                    const isMCP = mcpTools.some(t => (t.function?.name || t.name) === toolCall.function.name);
+                    const toolName = toolCall?.function?.name || '';
+                    const rawArgs = toolCall?.function?.arguments || '{}';
+
+                    if (isAudio && toolName !== 'speak_message') {
+                        nonVoiceToolHitsInAudio++;
+                        console.warn(`[Agent/AudioGuard] Tool no permitida en audio: ${toolName || '(vacía)'} (hit=${nonVoiceToolHitsInAudio})`);
+                        thread.push({
+                            role: 'tool',
+                            tool_call_id: toolCall.id,
+                            content: JSON.stringify({
+                                status: 'error',
+                                message: `En modo audio solo está permitida la herramienta speak_message. Recibida: ${toolName || 'unknown'}`
+                            })
+                        });
+
+                        if (nonVoiceToolHitsInAudio >= 2) {
+                            return persistTurn('No he podido generar la nota de voz correctamente. Intenta reenviar el audio.');
+                        }
+                        continue;
+                    }
+
+                    const isMCP = mcpTools.some(t => (t.function?.name || t.name) === toolName);
+                    let parsedArgs: any = {};
+                    try {
+                        parsedArgs = JSON.parse(rawArgs || '{}');
+                    } catch {
+                        parsedArgs = {};
+                    }
                     const result = isMCP 
-                        ? await executeMCPTool(toolCall.function.name, JSON.parse(toolCall.function.arguments))
+                        ? await executeMCPTool(toolName, parsedArgs)
                         : await executeToolCall(toolCall);
                     thread.push({ role: 'tool', tool_call_id: toolCall.id, content: result || 'success' });
 
+                    const loopCheck = toolLoopGuard.register(toolName, rawArgs, String(result || ''));
+                    if (loopCheck.blocked) {
+                        console.error(`[Agent/LoopGuard] Bucle de herramientas detectado (${loopCheck.reason}).`);
+                        const forcedReply = isAudio
+                            ? 'No he podido completar la respuesta en voz por un bucle interno. Reintenta con una nota más corta.'
+                            : 'He detectado un bucle interno ejecutando herramientas. Reformula tu petición y lo intento de nuevo.';
+                        return persistTurn(forcedReply);
+                    }
+
                     if (
                         isAudio &&
-                        toolCall.function?.name === 'speak_message'
+                        toolName === 'speak_message'
                     ) {
-                        const cleanUserTextForDb = stripTelegramAttachmentsBlock(message) || message;
-                        addMessage('user', cleanUserTextForDb, sessionId);
                         const finalAudioReply = typeof result === 'string' && result.trim()
                             ? result
                             : 'No he podido generar la nota de voz.';
-                        addMessage('assistant', finalAudioReply, sessionId);
-                        return finalAudioReply;
+                        return persistTurn(finalAudioReply);
                     }
                 }
                 continue;
@@ -475,11 +577,7 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
 
             if (fullAccumulatedText) {
                 // Registro ATÓMICO del turno en la base de datos al finalizar con éxito
-                const cleanUserTextForDb = stripTelegramAttachmentsBlock(message) || message;
-                addMessage('user', cleanUserTextForDb, sessionId);
-                addMessage('assistant', fullAccumulatedText, sessionId);
-                
-                return fullAccumulatedText;
+                return persistTurn(fullAccumulatedText);
             }
             return "Respuesta vacía.";
         } catch (error: any) {

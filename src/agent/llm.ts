@@ -132,6 +132,196 @@ function normalizeTools(tools: any[]) {
     });
 }
 
+type ToolCatalogEntry = {
+    name: string;
+    normalizedName: string;
+    properties: Set<string>;
+    required: Set<string>;
+};
+
+function normalizeToolName(name: string) {
+    return (name || '').trim().toLowerCase();
+}
+
+function buildToolCatalog(tools: any[]): ToolCatalogEntry[] {
+    const normalized = normalizeTools(tools);
+    const out: ToolCatalogEntry[] = [];
+
+    for (const t of normalized) {
+        const fn = t?.function || t;
+        const name = typeof fn?.name === 'string' ? fn.name.trim() : '';
+        if (!name) continue;
+
+        const schemaProps = fn?.parameters?.properties && typeof fn.parameters.properties === 'object'
+            ? fn.parameters.properties
+            : {};
+        const requiredRaw = Array.isArray(fn?.parameters?.required) ? fn.parameters.required : [];
+
+        out.push({
+            name,
+            normalizedName: normalizeToolName(name),
+            properties: new Set(Object.keys(schemaProps)),
+            required: new Set(requiredRaw.filter((k: any) => typeof k === 'string'))
+        });
+    }
+
+    return out;
+}
+
+function safeJsonParse(input: string): any | null {
+    try {
+        return JSON.parse(input);
+    } catch {
+        return null;
+    }
+}
+
+function extractRawToolName(parsed: any): string | null {
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const directCandidates = [
+        parsed.tool_name,
+        parsed.toolName,
+        parsed.name,
+        parsed.function_name,
+        parsed.functionName,
+        parsed.call_name
+    ];
+
+    for (const candidate of directCandidates) {
+        if (typeof candidate === 'string' && candidate.trim()) {
+            return candidate.trim();
+        }
+    }
+
+    const nestedCandidates = [
+        parsed.function?.name,
+        parsed.tool?.name,
+        parsed.call?.name,
+        parsed.tool_call?.name,
+        parsed.tool_call?.function?.name
+    ];
+
+    for (const candidate of nestedCandidates) {
+        if (typeof candidate === 'string' && candidate.trim()) {
+            return candidate.trim();
+        }
+    }
+
+    return null;
+}
+
+function extractRawToolArgs(parsed: any): Record<string, any> | null {
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const tryAsObject = (value: any): Record<string, any> | null => {
+        if (!value) return null;
+        if (typeof value === 'string') {
+            const decoded = safeJsonParse(value);
+            return decoded && typeof decoded === 'object' && !Array.isArray(decoded)
+                ? decoded as Record<string, any>
+                : null;
+        }
+        if (typeof value === 'object' && !Array.isArray(value)) {
+            return value as Record<string, any>;
+        }
+        return null;
+    };
+
+    const objectCandidates = [
+        parsed.arguments,
+        parsed.args,
+        parsed.parameters,
+        parsed.input,
+        parsed.function?.arguments,
+        parsed.tool_call?.arguments,
+        parsed.tool_call?.function?.arguments,
+        parsed.call?.arguments
+    ];
+
+    for (const candidate of objectCandidates) {
+        const maybeObj = tryAsObject(candidate);
+        if (maybeObj) return maybeObj;
+    }
+
+    const metaKeys = new Set([
+        'tool_name', 'toolName', 'name', 'function_name', 'functionName', 'call_name',
+        'arguments', 'args', 'parameters', 'input', 'function', 'tool', 'call', 'tool_call',
+        'type', 'id'
+    ]);
+    const remainingEntries = Object.entries(parsed).filter(([k]) => !metaKeys.has(k));
+    if (remainingEntries.length > 0) {
+        return Object.fromEntries(remainingEntries);
+    }
+
+    // Caso: el bloque en crudo es directamente el payload de argumentos
+    return parsed as Record<string, any>;
+}
+
+function resolveToolNameFromCatalog(rawName: string | null, catalog: ToolCatalogEntry[]): string | null {
+    if (!rawName) return null;
+    const normalized = normalizeToolName(rawName);
+    if (!normalized) return null;
+
+    const exact = catalog.find((t) => t.normalizedName === normalized);
+    if (exact) return exact.name;
+
+    const suffixMatches = catalog.filter((t) => t.normalizedName.endsWith(`.${normalized}`));
+    if (suffixMatches.length === 1) return suffixMatches[0].name;
+
+    return null;
+}
+
+function inferToolNameByArgs(args: Record<string, any> | null, catalog: ToolCatalogEntry[]): { name: string | null; reason: string } {
+    if (!args || typeof args !== 'object') {
+        return { name: null, reason: 'sin_args' };
+    }
+
+    const keys = Object.keys(args);
+    if (keys.length === 0) {
+        return { name: null, reason: 'args_vacios' };
+    }
+
+    const scored = catalog
+        .map((tool) => {
+            if (tool.properties.size === 0) return { tool, score: -1000 };
+
+            let overlap = 0;
+            let unknown = 0;
+            let requiredMatched = 0;
+            for (const k of keys) {
+                if (tool.properties.has(k)) overlap++;
+                else unknown++;
+            }
+            for (const req of tool.required) {
+                if (Object.prototype.hasOwnProperty.call(args, req)) requiredMatched++;
+            }
+
+            const allRequiredSatisfied = tool.required.size === 0 || requiredMatched === tool.required.size;
+            const keysAreKnown = unknown === 0;
+
+            let score = overlap * 3 + requiredMatched * 5 - unknown * 4;
+            if (allRequiredSatisfied) score += 2;
+            if (keysAreKnown) score += 1;
+
+            return { tool, score };
+        })
+        .filter((entry) => entry.score > 0)
+        .sort((a, b) => b.score - a.score);
+
+    if (scored.length === 0) {
+        return { name: null, reason: 'sin_match_por_args' };
+    }
+
+    const top = scored[0];
+    const second = scored[1];
+    if (second && second.score === top.score) {
+        return { name: null, reason: 'match_ambiguo_por_args' };
+    }
+
+    return { name: top.tool.name, reason: `inferido_por_args:${keys.join(',')}` };
+}
+
 // ---------- COMPLETION CON OAUTH (CODEX API) ----------
 async function _responsesApiCompletion(model: string, messages: any[], apiKey: string, tools: any[] = [], onDelta?: (delta: any) => void) {
     const input: any[] = [];
@@ -367,34 +557,51 @@ async function _responsesApiCompletion(model: string, messages: any[], apiKey: s
     }
 
     // --- DETECCIÓN DE HERRAMIENTAS EN CRUDO (JSON) PARA CODEX ---
-    // Si el texto contiene bloques JSON (incluso si son múltiples), los extraemos.
+    // Nunca usamos fallback al "primer tool" porque causa desvíos y bucles.
+    const toolCatalog = buildToolCatalog(tools);
+    const rawToolSignatures = new Set<string>();
     const jsonBlocks = extractJsonBlocks(fullText);
     if (jsonBlocks.length > 0) {
         for (const block of jsonBlocks) {
-            try {
-                // Solo si no tenemos ya tool calls nativas o si queremos ser redundantes (Codex a veces vierte argumentos en texto)
-                const parsed = JSON.parse(block);
-                if (tools.length > 0) {
-                    const firstTool = tools[0];
-                    const toolName = firstTool.function?.name || firstTool.name;
-                    
-                    if (toolName) {
-                        console.log(`[LLM/Codex] Detectada llamada a herramienta en crudo (Texto): ${toolName}`);
-                        toolCalls.push({
-                            id: `call_raw_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-                            type: 'function',
-                            function: {
-                                name: toolName,
-                                arguments: block
-                            }
-                        });
-                        // Removemos el bloque del texto final para que no se vea el JSON en el chat
-                        fullText = fullText.replace(block, '').trim();
-                    }
-                }
-            } catch (e) {
-                // No era JSON válido o error al procesar
+            const parsed = safeJsonParse(block);
+            if (!parsed || toolCatalog.length === 0) {
+                continue;
             }
+
+            const rawName = extractRawToolName(parsed);
+            const resolvedByName = resolveToolNameFromCatalog(rawName, toolCatalog);
+            const rawArgs = extractRawToolArgs(parsed);
+            const inferred = inferToolNameByArgs(rawArgs, toolCatalog);
+
+            const resolvedToolName = resolvedByName || inferred.name;
+            const resolvedReason = resolvedByName
+                ? `name:${rawName}`
+                : inferred.reason;
+
+            if (!resolvedToolName) {
+                console.warn(`[LLM/Codex] JSON crudo ignorado: no se pudo mapear herramienta (reason=${resolvedReason}).`);
+                continue;
+            }
+
+            const argsToSend = rawArgs || {};
+            const signature = `${resolvedToolName}::${JSON.stringify(argsToSend)}`;
+            if (rawToolSignatures.has(signature)) {
+                continue;
+            }
+            rawToolSignatures.add(signature);
+
+            console.log(`[LLM/Codex] JSON crudo mapeado -> ${resolvedToolName} (${resolvedReason})`);
+            toolCalls.push({
+                id: `call_raw_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+                type: 'function',
+                function: {
+                    name: resolvedToolName,
+                    arguments: JSON.stringify(argsToSend)
+                }
+            });
+
+            // Ocultar bloque JSON del texto final visible
+            fullText = fullText.replace(block, '').trim();
         }
     }
 
