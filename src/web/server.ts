@@ -32,6 +32,10 @@ function sanitizeChatOutput(text: string) {
     out = out.replace(/\{\s*"command"\s*:\s*"[\s\S]*?\}\s*$/gi, '').trim();
     out = out.replace(/```(?:bash|sh|shell|json)?[\s\S]*?(?:ip route|getent|awk|python3|bash -lc)[\s\S]*?```/gi, '').trim();
 
+    // Colapsar repeticiones inmediatas del mismo bloque de texto
+    out = out.replace(/(.{8,}?)\s*\1+/g, '$1').trim();
+    out = out.replace(/(.+?)(?:\s*\1){1,}$/g, '$1').trim();
+
     const leakMarkers = [
         /Your operational mode has changed/i,
         /plan to build/i,
