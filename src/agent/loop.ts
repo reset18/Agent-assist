@@ -6,6 +6,7 @@ import { getMCPTools, executeMCPTool } from '../mcp/client.js';
 import fs from 'fs';
 import { join } from 'path';
 import AdmZip from 'adm-zip';
+import { createHash } from 'crypto';
 
 const MAX_ITERATIONS = 30;
 
@@ -236,45 +237,98 @@ function stableStringify(value: any): string {
     }
 }
 
+function digestStable(value: any): string {
+    return createHash('sha256').update(stableStringify(value)).digest('hex');
+}
+
+function isPlainObject(value: any): value is Record<string, any> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+const LOOP_WARNING_BUCKET_SIZE = 3;
+const MAX_LOOP_WARNING_KEYS = 128;
+
 class ToolLoopGuard {
-    private signatureCount = new Map<string, number>();
+    private callSignatureCount = new Map<string, number>();
+    private noProgressOutcomeCount = new Map<string, number>();
+    private warningBuckets = new Map<string, number>();
     private totalToolCalls = 0;
     private consecutiveSameTool = 0;
     private lastToolName = '';
 
-    register(toolName: string, args: any, result: string) {
+    register(toolName: string, args: any, result?: string, error?: string) {
         this.totalToolCalls++;
 
         if (toolName === this.lastToolName) this.consecutiveSameTool++;
         else this.consecutiveSameTool = 1;
         this.lastToolName = toolName;
 
-        const signature = `${toolName}::${stableStringify(args)}::${normalizeTextForComparison((result || '').slice(0, 600))}`;
-        const count = (this.signatureCount.get(signature) || 0) + 1;
-        this.signatureCount.set(signature, count);
+        const argsHash = digestStable(args);
+        const callSignature = `${toolName}:${argsHash}`;
+        const callCount = (this.callSignatureCount.get(callSignature) || 0) + 1;
+        this.callSignatureCount.set(callSignature, callCount);
 
-        if (count >= 4) {
+        const normalizedResult = normalizeTextForComparison((result || '').slice(0, 1000));
+        const normalizedError = normalizeTextForComparison((error || '').slice(0, 1000));
+        const outcomeHash = digestStable({ result: normalizedResult, error: normalizedError || null });
+        const noProgressKey = `${toolName}:${argsHash}:${outcomeHash}`;
+        const noProgressCount = (this.noProgressOutcomeCount.get(noProgressKey) || 0) + 1;
+        this.noProgressOutcomeCount.set(noProgressKey, noProgressCount);
+
+        if (this.callSignatureCount.size > 500) {
+            const first = this.callSignatureCount.keys().next().value;
+            if (first) this.callSignatureCount.delete(first);
+        }
+        if (this.noProgressOutcomeCount.size > 500) {
+            const first = this.noProgressOutcomeCount.keys().next().value;
+            if (first) this.noProgressOutcomeCount.delete(first);
+        }
+
+        const warningKey = `np:${toolName}:${argsHash}`;
+        const warningBucket = Math.floor(noProgressCount / LOOP_WARNING_BUCKET_SIZE);
+        const lastBucket = this.warningBuckets.get(warningKey) || 0;
+        if (warningBucket > lastBucket && noProgressCount >= LOOP_WARNING_BUCKET_SIZE) {
+            this.warningBuckets.set(warningKey, warningBucket);
+            if (this.warningBuckets.size > MAX_LOOP_WARNING_KEYS) {
+                const first = this.warningBuckets.keys().next().value;
+                if (first) this.warningBuckets.delete(first);
+            }
+            return {
+                blocked: false,
+                level: 'warning',
+                reason: `sin_progreso(${toolName})`,
+                count: noProgressCount
+            };
+        }
+
+        if (noProgressCount >= 6) {
             return {
                 blocked: true,
-                reason: `firma_repetida(${toolName})`
+                level: 'critical',
+                reason: `sin_progreso_critico(${toolName})`,
+                count: noProgressCount
             };
         }
 
         if (this.consecutiveSameTool >= 8) {
             return {
                 blocked: true,
-                reason: `misma_herramienta_en_cadena(${toolName})`
+                level: 'critical',
+                reason: `misma_herramienta_en_cadena(${toolName})`,
+                count: this.consecutiveSameTool
             };
         }
 
         if (this.totalToolCalls >= 20) {
             return {
                 blocked: true,
-                reason: 'exceso_total_de_herramientas'
+                level: 'critical',
+                reason: 'exceso_total_de_herramientas',
+                count: this.totalToolCalls
             };
         }
 
-        return { blocked: false, reason: '' };
+        return { blocked: false, level: 'ok', reason: '', count: 0 };
     }
 }
 
@@ -508,6 +562,7 @@ async function _executeAgentLogic(
     let fullAccumulatedText = '';
     const toolLoopGuard = new ToolLoopGuard();
     let nonVoiceToolHitsInAudio = 0;
+    let beforeToolBlockedHits = 0;
     const userMessageForDb = (isAudio && displayMessage && displayMessage.trim())
         ? displayMessage.trim()
         : (stripTelegramAttachmentsBlock(message) || message);
@@ -528,6 +583,12 @@ async function _executeAgentLogic(
                 tools = tools.filter(t => (t.function?.name || t.name) !== 'speak_message');
             }
 
+            const allowedToolNames = new Set(
+                tools
+                    .map((t: any) => t?.function?.name || t?.name)
+                    .filter((n: any) => typeof n === 'string' && n.trim().length > 0)
+            );
+
             const responseMessage = await chatCompletion(model, provider, thread, tools, undefined, onDelta);
             thread.push(responseMessage);
 
@@ -535,13 +596,33 @@ async function _executeAgentLogic(
                 for (const toolCall of (responseMessage as any).tool_calls) {
                     const toolName = toolCall?.function?.name || '';
                     const rawArgs = toolCall?.function?.arguments || '{}';
+                    const toolCallId = toolCall?.id || `call_local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+                    if (!toolName || !allowedToolNames.has(toolName)) {
+                        beforeToolBlockedHits++;
+                        const reason = `Herramienta no permitida o desconocida en este turno: ${toolName || 'unknown'}`;
+                        console.warn(`[Agent/BeforeTool] ${reason} (hit=${beforeToolBlockedHits})`);
+                        thread.push({
+                            role: 'tool',
+                            tool_call_id: toolCallId,
+                            content: JSON.stringify({ status: 'error', message: reason })
+                        });
+
+                        if (beforeToolBlockedHits >= 2) {
+                            const forcedReply = isAudio
+                                ? 'No he podido completar la respuesta en voz por un conflicto interno de herramientas. Reenvía la nota.'
+                                : 'No he podido ejecutar herramientas de forma segura en este turno. Reformula la petición y lo reintento.';
+                            return persistTurn(forcedReply);
+                        }
+                        continue;
+                    }
 
                     if (isAudio && toolName !== 'speak_message') {
                         nonVoiceToolHitsInAudio++;
                         console.warn(`[Agent/AudioGuard] Tool no permitida en audio: ${toolName || '(vacía)'} (hit=${nonVoiceToolHitsInAudio})`);
                         thread.push({
                             role: 'tool',
-                            tool_call_id: toolCall.id,
+                            tool_call_id: toolCallId,
                             content: JSON.stringify({
                                 status: 'error',
                                 message: `En modo audio solo está permitida la herramienta speak_message. Recibida: ${toolName || 'unknown'}`
@@ -556,17 +637,39 @@ async function _executeAgentLogic(
 
                     const isMCP = mcpTools.some(t => (t.function?.name || t.name) === toolName);
                     let parsedArgs: any = {};
+                    let argsAreValidObject = true;
                     try {
                         parsedArgs = JSON.parse(rawArgs || '{}');
+                        if (!isPlainObject(parsedArgs)) {
+                            argsAreValidObject = false;
+                            parsedArgs = {};
+                        }
                     } catch {
+                        argsAreValidObject = false;
                         parsedArgs = {};
                     }
+
+                    if (rawArgs && rawArgs !== '{}' && !argsAreValidObject) {
+                        beforeToolBlockedHits++;
+                        const reason = `Parámetros inválidos para ${toolName}. Se esperaba objeto JSON.`;
+                        console.warn(`[Agent/BeforeTool] ${reason} (hit=${beforeToolBlockedHits})`);
+                        thread.push({
+                            role: 'tool',
+                            tool_call_id: toolCallId,
+                            content: JSON.stringify({ status: 'error', message: reason })
+                        });
+                        continue;
+                    }
+
                     const result = isMCP 
                         ? await executeMCPTool(toolName, parsedArgs)
                         : await executeToolCall(toolCall);
-                    thread.push({ role: 'tool', tool_call_id: toolCall.id, content: result || 'success' });
+                    thread.push({ role: 'tool', tool_call_id: toolCallId, content: result || 'success' });
 
-                    const loopCheck = toolLoopGuard.register(toolName, rawArgs, String(result || ''));
+                    const loopCheck = toolLoopGuard.register(toolName, parsedArgs, String(result || ''));
+                    if (!loopCheck.blocked && loopCheck.level === 'warning') {
+                        console.warn(`[Agent/LoopGuard] Warning: ${loopCheck.reason} (count=${loopCheck.count})`);
+                    }
                     if (loopCheck.blocked) {
                         console.error(`[Agent/LoopGuard] Bucle de herramientas detectado (${loopCheck.reason}).`);
                         const forcedReply = isAudio

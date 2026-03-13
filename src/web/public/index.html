@@ -2541,7 +2541,7 @@
 
                     // Restablecer de capa de escape únicamente la caja del Audio generada por el agente
                     formatted = formatted.replace(
-                        /\[AUDIO:\s*(\/media\/[^\]]+)\]/gi,
+                        /(?:&quot;|")?\s*\[AUDIO:\s*(\/media\/[^\]]+)\]\s*(?:&quot;|")?/gi,
                         '<audio src="$1" controls style="max-width: 100%; margin-top: 10px; display: block; border-radius: 20px; outline: none;"></audio>'
                     );
 

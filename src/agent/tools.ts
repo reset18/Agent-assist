@@ -111,6 +111,9 @@ export async function executeToolCall(toolCall: any) {
         try {
             console.log(`[Tool] Ejecutando: ${name} con args:`, args);
             const result = await tool.execute(args);
+            if (typeof result === 'string') {
+                return result;
+            }
             return JSON.stringify(result);
         } catch (e: any) {
             console.error(`[Tool] Error ejecutando ${name}:`, e);
