@@ -381,27 +381,66 @@ app.get('/auth-provider', (req, res) => {
 });
 
 app.get('/api/check-update', async (req, res) => {
+    const normalizeVersion = (v: string) => String(v || '').trim().replace(/^v/, '');
+    const isRemoteNewer = (remote: string, current: string) => {
+        const r = normalizeVersion(remote).split('.').map((n) => parseInt(n, 10) || 0);
+        const c = normalizeVersion(current).split('.').map((n) => parseInt(n, 10) || 0);
+        const len = Math.max(r.length, c.length);
+        for (let i = 0; i < len; i++) {
+            const rv = r[i] || 0;
+            const cv = c[i] || 0;
+            if (rv > cv) return true;
+            if (rv < cv) return false;
+        }
+        return false;
+    };
+
     try {
         const pkg = JSON.parse(fs.readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
-        const currentVersion = pkg.version.trim().replace(/^v/, '');
+        const currentVersion = normalizeVersion(pkg.version);
 
-        // Cache buster for GitHub
-        const fetchRemote = await fetch('https://raw.githubusercontent.com/reset18/Agent-assist/main/package.json?t=' + Date.now());
-        const githubPkg: any = await fetchRemote.json();
-        const remoteVersion = githubPkg.version.trim().replace(/^v/, '');
+        let remoteVersion = currentVersion;
+        let source = 'local';
 
-        const updateAvailable = remoteVersion !== currentVersion;
+        try {
+            // 1) Intentar desde release latest (más fiable para el botón de actualización)
+            const latestRelease = await fetch('https://api.github.com/repos/reset18/Agent-assist/releases/latest?t=' + Date.now(), {
+                headers: { 'Accept': 'application/vnd.github+json' }
+            });
+            if (latestRelease.ok) {
+                const rel: any = await latestRelease.json();
+                const tag = normalizeVersion(rel?.tag_name || '');
+                if (tag) {
+                    remoteVersion = tag;
+                    source = 'github_release';
+                }
+            }
+        } catch {
+            // fallback abajo
+        }
 
-        console.log(`[UpdateCheck] Local: ${currentVersion}, Remote: ${remoteVersion}, Available: ${updateAvailable}`);
+        if (source === 'local') {
+            // 2) Fallback a package.json de main
+            const fetchRemote = await fetch('https://raw.githubusercontent.com/reset18/Agent-assist/main/package.json?t=' + Date.now(), {
+                cache: 'no-store'
+            });
+            if (!fetchRemote.ok) {
+                const txt = await fetchRemote.text();
+                throw new Error(`No se pudo leer package remoto (${fetchRemote.status}): ${txt.slice(0, 120)}`);
+            }
+            const githubPkg: any = await fetchRemote.json();
+            remoteVersion = normalizeVersion(githubPkg.version);
+            source = 'github_main';
+        }
 
-        res.json({
-            current: currentVersion,
-            remote: remoteVersion,
-            updateAvailable: updateAvailable
-        });
+        const updateAvailable = isRemoteNewer(remoteVersion, currentVersion);
+
+        console.log(`[UpdateCheck] Local: ${currentVersion}, Remote: ${remoteVersion}, Source: ${source}, Available: ${updateAvailable}`);
+
+        res.json({ current: currentVersion, remote: remoteVersion, updateAvailable, source });
     } catch (e) {
         const pkg = JSON.parse(fs.readFileSync(join(process.cwd(), 'package.json'), 'utf8'));
-        res.json({ current: pkg.version, remote: pkg.version, updateAvailable: false });
+        res.json({ current: pkg.version, remote: pkg.version, updateAvailable: false, error: 'No se pudo consultar la versión remota' });
     }
 });
 
