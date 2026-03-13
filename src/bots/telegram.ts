@@ -121,17 +121,23 @@ async function sendAudioOnlyReply(ctx: any, reply: string) {
         const ttsResult = await execute_speak_message({ text_to_speak: clean });
         const ttsMatches = [...ttsResult.matchAll(/\[AUDIO:\s*(\/media\/[^\]]+)\]/g)];
 
-        for (const tm of ttsMatches) {
-            const p = tm[1];
-            const fullPath = preferVoiceFilePath(resolveMediaFilePath(p));
-            if (fullPath.toLowerCase().endsWith('.ogg')) {
-                await ctx.replyWithVoice(new InputFile(fullPath));
-            } else {
-                await ctx.replyWithAudio(new InputFile(fullPath));
+        if (ttsMatches.length > 0) {
+            for (const tm of ttsMatches) {
+                const p = tm[1];
+                const fullPath = preferVoiceFilePath(resolveMediaFilePath(p));
+                if (fullPath.toLowerCase().endsWith('.ogg')) {
+                    await ctx.replyWithVoice(new InputFile(fullPath));
+                } else {
+                    await ctx.replyWithAudio(new InputFile(fullPath));
+                }
             }
+            return;
         }
+
+        await splitAndSend(ctx, clean);
     } catch (e) {
         console.error('[Telegram] Error generando TTS de fallback:', e);
+        await splitAndSend(ctx, clean);
     }
 }
 

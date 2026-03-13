@@ -448,14 +448,15 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
 
                     if (
                         isAudio &&
-                        toolCall.function?.name === 'speak_message' &&
-                        typeof result === 'string' &&
-                        result.includes('[AUDIO:')
+                        toolCall.function?.name === 'speak_message'
                     ) {
                         const cleanUserTextForDb = stripTelegramAttachmentsBlock(message) || message;
                         addMessage('user', cleanUserTextForDb, sessionId);
-                        addMessage('assistant', result, sessionId);
-                        return result;
+                        const finalAudioReply = typeof result === 'string' && result.trim()
+                            ? result
+                            : 'No he podido generar la nota de voz.';
+                        addMessage('assistant', finalAudioReply, sessionId);
+                        return finalAudioReply;
                     }
                 }
                 continue;
