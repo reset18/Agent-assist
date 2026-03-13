@@ -32,6 +32,16 @@ CREATE TABLE IF NOT EXISTS tokens_usage (
   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS tool_runtime_metrics (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_type TEXT NOT NULL,
+  session_id TEXT NOT NULL DEFAULT 'default',
+  source TEXT NOT NULL DEFAULT 'web',
+  tool_name TEXT NOT NULL DEFAULT 'unknown',
+  reason TEXT,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Valores por defecto iniciales
 INSERT OR IGNORE INTO sessions (id, name) VALUES ('default', 'Chat Principal');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('agent_name', 'AgentAssist');

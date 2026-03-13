@@ -1,5 +1,5 @@
 import { chatCompletion, normalizeTextForComparison } from './llm.js';
-import { getSetting, setSetting, getRecentMessages, addMessage } from '../db/index.js';
+import { getSetting, setSetting, getRecentMessages, addMessage, addToolRuntimeMetric } from '../db/index.js';
 import { getMemoryPrompt } from './memory.js';
 import { getActiveTools, executeToolCall } from './tools.js';
 import { getMCPTools, executeMCPTool } from '../mcp/client.js';
@@ -327,6 +327,7 @@ function runBeforeToolCallHook(args: {
         pushRuntimeHookEvent({ at: new Date().toISOString(), type: 'before', sessionId: args.sessionId, source: args.source, toolName: args.toolName || 'unknown', reason });
         if (cfg.strictMode) {
             runtimeHookCounters.beforeBlocked++;
+            addToolRuntimeMetric('before', args.sessionId, args.source, args.toolName || 'unknown', reason);
             return { blocked: true, reason, adjustedArgs: {} };
         }
     }
@@ -335,6 +336,7 @@ function runBeforeToolCallHook(args: {
         const reason = `En modo audio solo se permite speak_message: ${args.toolName || 'unknown'}`;
         pushRuntimeHookEvent({ at: new Date().toISOString(), type: 'before', sessionId: args.sessionId, source: args.source, toolName: args.toolName || 'unknown', reason });
         runtimeHookCounters.beforeBlocked++;
+        addToolRuntimeMetric('before', args.sessionId, args.source, args.toolName || 'unknown', reason);
         return { blocked: true, reason, adjustedArgs: {} };
     }
 
@@ -343,6 +345,7 @@ function runBeforeToolCallHook(args: {
         pushRuntimeHookEvent({ at: new Date().toISOString(), type: 'before', sessionId: args.sessionId, source: args.source, toolName: args.toolName || 'unknown', reason });
         if (cfg.strictMode) {
             runtimeHookCounters.beforeBlocked++;
+            addToolRuntimeMetric('before', args.sessionId, args.source, args.toolName || 'unknown', reason);
             return { blocked: true, reason, adjustedArgs: {} };
         }
     }
@@ -353,11 +356,13 @@ function runBeforeToolCallHook(args: {
 function runAfterToolCallHook(args: { sessionId: string; source: string; toolName: string; }) {
     runtimeHookCounters.afterSuccess++;
     pushRuntimeHookEvent({ at: new Date().toISOString(), type: 'after', sessionId: args.sessionId, source: args.source, toolName: args.toolName });
+    addToolRuntimeMetric('after', args.sessionId, args.source, args.toolName, 'ok');
 }
 
 function runToolErrorHook(args: { sessionId: string; source: string; toolName: string; reason: string; }) {
     runtimeHookCounters.onError++;
     pushRuntimeHookEvent({ at: new Date().toISOString(), type: 'error', sessionId: args.sessionId, source: args.source, toolName: args.toolName, reason: args.reason });
+    addToolRuntimeMetric('error', args.sessionId, args.source, args.toolName, args.reason);
 }
 
 function recordLoopSignal(args: { sessionId: string; source: string; toolName: string; reason: string; blocked: boolean; }) {
@@ -372,6 +377,7 @@ function recordLoopSignal(args: { sessionId: string; source: string; toolName: s
         toolName: args.toolName,
         reason: args.reason,
     });
+    addToolRuntimeMetric(args.blocked ? 'loop_block' : 'loop_warning', args.sessionId, args.source, args.toolName, args.reason);
 }
 
 const DEFAULT_LOOP_WARNING_BUCKET_SIZE = 3;

@@ -4,7 +4,7 @@ import { dirname, join } from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import AdmZip from 'adm-zip';
-import { getSetting, setSetting, getLLMAccounts, saveLLMAccount, removeLLMAccount, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, deleteSession, getTokenUsageHistory } from '../db/index.js';
+import { getSetting, setSetting, getLLMAccounts, saveLLMAccount, removeLLMAccount, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, deleteSession, getTokenUsageHistory, getToolRuntimeMetricsHistory } from '../db/index.js';
 import { whatsappGlobalState } from '../bots/whatsapp.js';
 import { getToolRuntimeDiagnostics } from '../agent/loop.js';
 
@@ -596,6 +596,16 @@ app.get('/api/status', (req, res) => {
 
 app.get('/api/tool-runtime', (req, res) => {
     res.json(getToolRuntimeDiagnostics());
+});
+
+app.get('/api/tool-runtime/history', (req, res) => {
+    const hours = Number.parseInt(String(req.query.hours || '24'), 10);
+    try {
+        const history = getToolRuntimeMetricsHistory(Number.isFinite(hours) ? hours : 24);
+        res.json({ history });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message || 'No se pudo obtener el histórico de estabilidad.' });
+    }
 });
 
 function updateEnv(key: string, value: string) {

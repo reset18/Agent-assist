@@ -46,6 +46,18 @@ export function initDb() {
             console.log("[DB] Migración: Añadiendo columna 'session_id' a la tabla 'messages'...");
             db.exec("ALTER TABLE messages ADD COLUMN session_id TEXT NOT NULL DEFAULT 'default'");
         }
+
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS tool_runtime_metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_type TEXT NOT NULL,
+                session_id TEXT NOT NULL DEFAULT 'default',
+                source TEXT NOT NULL DEFAULT 'web',
+                tool_name TEXT NOT NULL DEFAULT 'unknown',
+                reason TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
     } catch (err) {
         console.error("[DB] Error en migración:", err);
     }
@@ -71,9 +83,39 @@ export function addMessage(role: string, content: string, sessionId = 'default')
 }
 
 export function getRecentMessages(limit = 20, sessionId = 'default') {
-    const stmt = db.prepare('SELECT role, content FROM messages WHERE session_id = ? ORDER BY id DESC LIMIT ?');
-    const rows = stmt.all(sessionId, limit) as { role: string; content: string }[];
+    const stmt = db.prepare('SELECT role, content, timestamp FROM messages WHERE session_id = ? ORDER BY id DESC LIMIT ?');
+    const rows = stmt.all(sessionId, limit) as { role: string; content: string; timestamp: string }[];
     return rows.reverse();
+}
+
+export function addToolRuntimeMetric(eventType: string, sessionId: string, source: string, toolName: string, reason?: string) {
+    const stmt = db.prepare('INSERT INTO tool_runtime_metrics (event_type, session_id, source, tool_name, reason) VALUES (?, ?, ?, ?, ?)');
+    stmt.run(eventType, sessionId || 'default', source || 'web', toolName || 'unknown', reason || null);
+}
+
+export function getToolRuntimeMetricsHistory(hours = 24) {
+    const safeHours = Number.isFinite(hours) && hours > 0 ? Math.min(Math.max(Math.floor(hours), 1), 168) : 24;
+    const stmt = db.prepare(`
+        SELECT
+            strftime('%Y-%m-%d %H:%M', timestamp) AS bucket,
+            SUM(CASE WHEN event_type = 'before' THEN 1 ELSE 0 END) AS beforeBlocked,
+            SUM(CASE WHEN event_type = 'after' THEN 1 ELSE 0 END) AS afterSuccess,
+            SUM(CASE WHEN event_type = 'error' THEN 1 ELSE 0 END) AS onError,
+            SUM(CASE WHEN event_type = 'loop_warning' THEN 1 ELSE 0 END) AS loopWarnings,
+            SUM(CASE WHEN event_type = 'loop_block' THEN 1 ELSE 0 END) AS loopBlocks
+        FROM tool_runtime_metrics
+        WHERE timestamp >= datetime('now', ?)
+        GROUP BY bucket
+        ORDER BY bucket ASC
+    `);
+    return stmt.all(`-${safeHours} hours`) as Array<{
+        bucket: string;
+        beforeBlocked: number;
+        afterSuccess: number;
+        onError: number;
+        loopWarnings: number;
+        loopBlocks: number;
+    }>;
 }
 
 export function createSession(id: string, name: string, platform = 'web') {

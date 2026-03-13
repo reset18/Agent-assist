@@ -2282,6 +2282,7 @@
                 }
 
                 if (pageId === 'estabilidad') {
+                    loadToolRuntimeHistory(24);
                     loadToolRuntimeStatus();
                 }
 
@@ -2337,6 +2338,21 @@
         let usageChart = null;
         let stabilityChart = null;
         const stabilityHistory = [];
+
+        function formatMessageTime(ts) {
+            if (!ts) return '';
+            try {
+                let parsed = ts;
+                if (typeof ts === 'string' && !ts.includes('T')) {
+                    parsed = ts.replace(' ', 'T') + 'Z';
+                }
+                const d = new Date(parsed);
+                if (Number.isNaN(d.getTime())) return '';
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } catch {
+                return '';
+            }
+        }
 
         function initUsageChart(data) {
             const ctx = document.getElementById('usageChart');
@@ -2560,17 +2576,9 @@
                 setText('diag_error_rate', `${errorRate.toFixed(1)}%`);
                 setText('diag_block_rate', `${blockRate.toFixed(1)}%`);
 
-                const point = {
-                    time: new Date().toLocaleTimeString(),
-                    beforeBlocked: c.beforeBlocked || 0,
-                    afterSuccess: c.afterSuccess || 0,
-                    onError: c.onError || 0,
-                    loopWarnings: c.loopWarnings || 0,
-                    loopBlocks: c.loopBlocks || 0,
-                };
-                stabilityHistory.push(point);
-                if (stabilityHistory.length > 24) stabilityHistory.shift();
-                updateStabilityChart();
+                if (stabilityHistory.length > 0) {
+                    updateStabilityChart();
+                }
 
                 const cfgEl = document.getElementById('diag_runtime_config');
                 if (cfgEl) {
@@ -2588,6 +2596,34 @@
             } catch (e) {
                 const eventsEl = document.getElementById('diag_runtime_events');
                 if (eventsEl) eventsEl.textContent = 'Error cargando diagnóstico de herramientas.';
+            }
+        }
+
+        async function loadToolRuntimeHistory(hours = 24) {
+            try {
+                const r = await fetch('/api/tool-runtime/history?hours=' + hours + '&t=' + Date.now(), { cache: 'no-store' });
+                if (!r.ok) return;
+                const data = await r.json();
+                const rows = Array.isArray(data?.history) ? data.history : [];
+                if (rows.length === 0) return;
+
+                stabilityHistory.length = 0;
+                rows.forEach(row => {
+                    const bucket = String(row.bucket || '');
+                    const time = bucket.length >= 16 ? bucket.slice(11, 16) : bucket;
+                    stabilityHistory.push({
+                        time,
+                        beforeBlocked: Number(row.beforeBlocked || 0),
+                        afterSuccess: Number(row.afterSuccess || 0),
+                        onError: Number(row.onError || 0),
+                        loopWarnings: Number(row.loopWarnings || 0),
+                        loopBlocks: Number(row.loopBlocks || 0),
+                    });
+                });
+
+                updateStabilityChart();
+            } catch (_) {
+                // Si falla, seguimos con métricas en vivo.
             }
         }
 
@@ -3068,11 +3104,17 @@
                                 senderName.className = 'sender-name';
                                 senderName.textContent = msg.role === 'user' ? window.fullUserNameCache : window.fullAgentNameCache;
 
+                                const senderMeta = document.createElement('div');
+                                senderMeta.className = 'sender-meta';
+                                senderMeta.style.cssText = 'font-size: 11px; color: var(--text-muted); margin-top: 2px; margin-bottom: 8px; opacity: 0.9;';
+                                senderMeta.textContent = formatMessageTime(msg.timestamp);
+
                                 const bubble = document.createElement('div');
                                 bubble.className = `chat-bubble ${msg.role === 'user' ? 'user' : 'assistant'}`;
                                 bubble.innerHTML = formatChatText(msg.content);
 
                                 contentWrapper.appendChild(senderName);
+                                contentWrapper.appendChild(senderMeta);
                                 contentWrapper.appendChild(bubble);
 
                                 wrapper.appendChild(avatar);
@@ -3117,6 +3159,7 @@
 
         setInterval(() => {
             if (document.getElementById('estabilidad').classList.contains('active')) {
+                loadToolRuntimeHistory(24);
                 loadToolRuntimeStatus();
             }
         }, 8000);
