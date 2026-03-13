@@ -2010,7 +2010,8 @@
                                 </div>
 
                                 <div class="form-group" style="margin-top: 10px;">
-                                    <button type="button" class="secondary-btn" onclick="testOpenAITtsConfig()">Probar voz OpenAI</button>
+                                    <button type="button" class="secondary-btn" onclick="testVoiceChainConfig()">Probar voz (cadena)</button>
+                                    <button type="button" class="secondary-btn" onclick="testOpenAITtsConfig()" style="margin-left: 8px;">Probar solo OpenAI</button>
                                     <span id="openai_tts_test_status" class="helper-text" style="display:block; margin-top:8px;"></span>
                                 </div>
                             </div>
@@ -2977,6 +2978,15 @@
                 if (piperSpeaker) piperSpeaker.value = data.piper_speaker || '';
                 const piperSpeed = document.getElementById('piper_speed');
                 if (piperSpeed) piperSpeed.value = data.piper_speed || '';
+
+                const openaiStatus = document.getElementById('openai_tts_test_status');
+                if (openaiStatus) {
+                    const until = parseInt(data.openai_tts_unavailable_until || '0', 10);
+                    if (Number.isFinite(until) && until > Date.now()) {
+                        openaiStatus.textContent = 'OpenAI TTS temporalmente no disponible para este proyecto. Se usará fallback automáticamente.';
+                        openaiStatus.style.color = 'var(--warning)';
+                    }
+                }
 
                 const elevenLabsKey = document.getElementById('elevenlabs_api_key');
                 if (elevenLabsKey) elevenLabsKey.value = data.elevenlabs_api_key || '';
@@ -4248,6 +4258,39 @@
                 statusEl.style.color = 'var(--success)';
             } catch (e) {
                 statusEl.textContent = '❌ Error de red validando TTS.';
+                statusEl.style.color = 'var(--danger)';
+            }
+        }
+
+        async function testVoiceChainConfig() {
+            const statusEl = document.getElementById('openai_tts_test_status');
+            const apiKey = document.getElementById('openai_api_key_audio')?.value || '';
+            const voiceId = document.getElementById('openai_voice_id')?.value || 'alloy';
+            const model = document.getElementById('openai_tts_model')?.value || 'auto';
+            const piperBinPath = document.getElementById('piper_bin_path')?.value || '';
+            const piperModelPath = document.getElementById('piper_model_path')?.value || '';
+
+            if (!statusEl) return;
+            statusEl.textContent = 'Probando cadena de voz (local -> openai -> elevenlabs)...';
+            statusEl.style.color = 'var(--primary)';
+
+            try {
+                const r = await fetch('/api/voice/test-chain', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey, voiceId, model, piperBinPath, piperModelPath })
+                });
+                const data = await r.json();
+                if (!r.ok || !data.success) {
+                    statusEl.textContent = `❌ ${data.error || 'No hay motores de voz disponibles.'}`;
+                    statusEl.style.color = 'var(--danger)';
+                    return;
+                }
+
+                statusEl.textContent = `✅ Motor operativo: ${data.engineUsed}. ${data.details || ''}`;
+                statusEl.style.color = 'var(--success)';
+            } catch (_) {
+                statusEl.textContent = '❌ Error de red probando cadena de voz.';
                 statusEl.style.color = 'var(--danger)';
             }
         }

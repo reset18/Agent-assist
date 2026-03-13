@@ -78,6 +78,7 @@ app.get('/api/settings', (req, res) => {
         voice_engine: getSetting('voice_engine') || 'openai',
         openai_voice_id: getSetting('openai_voice_id') || 'alloy',
         openai_tts_model: getSetting('openai_tts_model') || 'auto',
+        openai_tts_unavailable_until: getSetting('openai_tts_unavailable_until') || '0',
         openai_api_key_audio: getSetting('openai_api_key_audio') || process.env.OPENAI_API_KEY || '',
         piper_bin_path: getSetting('piper_bin_path') || '',
         piper_model_path: getSetting('piper_model_path') || '',
@@ -678,6 +679,7 @@ app.post('/api/voice/test-tts', async (req, res) => {
             });
 
             if (resp.ok) {
+                setSetting('openai_tts_unavailable_until', '0');
                 return res.json({ success: true, modelUsed: candidate });
             }
 
@@ -692,6 +694,7 @@ app.post('/api/voice/test-tts', async (req, res) => {
         }
 
         if (deniedCount === models.length) {
+            setSetting('openai_tts_unavailable_until', String(Date.now() + 10 * 60 * 1000));
             return res.status(400).json({
                 success: false,
                 error: `Tu proyecto OpenAI no tiene acceso a modelos TTS (${models.join(', ')}). Usa motor local (Piper) o ElevenLabs.`
@@ -737,6 +740,88 @@ app.post('/api/voice/test-local', async (req, res) => {
     } catch (e: any) {
         return res.status(500).json({ success: false, error: e.message || 'Error validando Piper local.' });
     }
+});
+
+app.post('/api/voice/test-chain', async (req, res) => {
+    const errors: string[] = [];
+
+    // 1) local
+    try {
+        const r: any = await (async () => {
+            const fsMod = await import('fs');
+            const osMod = await import('os');
+            const pathMod = await import('path');
+            const child = await import('child_process');
+
+            const defaults = process.platform === 'win32'
+                ? { bin: 'C:\\piper\\piper.exe', model: 'C:\\piper\\es_ES-sharvard-medium.onnx' }
+                : { bin: pathMod.join(osMod.homedir(), 'piper', 'piper', 'piper'), model: pathMod.join(osMod.homedir(), 'piper', 'es_ES-sharvard-medium.onnx') };
+
+            const piperBin = String(req.body?.piperBinPath || getSetting('piper_bin_path') || defaults.bin).trim();
+            const piperModel = String(req.body?.piperModelPath || getSetting('piper_model_path') || defaults.model).trim();
+            if (!piperBin || !fsMod.existsSync(piperBin)) throw new Error(`Piper no encontrado en ${piperBin}`);
+            if (!piperModel || !fsMod.existsSync(piperModel)) throw new Error(`Modelo Piper no encontrado en ${piperModel}`);
+            const piperCheck = child.spawnSync(piperBin, ['--help'], { encoding: 'utf8' });
+            if (piperCheck.status !== 0) throw new Error('Piper existe pero no pudo ejecutarse.');
+            return { ok: true };
+        })();
+        if (r?.ok) {
+            return res.json({ success: true, engineUsed: 'local', details: 'Piper local operativo.' });
+        }
+    } catch (e: any) {
+        errors.push(`local: ${e?.message || String(e)}`);
+    }
+
+    // 2) openai
+    try {
+        const voiceId = String(req.body?.voiceId || getSetting('openai_voice_id') || 'alloy');
+        const model = String(req.body?.model || getSetting('openai_tts_model') || 'auto');
+        let apiKey = String(req.body?.apiKey || getSetting('openai_api_key_audio') || process.env.OPENAI_API_KEY || '').trim();
+        if (apiKey && apiKey !== 'SUTITUYE POR EL TUYO') {
+            const models = model === 'auto' ? ['gpt-4o-mini-tts', 'tts-1', 'tts-1-hd'] : [model];
+            for (const candidate of models) {
+                const resp = await fetch('https://api.openai.com/v1/audio/speech', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: candidate, voice: voiceId, input: 'Prueba de voz.' })
+                });
+                if (resp.ok) {
+                    setSetting('openai_tts_unavailable_until', '0');
+                    return res.json({ success: true, engineUsed: 'openai', details: `OpenAI TTS operativo (${candidate}).` });
+                }
+            }
+            setSetting('openai_tts_unavailable_until', String(Date.now() + 10 * 60 * 1000));
+            errors.push('openai: sin acceso a modelos TTS para este proyecto.');
+        } else {
+            errors.push('openai: sin API key válida para TTS.');
+        }
+    } catch (e: any) {
+        errors.push(`openai: ${e?.message || String(e)}`);
+    }
+
+    // 3) elevenlabs
+    try {
+        const apiKey = getSetting('elevenlabs_api_key');
+        const voiceId = getSetting('elevenlabs_voice_id');
+        if (!apiKey || !voiceId) throw new Error('faltan credenciales');
+        const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'audio/mpeg',
+                'xi-api-key': apiKey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ text: 'Prueba de voz.', model_id: 'eleven_multilingual_v2' })
+        });
+        if (resp.ok) {
+            return res.json({ success: true, engineUsed: 'elevenlabs', details: 'ElevenLabs operativo.' });
+        }
+        errors.push(`elevenlabs: status ${resp.status}`);
+    } catch (e: any) {
+        errors.push(`elevenlabs: ${e?.message || String(e)}`);
+    }
+
+    return res.status(400).json({ success: false, error: `No hay motores de voz disponibles: ${errors.join(' | ')}` });
 });
 
 function updateEnv(key: string, value: string) {

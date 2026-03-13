@@ -3,7 +3,7 @@ import os from 'os';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
-import { getSetting } from '../../db/index.js';
+import { getSetting, setSetting } from '../../db/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -86,6 +86,21 @@ async function requestOpenAITts(apiKey: string, model: string, voice: string, in
     return Buffer.from(arrayBuffer);
 }
 
+function getOpenAITtsUnavailableUntil() {
+    const raw = getSetting('openai_tts_unavailable_until') || '0';
+    const n = Number.parseInt(raw, 10);
+    return Number.isFinite(n) ? n : 0;
+}
+
+function markOpenAITtsUnavailable(minutes = 10) {
+    const until = Date.now() + minutes * 60 * 1000;
+    setSetting('openai_tts_unavailable_until', String(until));
+}
+
+function clearOpenAITtsUnavailable() {
+    setSetting('openai_tts_unavailable_until', '0');
+}
+
 export const speak_message_def = {
     type: "function",
     function: {
@@ -126,6 +141,11 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
             }
 
             if (engine === 'openai') {
+                const unavailableUntil = getOpenAITtsUnavailableUntil();
+                if (unavailableUntil > Date.now()) {
+                    throw new Error('OpenAI TTS no disponible temporalmente para este proyecto.');
+                }
+
                 let apiKey = getSetting('openai_api_key_audio');
                 if (!apiKey && getSetting('model_provider') === 'openai') {
                     const main = getSetting('llm_api_key') || '';
@@ -145,9 +165,11 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
                     : [configuredModel];
 
                 let lastError: any = null;
+                let deniedAllModels = true;
                 for (const modelCandidate of modelCandidates) {
                     try {
                         const buffer = await requestOpenAITts(apiKey, modelCandidate, voiceId, args.text_to_speak);
+                        clearOpenAITtsUnavailable();
                         const mediaDir = path.join(__dirname, '..', '..', 'web', 'public', 'media');
                         if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir, { recursive: true });
                         const filename = `voice_${Date.now()}.mp3`;
@@ -162,8 +184,12 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
                             raw.includes('model_not_found')
                         );
                         if (modelAccessDenied) continue;
+                        deniedAllModels = false;
                         throw e;
                     }
+                }
+                if (deniedAllModels) {
+                    markOpenAITtsUnavailable(10);
                 }
                 throw lastError || new Error('No se pudo generar audio con OpenAI TTS.');
             }
