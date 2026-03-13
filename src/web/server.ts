@@ -102,11 +102,16 @@ app.get('/api/settings', (req, res) => {
     });
 });
 
+const SUPPORTED_PROVIDERS = new Set(['openai', 'anthropic', 'google', 'openrouter', 'groq', 'qwen', 'xai']);
+
 app.post('/api/accounts/add', (req, res) => {
     try {
         const { provider, name, apiKey, model } = req.body;
         if (!provider || !name || !apiKey) {
             return res.status(400).json({ success: false, error: 'Faltan campos' });
+        }
+        if (!SUPPORTED_PROVIDERS.has(provider)) {
+            return res.status(400).json({ success: false, error: 'Proveedor no soportado actualmente' });
         }
 
         const id = 'acc_' + crypto.randomBytes(6).toString('hex');
@@ -600,6 +605,9 @@ app.post('/api/settings', (req, res) => {
 
 app.post('/api/models', async (req, res) => {
     const { provider, apiKey } = req.body;
+    if (!SUPPORTED_PROVIDERS.has(provider)) {
+        return res.status(400).json({ error: 'Proveedor no soportado actualmente' });
+    }
     let token = apiKey;
 
     if (!token || token.trim() === '') {

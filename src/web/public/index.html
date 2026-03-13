@@ -1100,6 +1100,13 @@
                 </svg>
                 Consumos
             </button>
+            <button class="nav-item" onclick="navigate('estabilidad')">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 3v18m0 0l-4-4m4 4l4-4M4 7h16M4 12h10M4 17h7"></path>
+                </svg>
+                Estabilidad
+            </button>
         </div>
         <div class="sidebar-footer">
             <div id="update_notification" class="update-box" style="display: none;">
@@ -1297,32 +1304,46 @@
                             </label>
                         </div>
 
-                        <div style="margin-top: 14px; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border); background: rgba(var(--bg-rgb), 0.2);">
-                            <div style="font-weight: 700; font-size: 14px; margin-bottom: 10px;">Plan B: Hooks de Herramientas (OpenClaw)</div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
-                                <label class="toggle-switch" style="display:flex; align-items:center; justify-content: space-between; width:100%; background: var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 12px;">
-                                    <span style="font-size: 13px;">Hooks habilitados</span>
+                        <div style="margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;">
+                            <div style="padding: 12px 16px; background: rgba(var(--bg-rgb), 0.3); border-bottom: 1px solid var(--border);">
+                                <div style="font-weight: 600; font-size: 14px;">Protección de herramientas</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Controla cómo se validan y frenan llamadas repetitivas a herramientas.</div>
+                            </div>
+                            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px;">Hooks habilitados</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">Activa validación previa, posterior y manejo de errores de tools.</div>
+                                </div>
+                                <label class="toggle-switch">
                                     <input type="checkbox" id="tool_hooks_enabled" onchange="saveSettings()" checked>
                                     <span class="slider"></span>
                                 </label>
-                                <label class="toggle-switch" style="display:flex; align-items:center; justify-content: space-between; width:100%; background: var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 12px;">
-                                    <span style="font-size: 13px;">Modo estricto</span>
+                            </div>
+                            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: 600; font-size: 14px;">Modo estricto</div>
+                                    <div style="font-size: 12px; color: var(--text-muted);">Bloquea llamadas inválidas en lugar de intentar continuarlas.</div>
+                                </div>
+                                <label class="toggle-switch">
                                     <input type="checkbox" id="tool_hooks_strict_mode" onchange="saveSettings()" checked>
                                     <span class="slider"></span>
                                 </label>
                             </div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 12px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; padding: 12px 16px;">
                                 <div class="form-group" style="margin:0;">
                                     <label for="tool_loop_warning_threshold">Umbral warning</label>
                                     <input type="number" min="1" id="tool_loop_warning_threshold" onchange="saveSettings()" />
+                                    <span class="helper-text">Aviso cuando se repite una llamada sin progreso.</span>
                                 </div>
                                 <div class="form-group" style="margin:0;">
                                     <label for="tool_loop_critical_threshold">Umbral crítico</label>
                                     <input type="number" min="2" id="tool_loop_critical_threshold" onchange="saveSettings()" />
+                                    <span class="helper-text">Corte por repetición persistente de la misma ejecución.</span>
                                 </div>
                                 <div class="form-group" style="margin:0;">
                                     <label for="tool_loop_global_threshold">Corte global</label>
                                     <input type="number" min="3" id="tool_loop_global_threshold" onchange="saveSettings()" />
+                                    <span class="helper-text">Máximo de tools ejecutadas por turno antes de cortar.</span>
                                 </div>
                             </div>
                         </div>
@@ -1424,9 +1445,14 @@
                     </div>
                 </div>
 
+            </div>
+            <div id="estabilidad" class="page-content">
+                <h2 class="page-title">Estabilidad de herramientas</h2>
+                <p class="page-subtitle">Supervisa bloqueos, errores y tendencia del sistema de tools en tiempo real.</p>
+
                 <div class="card" style="margin-bottom: 24px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-                        <h3 style="margin: 0; border: none; padding: 0;">Estabilidad de Herramientas (Plan B)</h3>
+                        <h3 style="margin: 0; border: none; padding: 0;">Indicadores en vivo</h3>
                         <button class="secondary-btn" style="padding: 6px 12px; font-size: 12px;" onclick="loadToolRuntimeStatus()">Actualizar</button>
                     </div>
                     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px;">
@@ -1443,16 +1469,27 @@
                             <div id="diag_on_error" style="font-size: 22px; font-weight: 700;">0</div>
                         </div>
                         <div style="background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
-                            <div style="font-size: 11px; color: var(--text-muted);">Loop warnings</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Warnings loop</div>
                             <div id="diag_loop_warn" style="font-size: 22px; font-weight: 700;">0</div>
                         </div>
                         <div style="background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
-                            <div style="font-size: 11px; color: var(--text-muted);">Loop bloqueos</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Bloqueos loop</div>
                             <div id="diag_loop_block" style="font-size: 22px; font-weight: 700;">0</div>
                         </div>
                     </div>
                     <div id="diag_runtime_config" style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Cargando configuración...</div>
-                    <div id="diag_runtime_events" style="font-family: monospace; font-size: 11px; line-height: 1.35; max-height: 180px; overflow:auto; background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
+                </div>
+
+                <div class="card" style="margin-bottom: 24px;">
+                    <h3 style="margin: 0 0 12px; border: none; padding: 0;">Tendencia de estabilidad</h3>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="stabilityChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin: 0 0 12px; border: none; padding: 0;">Eventos recientes</h3>
+                    <div id="diag_runtime_events" style="font-family: monospace; font-size: 11px; line-height: 1.35; max-height: 220px; overflow:auto; background: var(--input-bg); border:1px solid var(--border); border-radius: 10px; padding: 10px;">
                         Cargando eventos...
                     </div>
                 </div>
@@ -1464,7 +1501,6 @@
                     <button class="sub-tab-btn active"
                         onclick="switchChannelTab('tab_telegram', this)">Telegram</button>
                     <button class="sub-tab-btn" onclick="switchChannelTab('tab_whatsapp', this)">WhatsApp</button>
-                    <button class="sub-tab-btn" onclick="switchChannelTab('tab_copilot', this)">Copilot</button>
                 </div>
                 <div id="tab_telegram" class="sub-tab-content active">
                     <div class="card">
@@ -1486,26 +1522,6 @@
                                 <label for="telegram_whitelist">Whitelisted IDs</label>
                                 <input type="text" id="telegram_whitelist" onchange="saveSettings()" />
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab Copilot -->
-                <div id="tab_copilot" class="sub-tab-content" style="display:none;">
-                    <div class="card">
-                        <div
-                            style="display:flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 12px;">
-                            <h3 style="margin: 0; border: none; padding: 0;">Microsoft Copilot</h3>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="bot_copilot_enabled" onchange="saveSettings()">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div style="text-align:center; padding: 20px;">
-                            <p style="font-size:14px; color:var(--text-muted);">Integración con Copilot avanzada
-                                (Login).</p>
-                            <button class="secondary-btn" disabled style="opacity:0.6; cursor:not-allowed;">⌛
-                                Próximamente</button>
                         </div>
                     </div>
                 </div>
@@ -1614,7 +1630,7 @@
                             </div>
                         </div>
 
-                        <!-- Herramientas OpenClaw (Sistema Local) -->
+                        <!-- Herramientas de Sistema Local -->
                         <div class="form-group" style="margin-top: 15px;">
                             <div class="toggle-container">
                                 <div>
@@ -2020,7 +2036,6 @@
                 <label>Proveedor</label>
                 <select id="modal_provider_select" onchange="updateAccountModalUI()">
                     <option value="openai">OpenAI (ChatGPT)</option>
-                    <option value="copilot">Microsoft Copilot</option>
                     <option value="anthropic">Anthropic (Claude)</option>
                     <option value="google">Google (Gemini)</option>
                     <option value="openrouter">OpenRouter</option>
@@ -2256,6 +2271,9 @@
                 if (pageId === 'consumos') {
                     loadUsageHistory();
                     loadTokenUsage();
+                }
+
+                if (pageId === 'estabilidad') {
                     loadToolRuntimeStatus();
                 }
 
@@ -2309,6 +2327,8 @@
         let currentVersion = '0.2.58';
         let remoteVersion = '';
         let usageChart = null;
+        let stabilityChart = null;
+        const stabilityHistory = [];
 
         function initUsageChart(data) {
             const ctx = document.getElementById('usageChart');
@@ -2503,6 +2523,18 @@
                 setText('diag_loop_warn', c.loopWarnings || 0);
                 setText('diag_loop_block', c.loopBlocks || 0);
 
+                const point = {
+                    time: new Date().toLocaleTimeString(),
+                    beforeBlocked: c.beforeBlocked || 0,
+                    afterSuccess: c.afterSuccess || 0,
+                    onError: c.onError || 0,
+                    loopWarnings: c.loopWarnings || 0,
+                    loopBlocks: c.loopBlocks || 0,
+                };
+                stabilityHistory.push(point);
+                if (stabilityHistory.length > 24) stabilityHistory.shift();
+                updateStabilityChart();
+
                 const cfgEl = document.getElementById('diag_runtime_config');
                 if (cfgEl) {
                     cfgEl.textContent = `hooksEnabled=${cfg.hooksEnabled ? 'true' : 'false'} | strictMode=${cfg.strictMode ? 'true' : 'false'} | warning=${cfg.warningThreshold ?? '-'} | critical=${cfg.criticalThreshold ?? '-'} | global=${cfg.globalThreshold ?? '-'}`;
@@ -2520,6 +2552,53 @@
                 const eventsEl = document.getElementById('diag_runtime_events');
                 if (eventsEl) eventsEl.textContent = 'Error cargando diagnóstico de herramientas.';
             }
+        }
+
+        function updateStabilityChart() {
+            const canvas = document.getElementById('stabilityChart');
+            if (!canvas) return;
+
+            const labels = stabilityHistory.map(x => x.time);
+            const mk = (key, label, color) => ({
+                label,
+                data: stabilityHistory.map(x => x[key]),
+                borderColor: color,
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 1.5,
+            });
+
+            const datasets = [
+                mk('afterSuccess', 'Ejecuciones OK', '#22c55e'),
+                mk('beforeBlocked', 'Bloqueos previos', '#f59e0b'),
+                mk('onError', 'Errores', '#ef4444'),
+                mk('loopWarnings', 'Warnings loop', '#f97316'),
+                mk('loopBlocks', 'Bloqueos loop', '#b91c1c'),
+            ];
+
+            if (stabilityChart) {
+                stabilityChart.data.labels = labels;
+                stabilityChart.data.datasets = datasets;
+                stabilityChart.update('none');
+                return;
+            }
+
+            stabilityChart = new Chart(canvas, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148, 163, 184, 0.1)' } }
+                    }
+                }
+            });
         }
 
         async function createNewChatSession() {
@@ -2995,7 +3074,7 @@
         }, 3000);
 
         setInterval(() => {
-            if (document.getElementById('consumos').classList.contains('active')) {
+            if (document.getElementById('estabilidad').classList.contains('active')) {
                 loadToolRuntimeStatus();
             }
         }, 8000);
@@ -3339,23 +3418,25 @@
             openai: 'https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg',
             anthropic: 'https://anthropic.com/images/icons/apple-touch-icon.png',
             google: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Google_Gemini_logo.svg',
-            copilot: 'https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg',
             openrouter: 'https://openrouter.ai/favicon.ico',
             groq: null,
             qwen: null,
             xai: null
         };
         const providerNames = {
-            openai: 'OpenAI', anthropic: 'Anthropic', google: 'Gemini', copilot: 'Copilot',
+            openai: 'OpenAI', anthropic: 'Anthropic', google: 'Gemini',
             groq: 'Groq', openrouter: 'OpenRouter', qwen: 'Qwen', xai: 'xAI'
         };
+        const supportedProviders = new Set(Object.keys(providerNames));
 
         function renderAccountCards(accounts) {
             const container = document.getElementById('accounts_list_container');
             if (!container) return;
             container.innerHTML = '';
 
-            if (!accounts || accounts.length === 0) {
+            const safeAccounts = (accounts || []).filter(acc => supportedProviders.has(acc.provider));
+
+            if (safeAccounts.length === 0) {
                 container.innerHTML = `<div class="card" style="text-align: center; padding: 40px; grid-column: 1/-1; color: var(--text-muted);">
                     <svg style="width:48px;height:48px;margin-bottom:12px;opacity:.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" /></svg>
                     <p style="margin:0;font-size:14px;">No tienes ninguna cuenta vinculada aún.</p>
@@ -3364,7 +3445,7 @@
                 return;
             }
 
-            accounts.forEach(acc => {
+            safeAccounts.forEach(acc => {
                 const logo = providerLogos[acc.provider];
                 const logoHtml = logo
                     ? `<img src="${logo}" style="height:24px;${acc.provider === 'anthropic' ? 'border-radius:4px' : ''}">`
@@ -3399,7 +3480,7 @@
                 if (!sel) return;
                 const currentVal = sel.value;
                 sel.innerHTML = '<option value="">-- Seleccionar --</option>';
-                (accounts || []).forEach(acc => {
+                (accounts || []).filter(acc => supportedProviders.has(acc.provider)).forEach(acc => {
                     const opt = document.createElement('option');
                     opt.value = acc.id;
                     opt.setAttribute('data-model', acc.model || '');
@@ -3482,8 +3563,7 @@
             groq: 'https://console.groq.com/keys',
             openrouter: 'https://openrouter.ai/keys',
             qwen: 'https://dashscope.console.aliyun.com/',
-            xai: 'https://console.x.ai/',
-            copilot: 'https://www.bing.com/chat'
+            xai: 'https://console.x.ai/'
         };
 
         function toggleAuthMethodUI() {
@@ -3538,41 +3618,21 @@
             document.getElementById('btn_test_conn').style.display = 'none';
             document.getElementById('btn_verify_key').style.display = 'block';
 
-            // Solo mostrar OAuth toggle para OpenAI y Copilot
-            if (provider === 'openai' || provider === 'copilot') {
+            // Solo mostrar OAuth toggle para OpenAI
+            if (provider === 'openai') {
                 if (toggleContainer) toggleContainer.style.display = 'flex';
 
-                // Personalizar botón OAuth según proveedor
+                // Personalizar botón OAuth
                 const oauthBtn = document.getElementById('btn_oauth_chatgpt');
                 const oauthIcon = document.getElementById('oauth_btn_icon');
                 const oauthText = document.getElementById('oauth_btn_text');
 
-                if (provider === 'copilot') {
-                    if (oauthBtn) {
-                        oauthBtn.style.background = '#00a4ef';
-                        oauthBtn.style.borderColor = '#00a4ef';
-                    }
-                    if (oauthIcon) oauthIcon.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" style="width: 16px; margin-right: 8px; vertical-align: middle;">`;
-                    if (oauthText) oauthText.textContent = 'Vincular cuenta con Copilot';
-                    
-                    // Copilot NO tiene API Key, forzar modo OAuth
-                    if (toggleContainer) toggleContainer.style.display = 'none';
-                    if (oauthContainer) oauthContainer.style.display = 'block';
-                    if (keySection) keySection.style.display = 'none';
-                    
-                    const radioOauth = document.querySelector('input[name="openai_method"][value="oauth"]');
-                    if (radioOauth) radioOauth.checked = true;
-                } else {
-                    if (oauthBtn) {
-                        oauthBtn.style.background = '#10a37f';
-                        oauthBtn.style.borderColor = '#10a37f';
-                    }
-                    if (oauthIcon) oauthIcon.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">`;
-                    if (oauthText) oauthText.textContent = 'Vincular cuenta con OpenAI';
-                    
-                    if (toggleContainer) toggleContainer.style.display = 'flex';
-                    toggleAuthMethodUI(); 
+                if (oauthBtn) {
+                    oauthBtn.style.background = '#10a37f';
+                    oauthBtn.style.borderColor = '#10a37f';
                 }
+                if (oauthIcon) oauthIcon.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">`;
+                if (oauthText) oauthText.textContent = 'Vincular cuenta con OpenAI';
 
                 toggleAuthMethodUI(); // Aplicar la selección del radio button
             } else {
@@ -3947,11 +4007,7 @@
                     if (pasteArea) pasteArea.style.display = 'none';
                     const btn = document.getElementById('btn_oauth_chatgpt');
                     btn.disabled = false;
-                    if (provider === 'copilot') {
-                        btn.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" style="width: 16px; margin-right: 8px; vertical-align: middle;">Vincular cuenta con Copilot`;
-                    } else {
-                        btn.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">Vincular cuenta con OpenAI`;
-                    }
+                    btn.innerHTML = `<img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" style="width: 16px; margin-right: 8px; vertical-align: middle; filter: invert(1);">Vincular cuenta con OpenAI`;
                     await loadSettings();
                 }, 1000);
             } catch (e) {
