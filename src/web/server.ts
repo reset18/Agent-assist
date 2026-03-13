@@ -79,6 +79,10 @@ app.get('/api/settings', (req, res) => {
         openai_voice_id: getSetting('openai_voice_id') || 'alloy',
         openai_tts_model: getSetting('openai_tts_model') || 'auto',
         openai_api_key_audio: getSetting('openai_api_key_audio') || process.env.OPENAI_API_KEY || '',
+        piper_bin_path: getSetting('piper_bin_path') || '',
+        piper_model_path: getSetting('piper_model_path') || '',
+        piper_speaker: getSetting('piper_speaker') || '',
+        piper_speed: getSetting('piper_speed') || '',
         elevenlabs_api_key: getSetting('elevenlabs_api_key') || '',
         elevenlabs_voice_id: getSetting('elevenlabs_voice_id') || '',
 
@@ -700,6 +704,41 @@ app.post('/api/voice/test-tts', async (req, res) => {
     }
 });
 
+app.post('/api/voice/test-local', async (req, res) => {
+    try {
+        const fsMod = await import('fs');
+        const osMod = await import('os');
+        const pathMod = await import('path');
+        const child = await import('child_process');
+
+        const defaults = process.platform === 'win32'
+            ? { bin: 'C:\\piper\\piper.exe', model: 'C:\\piper\\es_ES-sharvard-medium.onnx' }
+            : { bin: pathMod.join(osMod.homedir(), 'piper', 'piper', 'piper'), model: pathMod.join(osMod.homedir(), 'piper', 'es_ES-sharvard-medium.onnx') };
+
+        const piperBin = String(req.body?.piperBinPath || getSetting('piper_bin_path') || defaults.bin).trim();
+        const piperModel = String(req.body?.piperModelPath || getSetting('piper_model_path') || defaults.model).trim();
+
+        if (!piperBin || !fsMod.existsSync(piperBin)) {
+            return res.status(400).json({ success: false, error: `No se encuentra el binario Piper en: ${piperBin}` });
+        }
+        if (!piperModel || !fsMod.existsSync(piperModel)) {
+            return res.status(400).json({ success: false, error: `No se encuentra el modelo Piper en: ${piperModel}` });
+        }
+
+        const ffmpegCheck = child.spawnSync('ffmpeg', ['-version'], { encoding: 'utf8' });
+        const ffmpegOk = ffmpegCheck.status === 0;
+
+        const piperCheck = child.spawnSync(piperBin, ['--help'], { encoding: 'utf8' });
+        if (piperCheck.status !== 0) {
+            return res.status(400).json({ success: false, error: 'Piper existe pero no pudo ejecutarse correctamente.' });
+        }
+
+        return res.json({ success: true, ffmpeg: ffmpegOk, piperBin, piperModel });
+    } catch (e: any) {
+        return res.status(500).json({ success: false, error: e.message || 'Error validando Piper local.' });
+    }
+});
+
 function updateEnv(key: string, value: string) {
     if (!value) return;
     process.env[key] = value;
@@ -734,6 +773,7 @@ app.post('/api/settings', (req, res) => {
         bot_telegram_enabled, bot_whatsapp_enabled,
         gog_client_secret, gog_email,
         voice_enabled, voice_engine, openai_voice_id, openai_tts_model, openai_api_key_audio,
+        piper_bin_path, piper_model_path, piper_speaker, piper_speed,
         elevenlabs_api_key, elevenlabs_voice_id,
         llm_primary_account_id, llm_primary_model,
         llm_secondary_account_id, llm_secondary_model,
@@ -808,6 +848,10 @@ app.post('/api/settings', (req, res) => {
     if (openai_voice_id !== undefined) setSetting('openai_voice_id', openai_voice_id);
     if (openai_tts_model !== undefined) setSetting('openai_tts_model', openai_tts_model);
     if (openai_api_key_audio !== undefined) setSetting('openai_api_key_audio', openai_api_key_audio);
+    if (piper_bin_path !== undefined) setSetting('piper_bin_path', piper_bin_path);
+    if (piper_model_path !== undefined) setSetting('piper_model_path', piper_model_path);
+    if (piper_speaker !== undefined) setSetting('piper_speaker', piper_speaker);
+    if (piper_speed !== undefined) setSetting('piper_speed', piper_speed);
     if (elevenlabs_api_key !== undefined) setSetting('elevenlabs_api_key', elevenlabs_api_key);
     if (elevenlabs_voice_id !== undefined) setSetting('elevenlabs_voice_id', elevenlabs_voice_id);
 

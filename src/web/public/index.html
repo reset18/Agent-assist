@@ -2015,6 +2015,31 @@
                                 </div>
                             </div>
 
+                            <!-- Campos Local (Piper) -->
+                            <div id="local_voice_config_area"
+                                style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
+                                <div class="form-group">
+                                    <label for="piper_bin_path">Ruta del binario Piper</label>
+                                    <input type="text" id="piper_bin_path" placeholder="Ej: C:\\piper\\piper.exe o /home/usuario/piper/piper/piper" onchange="saveSettings()" />
+                                </div>
+                                <div class="form-group" style="margin-top: 10px;">
+                                    <label for="piper_model_path">Ruta del modelo Piper (.onnx)</label>
+                                    <input type="text" id="piper_model_path" placeholder="Ej: C:\\piper\\es_ES-sharvard-medium.onnx" onchange="saveSettings()" />
+                                </div>
+                                <div class="form-group" style="margin-top: 10px;">
+                                    <label for="piper_speaker">Speaker (opcional)</label>
+                                    <input type="text" id="piper_speaker" placeholder="Ej: 0" onchange="saveSettings()" />
+                                </div>
+                                <div class="form-group" style="margin-top: 10px;">
+                                    <label for="piper_speed">Velocidad (opcional)</label>
+                                    <input type="text" id="piper_speed" placeholder="Ej: 1.0" onchange="saveSettings()" />
+                                </div>
+                                <div class="form-group" style="margin-top: 10px;">
+                                    <button type="button" class="secondary-btn" onclick="testLocalVoiceConfig()">Probar voz local</button>
+                                    <span id="local_tts_test_status" class="helper-text" style="display:block; margin-top:8px;"></span>
+                                </div>
+                            </div>
+
                             <!-- Campos ElevenLabs -->
                             <div id="elevenlabs_voice_config_area"
                                 style="display: none; border-top: 1px dashed var(--border); padding-top: 20px; margin-top: 20px;">
@@ -2944,6 +2969,14 @@
                 }
                 const openaiKey = document.getElementById('openai_api_key_audio');
                 if (openaiKey) openaiKey.value = data.openai_api_key_audio || '';
+                const piperBin = document.getElementById('piper_bin_path');
+                if (piperBin) piperBin.value = data.piper_bin_path || '';
+                const piperModel = document.getElementById('piper_model_path');
+                if (piperModel) piperModel.value = data.piper_model_path || '';
+                const piperSpeaker = document.getElementById('piper_speaker');
+                if (piperSpeaker) piperSpeaker.value = data.piper_speaker || '';
+                const piperSpeed = document.getElementById('piper_speed');
+                if (piperSpeed) piperSpeed.value = data.piper_speed || '';
 
                 const elevenLabsKey = document.getElementById('elevenlabs_api_key');
                 if (elevenLabsKey) elevenLabsKey.value = data.elevenlabs_api_key || '';
@@ -3230,6 +3263,7 @@
         function updateVoiceEngineFields() {
             const engine = document.getElementById('voice_engine').value;
             document.getElementById('openai_voice_config_area').style.display = engine === 'openai' ? 'block' : 'none';
+            document.getElementById('local_voice_config_area').style.display = engine === 'local' ? 'block' : 'none';
             document.getElementById('elevenlabs_voice_config_area').style.display = engine === 'elevenlabs' ? 'block' : 'none';
         }
 
@@ -3258,6 +3292,10 @@
                 openai_api_key_audio: document.getElementById('openai_api_key_audio')?.value || '',
                 openai_voice_id: document.getElementById('openai_voice_id')?.value || 'alloy',
                 openai_tts_model: document.getElementById('openai_tts_model')?.value || 'auto',
+                piper_bin_path: document.getElementById('piper_bin_path')?.value || '',
+                piper_model_path: document.getElementById('piper_model_path')?.value || '',
+                piper_speaker: document.getElementById('piper_speaker')?.value || '',
+                piper_speed: document.getElementById('piper_speed')?.value || '',
                 elevenlabs_api_key: document.getElementById('elevenlabs_api_key')?.value || '',
                 elevenlabs_voice_id: document.getElementById('elevenlabs_voice_id')?.value || '',
                 llm_primary_account_id: document.getElementById('llm_primary_account_id')?.value || '',
@@ -4210,6 +4248,37 @@
                 statusEl.style.color = 'var(--success)';
             } catch (e) {
                 statusEl.textContent = '❌ Error de red validando TTS.';
+                statusEl.style.color = 'var(--danger)';
+            }
+        }
+
+        async function testLocalVoiceConfig() {
+            const statusEl = document.getElementById('local_tts_test_status');
+            const piperBinPath = document.getElementById('piper_bin_path')?.value || '';
+            const piperModelPath = document.getElementById('piper_model_path')?.value || '';
+
+            if (!statusEl) return;
+            statusEl.textContent = 'Validando Piper local...';
+            statusEl.style.color = 'var(--primary)';
+
+            try {
+                const r = await fetch('/api/voice/test-local', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ piperBinPath, piperModelPath })
+                });
+                const data = await r.json();
+                if (!r.ok || !data.success) {
+                    statusEl.textContent = `❌ ${data.error || 'No se pudo validar Piper local.'}`;
+                    statusEl.style.color = 'var(--danger)';
+                    return;
+                }
+
+                const ff = data.ffmpeg ? 'ffmpeg OK' : 'ffmpeg no detectado (se usará WAV)';
+                statusEl.textContent = `✅ Piper local operativo (${ff})`;
+                statusEl.style.color = 'var(--success)';
+            } catch (_) {
+                statusEl.textContent = '❌ Error de red validando Piper local.';
                 statusEl.style.color = 'var(--danger)';
             }
         }
