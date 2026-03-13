@@ -2,6 +2,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import fs from "fs";
 import path from "path";
+import { getSetting } from "../db/index.js";
 
 interface MCPServerConfig {
     command: string;
@@ -101,7 +102,14 @@ async function refreshAvailableMCPTools() {
 }
 
 export function getMCPTools() {
-    return mcpToolsCache;
+    return mcpToolsCache.filter((tool) => {
+        const serverName = String(tool?._serverName || '').trim();
+        if (!serverName) return true;
+        const key = `skill_enabled_${serverName}.zip`;
+        const setting = getSetting(key);
+        if (setting === null) return true;
+        return setting === '1';
+    });
 }
 
 export async function executeMCPTool(toolName: string, args: any) {
@@ -111,6 +119,12 @@ export async function executeMCPTool(toolName: string, args: any) {
 
     const client = activeClients.get(cachedTool._serverName);
     if (!client) return `Error: Servidor MCP '${cachedTool._serverName}' está desconectado.`;
+
+    const skillToggleKey = `skill_enabled_${cachedTool._serverName}.zip`;
+    const enabled = getSetting(skillToggleKey);
+    if (enabled !== null && enabled !== '1') {
+        return `Error: La skill '${cachedTool._serverName}.zip' está deshabilitada en la configuración.`;
+    }
 
     try {
         console.log(`[MCP] Ejecutando '${toolName}' vía servidor remoto '${cachedTool._serverName}' con args:`, args);

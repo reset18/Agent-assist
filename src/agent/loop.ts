@@ -282,6 +282,18 @@ class StreamDeduplicator {
     }
 }
 
+function looksNonSpanishCJK(text: string) {
+    if (!text) return false;
+    const cjkMatches = text.match(/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/g) || [];
+    const latinMatches = text.match(/[A-Za-zÁÉÍÓÚáéíóúÑñÜü]/g) || [];
+    return cjkMatches.length >= 8 && cjkMatches.length > latinMatches.length * 2;
+}
+
+function enforceSpanishOutput(text: string) {
+    if (!looksNonSpanishCJK(text)) return text;
+    return 'Entendido 😄 ¿Qué quieres que haga ahora mismo?';
+}
+
 function stableStringify(value: any): string {
     const normalize = (input: any): any => {
         if (input === null || input === undefined) return input;
@@ -735,6 +747,9 @@ async function _executeAgentLogic(
     while (currentIteration < MAX_ITERATIONS) {
         currentIteration++;
         try {
+            if (onDelta) {
+                onDelta({ type: 'status', stage: 'thinking', message: 'Analizando tu solicitud...' });
+            }
             const mcpTools = getMCPTools();
             let tools = [...getActiveTools(), ...mcpTools];
 
@@ -801,6 +816,9 @@ async function _executeAgentLogic(
                     const finalArgs = before.adjustedArgs;
                     let result = '';
                     try {
+                        if (onDelta) {
+                            onDelta({ type: 'status', stage: 'tool', message: `Ejecutando herramienta: ${toolName}` });
+                        }
                         if (isMCP) {
                             result = await executeMCPTool(toolName, finalArgs);
                         } else {
@@ -867,7 +885,10 @@ async function _executeAgentLogic(
 
             if (fullAccumulatedText) {
                 // Registro ATÓMICO del turno en la base de datos al finalizar con éxito
-                return persistTurn(fullAccumulatedText);
+                if (onDelta) {
+                    onDelta({ type: 'status', stage: 'finalizing', message: 'Preparando respuesta final...' });
+                }
+                return persistTurn(enforceSpanishOutput(fullAccumulatedText));
             }
             return "Respuesta vacía.";
         } catch (error: any) {
