@@ -11,6 +11,38 @@ function isOauthLikeKey(key: string) {
     return key.startsWith('eyJ');
 }
 
+async function tryGenerateLocalPiperAudioTag(text: string): Promise<string | null> {
+    const piperPath = path.join(process.env.HOME || '/home/ubuntu', 'piper', 'piper', 'piper');
+    const modelPath = path.join(process.env.HOME || '/home/ubuntu', 'piper', 'es_ES-sharvard-medium.onnx');
+
+    if (!fs.existsSync(piperPath)) {
+        return null;
+    }
+
+    const { execSync } = await import('child_process');
+    const mediaDir = path.join(__dirname, '..', '..', 'web', 'public', 'media');
+    if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir, { recursive: true });
+
+    const now = Date.now();
+    const tempWav = path.join(mediaDir, `temp_${now}.wav`);
+    const base = `voice_${now}`;
+    const oggFilename = `${base}.ogg`;
+    const oggPath = path.join(mediaDir, oggFilename);
+
+    try {
+        const piperCmd = `echo ${JSON.stringify(text)} | ${piperPath} --model ${modelPath} --output_file ${tempWav}`;
+        execSync(piperCmd);
+        execSync(`ffmpeg -i ${tempWav} -acodec libopus -y ${oggPath}`);
+        execSync(`rm ${tempWav}`);
+        return `[AUDIO: /media/${oggFilename}]`;
+    } catch (e) {
+        try {
+            if (fs.existsSync(tempWav)) fs.unlinkSync(tempWav);
+        } catch {}
+        return null;
+    }
+}
+
 export const speak_message_def = {
     type: "function",
     function: {
@@ -158,6 +190,21 @@ export async function execute_speak_message(args: { text_to_speak: string }) {
 
             if (!response.ok) {
                 const error = await response.text();
+
+                const modelAccessDenied = response.status === 403 && (
+                    error.includes('does not have access to model') ||
+                    error.includes('model_not_found')
+                );
+
+                if (modelAccessDenied) {
+                    console.warn('[Voice Engine] OpenAI TTS sin acceso al modelo. Intentando fallback local (Piper)...');
+                    const localTag = await tryGenerateLocalPiperAudioTag(args.text_to_speak);
+                    if (localTag) {
+                        return localTag;
+                    }
+                    throw new Error('Tu proyecto OpenAI no tiene acceso al modelo TTS configurado y no se pudo usar fallback local. Activa motor local o cambia a ElevenLabs.');
+                }
+
                 throw new Error(`OpenAI TTS falló con status: ${response.status} - ${error}`);
             }
 
