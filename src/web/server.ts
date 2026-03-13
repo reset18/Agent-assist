@@ -4,7 +4,7 @@ import { dirname, join } from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import AdmZip from 'adm-zip';
-import { getSetting, setSetting, getLLMAccounts, saveLLMAccount, removeLLMAccount, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, deleteSession, getTokenUsageHistory, getToolRuntimeMetricsHistory } from '../db/index.js';
+import { getSetting, setSetting, getLLMAccounts, saveLLMAccount, removeLLMAccount, isToolEnabled, setToolEnabled, clearMessages, getSessions, createSession, deleteSession, getTokenUsageHistory, getToolRuntimeMetricsHistory, listMemories, deleteMemory, clearMemories, getMemoryStats } from '../db/index.js';
 import { whatsappGlobalState } from '../bots/whatsapp.js';
 import { getToolRuntimeDiagnostics } from '../agent/loop.js';
 
@@ -133,6 +133,7 @@ app.get('/api/settings', (req, res) => {
         tool_loop_warning_threshold: getSetting('tool_loop_warning_threshold') || '6',
         tool_loop_critical_threshold: getSetting('tool_loop_critical_threshold') || '12',
         tool_loop_global_threshold: getSetting('tool_loop_global_threshold') || '40',
+        auto_memory_enabled: getSetting('auto_memory_enabled') !== '0',
     });
 });
 
@@ -910,6 +911,7 @@ app.post('/api/settings', (req, res) => {
     if (req.body.codex_compaction_enabled !== undefined) setSetting('codex_compaction_enabled', req.body.codex_compaction_enabled ? '1' : '0');
     if (req.body.codex_compact_threshold !== undefined) setSetting('codex_compact_threshold', req.body.codex_compact_threshold);
     if (req.body.ui_show_thinking !== undefined) setSetting('ui_show_thinking', req.body.ui_show_thinking ? '1' : '0');
+    if (req.body.auto_memory_enabled !== undefined) setSetting('auto_memory_enabled', req.body.auto_memory_enabled ? '1' : '0');
 
     // Guardar dinámicamente cualquier skill enviada
     for (const key of Object.keys(req.body)) {
@@ -1281,6 +1283,60 @@ app.get('/api/tokens/history', (req, res) => {
         res.json({ history });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/memories', (req, res) => {
+    try {
+        const scopeRaw = String(req.query.scope || 'all').toLowerCase();
+        const scope = scopeRaw === 'global' || scopeRaw === 'session' ? scopeRaw : 'all';
+        const sessionId = String(req.query.sessionId || '').trim() || undefined;
+        const q = String(req.query.q || '').trim() || undefined;
+        const limitRaw = parseInt(String(req.query.limit || '80'), 10);
+        const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 200) : 80;
+
+        const memories = listMemories({ scope: scope as any, sessionId, q, limit });
+        const stats = getMemoryStats(sessionId);
+        res.json({ success: true, memories, stats });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message || 'Error listando recuerdos.' });
+    }
+});
+
+app.get('/api/memories/stats', (req, res) => {
+    try {
+        const sessionId = String(req.query.sessionId || '').trim() || undefined;
+        res.json({ success: true, stats: getMemoryStats(sessionId) });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message || 'Error obteniendo estadísticas de recuerdos.' });
+    }
+});
+
+app.delete('/api/memories/:id', (req, res) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (!Number.isFinite(id) || id <= 0) {
+            return res.status(400).json({ success: false, error: 'ID inválido.' });
+        }
+        const ok = deleteMemory(id);
+        if (!ok) {
+            return res.status(404).json({ success: false, error: 'Recuerdo no encontrado.' });
+        }
+        return res.json({ success: true });
+    } catch (e: any) {
+        return res.status(500).json({ success: false, error: e.message || 'Error eliminando recuerdo.' });
+    }
+});
+
+app.post('/api/memories/clear', (req, res) => {
+    try {
+        const scopeRaw = String(req.body?.scope || 'session').toLowerCase();
+        const scope = scopeRaw === 'global' || scopeRaw === 'session' ? scopeRaw : 'session';
+        const sessionId = String(req.body?.sessionId || '').trim() || undefined;
+        const deleted = clearMemories({ scope: scope as any, sessionId });
+        res.json({ success: true, deleted });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message || 'Error limpiando recuerdos.' });
     }
 });
 

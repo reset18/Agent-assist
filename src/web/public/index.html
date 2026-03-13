@@ -1251,6 +1251,14 @@
                             </svg>
                             Borrar Chat
                         </button>
+                        <button id="clear_memories_btn" class="secondary-btn" onclick="clearCurrentSessionMemories()"
+                            style="display: none; border-radius: 12px; padding: 8px 14px; font-weight: 600; font-size: 13px; color: #f97316; border-color: rgba(249,115,22,0.35); margin-right: 8px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                style="width:14px; height:14px; margin-right:6px; vertical-align:middle;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v8m-4-4h8M4 12a8 8 0 1116 0 8 8 0 01-16 0z" />
+                            </svg>
+                            Borrar Recuerdos
+                        </button>
                     </div>
                 </div>
                 <div class="chat-main">
@@ -1417,6 +1425,17 @@
                                     <span class="helper-text">Máximo de tools ejecutadas por turno antes de cortar.</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; background: rgba(var(--bg-rgb), 0.3); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border);">
+                            <div>
+                                <div style="font-weight: 600; font-size: 14px;">Memoria persistente automatica</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Mantiene recuerdos duraderos aunque vacies el chat. Se borran por separado con "Borrar Recuerdos".</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="auto_memory_enabled" onchange="saveSettings()" checked>
+                                <span class="slider"></span>
+                            </label>
                         </div>
 
                         <div class="form-group" style="margin-top: 20px;">
@@ -2906,6 +2925,7 @@
 
         function updateDeleteButtonVisibility() {
             const btn = document.getElementById('delete_chat_btn');
+            const memoriesBtn = document.getElementById('clear_memories_btn');
             if (!btn) return;
             const isDefault = (window.currentSessionId === 'default' || window.currentSessionId === 'whatsapp_default' || window.currentSessionId === 'telegram_default');
             btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px; height:14px; margin-right:6px; vertical-align:middle;">
@@ -2913,6 +2933,7 @@
                             </svg>
                             ${isDefault ? 'Vaciar Chat' : 'Borrar Chat'}`;
             btn.style.display = 'flex';
+            if (memoriesBtn) memoriesBtn.style.display = 'flex';
         }
 
         function scrollToBottomFunc() {
@@ -3072,6 +3093,9 @@
                 }
                 if (document.getElementById('tool_loop_global_threshold')) {
                     document.getElementById('tool_loop_global_threshold').value = data.tool_loop_global_threshold || '40';
+                }
+                if (document.getElementById('auto_memory_enabled')) {
+                    document.getElementById('auto_memory_enabled').checked = data.auto_memory_enabled !== false;
                 }
 
                 const openaiVoice = document.getElementById('openai_voice_id');
@@ -3565,7 +3589,8 @@
                 tool_hooks_strict_mode: document.getElementById('tool_hooks_strict_mode')?.checked ?? true,
                 tool_loop_warning_threshold: parseInt(document.getElementById('tool_loop_warning_threshold')?.value || '6', 10),
                 tool_loop_critical_threshold: parseInt(document.getElementById('tool_loop_critical_threshold')?.value || '12', 10),
-                tool_loop_global_threshold: parseInt(document.getElementById('tool_loop_global_threshold')?.value || '40', 10)
+                tool_loop_global_threshold: parseInt(document.getElementById('tool_loop_global_threshold')?.value || '40', 10),
+                auto_memory_enabled: document.getElementById('auto_memory_enabled')?.checked ?? true
             };
 
             const gogClientEl = document.getElementById('gog_client_secret');
@@ -4520,6 +4545,30 @@
             } catch (e) {
                 statusEl.textContent = '❌ Error de red validando TTS.';
                 statusEl.style.color = 'var(--danger)';
+            }
+        }
+
+        async function clearCurrentSessionMemories() {
+            const isDefault = (window.currentSessionId === 'default' || window.currentSessionId === 'whatsapp_default' || window.currentSessionId === 'telegram_default');
+            const msg = isDefault
+                ? 'Esto borrará solo los recuerdos persistentes del chat principal. El historial de mensajes no se toca. ¿Continuar?'
+                : 'Esto borrará solo los recuerdos persistentes de esta sesión. El historial de mensajes no se toca. ¿Continuar?';
+            if (!confirm(msg)) return;
+
+            try {
+                const res = await fetch('/api/memories/clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ scope: 'session', sessionId: window.currentSessionId })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    alert(data.error || 'No se pudieron borrar los recuerdos.');
+                    return;
+                }
+                alert(`Recuerdos eliminados: ${data.deleted || 0}`);
+            } catch (e) {
+                alert('Error borrando recuerdos de la sesión.');
             }
         }
 

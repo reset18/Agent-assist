@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import fs, { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { createHash } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -58,6 +59,27 @@ export function initDb() {
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS memories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scope TEXT NOT NULL DEFAULT 'global',
+                session_id TEXT,
+                kind TEXT NOT NULL DEFAULT 'fact',
+                content TEXT NOT NULL,
+                confidence REAL NOT NULL DEFAULT 0.6,
+                source TEXT NOT NULL DEFAULT 'agent',
+                fingerprint TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_memories_scope ON memories(scope)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_memories_session_id ON memories(session_id)`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_memories_updated_at ON memories(updated_at DESC)`);
+        db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_memories_fingerprint ON memories(fingerprint)`);
+
+        db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('auto_memory_enabled', '1')").run();
     } catch (err) {
         console.error("[DB] Error en migración:", err);
     }
@@ -169,6 +191,134 @@ export function getTokenUsageHistory(days = 7) {
 
 export function getDbInstance() {
     return db;
+}
+
+export type MemoryScope = 'global' | 'session';
+
+export interface MemoryRecord {
+    id: number;
+    scope: MemoryScope;
+    session_id: string | null;
+    kind: string;
+    content: string;
+    confidence: number;
+    source: string;
+    fingerprint: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface MemoryInsertInput {
+    scope?: MemoryScope;
+    sessionId?: string | null;
+    kind?: string;
+    content: string;
+    confidence?: number;
+    source?: string;
+}
+
+function normalizeMemoryContent(content: string): string {
+    return String(content || '').replace(/\s+/g, ' ').trim();
+}
+
+function createMemoryFingerprint(scope: MemoryScope, sessionId: string | null, kind: string, content: string): string {
+    const key = `${scope}|${sessionId || ''}|${kind}|${normalizeMemoryContent(content).toLowerCase()}`;
+    return createHash('sha1').update(key).digest('hex');
+}
+
+export function addOrUpdateMemory(input: MemoryInsertInput): number {
+    const scope: MemoryScope = input.scope === 'session' ? 'session' : 'global';
+    const sessionId = scope === 'session' ? (input.sessionId || 'default') : null;
+    const kind = (input.kind || 'fact').trim() || 'fact';
+    const content = normalizeMemoryContent(input.content);
+    if (!content) return -1;
+    const confidenceRaw = Number(input.confidence);
+    const confidence = Number.isFinite(confidenceRaw) ? Math.min(1, Math.max(0, confidenceRaw)) : 0.6;
+    const source = (input.source || 'agent').trim() || 'agent';
+    const fingerprint = createMemoryFingerprint(scope, sessionId, kind, content);
+
+    const existing = db.prepare('SELECT id FROM memories WHERE fingerprint = ?').get(fingerprint) as { id: number } | undefined;
+    if (existing?.id) {
+        db.prepare('UPDATE memories SET content = ?, confidence = ?, source = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .run(content, confidence, source, existing.id);
+        return existing.id;
+    }
+
+    const result = db.prepare(
+        'INSERT INTO memories (scope, session_id, kind, content, confidence, source, fingerprint) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(scope, sessionId, kind, content, confidence, source, fingerprint);
+    return Number(result.lastInsertRowid);
+}
+
+export function listMemories(options?: { scope?: MemoryScope | 'all'; sessionId?: string; q?: string; limit?: number }): MemoryRecord[] {
+    const scope = options?.scope || 'all';
+    const sessionId = options?.sessionId;
+    const q = (options?.q || '').trim();
+    const limitRaw = Number(options?.limit);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(Math.floor(limitRaw), 200) : 100;
+
+    const where: string[] = [];
+    const args: any[] = [];
+
+    if (scope !== 'all') {
+        where.push('scope = ?');
+        args.push(scope);
+    }
+
+    if (sessionId) {
+        where.push('(session_id = ? OR (scope = \"global\"))');
+        args.push(sessionId);
+    }
+
+    if (q) {
+        where.push('content LIKE ?');
+        args.push(`%${q}%`);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const stmt = db.prepare(`SELECT * FROM memories ${whereSql} ORDER BY updated_at DESC, id DESC LIMIT ?`);
+    return stmt.all(...args, limit) as MemoryRecord[];
+}
+
+export function deleteMemory(id: number): boolean {
+    const result = db.prepare('DELETE FROM memories WHERE id = ?').run(id);
+    return result.changes > 0;
+}
+
+export function clearMemories(options?: { scope?: MemoryScope | 'all'; sessionId?: string }): number {
+    const scope = options?.scope || 'all';
+    const sessionId = options?.sessionId;
+
+    if (scope === 'all') {
+        const result = db.prepare('DELETE FROM memories').run();
+        return result.changes;
+    }
+
+    if (scope === 'session') {
+        if (sessionId) {
+            const result = db.prepare('DELETE FROM memories WHERE scope = ? AND session_id = ?').run('session', sessionId);
+            return result.changes;
+        }
+        const result = db.prepare('DELETE FROM memories WHERE scope = ?').run('session');
+        return result.changes;
+    }
+
+    const result = db.prepare('DELETE FROM memories WHERE scope = ?').run('global');
+    return result.changes;
+}
+
+export function getMemoryStats(sessionId?: string) {
+    const total = db.prepare('SELECT COUNT(*) as c FROM memories').get() as { c: number };
+    const global = db.prepare('SELECT COUNT(*) as c FROM memories WHERE scope = ?').get('global') as { c: number };
+    const session = sessionId
+        ? (db.prepare('SELECT COUNT(*) as c FROM memories WHERE scope = ? AND session_id = ?').get('session', sessionId) as { c: number })
+        : (db.prepare('SELECT COUNT(*) as c FROM memories WHERE scope = ?').get('session') as { c: number });
+
+    return {
+        total: total.c || 0,
+        global: global.c || 0,
+        session: session.c || 0,
+    };
 }
 
 // ==========================

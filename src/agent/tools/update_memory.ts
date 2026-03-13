@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { MEMORY_DIR } from '../memory.js';
+import { addOrUpdateMemory } from '../../db/index.js';
 
 export const update_memory_details = {
     name: 'update_memory',
@@ -54,9 +55,29 @@ export async function execute_update_memory(args: { action: string, file_name: s
             const date = new Date().toISOString().split('T')[0];
             const appendData = `\n- [${date}] ${args.content}`;
             fs.appendFileSync(filePath, appendData, 'utf-8');
+
+            addOrUpdateMemory({
+                scope: targetFile === 'memoria_agente.md' ? 'global' : 'session',
+                kind: targetFile === 'usuario.md' ? 'user_profile' : 'fact',
+                sessionId: targetFile === 'memoria_agente.md' ? undefined : 'default',
+                content: args.content,
+                confidence: 0.85,
+                source: 'tool:update_memory'
+            });
+
             return `Éxito: Conocimiento agregado a la memoria a largo plazo en ${targetFile}.`;
         } else if (args.action === 'replace') {
             fs.writeFileSync(filePath, args.content, 'utf-8');
+
+            addOrUpdateMemory({
+                scope: targetFile === 'memoria_agente.md' ? 'global' : 'session',
+                kind: targetFile === 'usuario.md' ? 'user_profile' : 'fact',
+                sessionId: targetFile === 'memoria_agente.md' ? undefined : 'default',
+                content: args.content,
+                confidence: 0.72,
+                source: 'tool:update_memory'
+            });
+
             return `Éxito: Archivo de memoria ${targetFile} reemplazado totalmente.`;
         }
 

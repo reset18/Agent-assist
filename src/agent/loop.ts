@@ -1,6 +1,6 @@
 import { chatCompletion, normalizeTextForComparison } from './llm.js';
 import { getSetting, setSetting, getRecentMessages, addMessage, addToolRuntimeMetric } from '../db/index.js';
-import { getMemoryPrompt } from './memory.js';
+import { getMemoryPrompt, buildRelevantPersistentMemoriesPrompt, autoPersistMemories } from './memory.js';
 import { getActiveTools, executeToolCall } from './tools.js';
 import { getMCPTools, executeMCPTool } from '../mcp/client.js';
 import fs from 'fs';
@@ -709,6 +709,7 @@ async function _executeAgentLogic(
         .replace('{voice_context}', voiceContext);
 
     fullSystemPrompt += getMemoryPrompt();
+    fullSystemPrompt += buildRelevantPersistentMemoriesPrompt(sessionId, cleanUserText);
 
     // Bootstrap
     const bootstrapFiles = ['package.json', 'README.md', 'src/index.ts'];
@@ -769,6 +770,7 @@ async function _executeAgentLogic(
     const persistTurn = (assistantText: string) => {
         addMessage('user', userMessageForDb, sessionId);
         addMessage('assistant', assistantText, sessionId);
+        autoPersistMemories(sessionId, cleanUserText, assistantText);
         return assistantText;
     };
 

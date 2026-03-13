@@ -42,7 +42,26 @@ CREATE TABLE IF NOT EXISTS tool_runtime_metrics (
   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS memories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scope TEXT NOT NULL DEFAULT 'global',
+  session_id TEXT,
+  kind TEXT NOT NULL DEFAULT 'fact',
+  content TEXT NOT NULL,
+  confidence REAL NOT NULL DEFAULT 0.6,
+  source TEXT NOT NULL DEFAULT 'agent',
+  fingerprint TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_memories_scope ON memories(scope);
+CREATE INDEX IF NOT EXISTS idx_memories_session_id ON memories(session_id);
+CREATE INDEX IF NOT EXISTS idx_memories_updated_at ON memories(updated_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_memories_fingerprint ON memories(fingerprint);
+
 -- Valores por defecto iniciales
 INSERT OR IGNORE INTO sessions (id, name) VALUES ('default', 'Chat Principal');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('agent_name', 'AgentAssist');
 INSERT OR IGNORE INTO settings (key, value) VALUES ('agent_version', '1.0.0');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('auto_memory_enabled', '1');
