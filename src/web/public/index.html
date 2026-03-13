@@ -2831,10 +2831,21 @@
             }
         }
 
+        function sanitizeDisplayText(text) {
+            if (!text) return '';
+            let out = String(text);
+            out = out.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, '').trim();
+            out = out.replace(/#\s*Plan Mode\s*-\s*System Reminder[\s\S]*$/gi, '').trim();
+            out = out.replace(/CRITICAL:\s*Plan mode ACTIVE[\s\S]*$/gi, '').trim();
+            out = out.replace(/\{\s*"command"\s*:\s*"[\s\S]*?\}\s*$/gi, '').trim();
+            return out;
+        }
+
         // Formateador seguro de texto a HTML usando Marked
         function formatChatText(text) {
             if (!text) return '';
             try {
+                const safeText = sanitizeDisplayText(text);
                 if (typeof marked !== 'undefined') {
                     marked.setOptions({
                         breaks: true,
@@ -2842,7 +2853,7 @@
                         headerIds: false,
                         mangle: false
                     });
-                    let formatted = marked.parse(text);
+                    let formatted = marked.parse(safeText);
 
                     // Restablecer de capa de escape únicamente la caja del Audio generada por el agente
                     formatted = formatted.replace(
@@ -2856,7 +2867,7 @@
                 logDebug(`Marked Error: ${e.message}`, 'error');
             }
             // Fallback: Escape básico
-            return text
+            return sanitizeDisplayText(text)
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
@@ -2946,13 +2957,13 @@
                     document.getElementById('tool_hooks_strict_mode').checked = data.tool_hooks_strict_mode !== false;
                 }
                 if (document.getElementById('tool_loop_warning_threshold')) {
-                    document.getElementById('tool_loop_warning_threshold').value = data.tool_loop_warning_threshold || '3';
+                    document.getElementById('tool_loop_warning_threshold').value = data.tool_loop_warning_threshold || '6';
                 }
                 if (document.getElementById('tool_loop_critical_threshold')) {
-                    document.getElementById('tool_loop_critical_threshold').value = data.tool_loop_critical_threshold || '6';
+                    document.getElementById('tool_loop_critical_threshold').value = data.tool_loop_critical_threshold || '12';
                 }
                 if (document.getElementById('tool_loop_global_threshold')) {
-                    document.getElementById('tool_loop_global_threshold').value = data.tool_loop_global_threshold || '20';
+                    document.getElementById('tool_loop_global_threshold').value = data.tool_loop_global_threshold || '40';
                 }
 
                 const openaiVoice = document.getElementById('openai_voice_id');
@@ -3316,9 +3327,9 @@
                 llm_tertiary_model: document.getElementById('llm_tertiary_model')?.value || '',
                 tool_hooks_enabled: document.getElementById('tool_hooks_enabled')?.checked ?? true,
                 tool_hooks_strict_mode: document.getElementById('tool_hooks_strict_mode')?.checked ?? true,
-                tool_loop_warning_threshold: parseInt(document.getElementById('tool_loop_warning_threshold')?.value || '3', 10),
-                tool_loop_critical_threshold: parseInt(document.getElementById('tool_loop_critical_threshold')?.value || '6', 10),
-                tool_loop_global_threshold: parseInt(document.getElementById('tool_loop_global_threshold')?.value || '20', 10)
+                tool_loop_warning_threshold: parseInt(document.getElementById('tool_loop_warning_threshold')?.value || '6', 10),
+                tool_loop_critical_threshold: parseInt(document.getElementById('tool_loop_critical_threshold')?.value || '12', 10),
+                tool_loop_global_threshold: parseInt(document.getElementById('tool_loop_global_threshold')?.value || '40', 10)
             };
 
             const gogClientEl = document.getElementById('gog_client_secret');

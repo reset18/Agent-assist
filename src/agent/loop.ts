@@ -51,9 +51,9 @@ function readIntSetting(key: string, fallback: number) {
 }
 
 function getRuntimeGuardConfig() {
-    const warningThreshold = readIntSetting('tool_loop_warning_threshold', 3);
-    const criticalThreshold = Math.max(readIntSetting('tool_loop_critical_threshold', 6), warningThreshold + 1);
-    const globalThreshold = Math.max(readIntSetting('tool_loop_global_threshold', 20), criticalThreshold + 1);
+    const warningThreshold = Math.max(readIntSetting('tool_loop_warning_threshold', 6), 6);
+    const criticalThreshold = Math.max(readIntSetting('tool_loop_critical_threshold', 12), warningThreshold + 1, 12);
+    const globalThreshold = Math.max(readIntSetting('tool_loop_global_threshold', 40), criticalThreshold + 1, 40);
 
     return {
         hooksEnabled: readBoolSetting('tool_hooks_enabled', true),
@@ -300,6 +300,8 @@ function sanitizeInternalArtifacts(text: string) {
     out = out.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, '').trim();
     out = out.replace(/#\s*Plan Mode\s*-\s*System Reminder[\s\S]*$/gi, '').trim();
     out = out.replace(/CRITICAL:\s*Plan mode ACTIVE[\s\S]*$/gi, '').trim();
+    out = out.replace(/\{\s*"command"\s*:\s*"[\s\S]*?\}\s*$/gi, '').trim();
+    out = out.replace(/```(?:bash|sh|shell|json)?[\s\S]*?(?:ip route|getent|awk|python3|bash -lc)[\s\S]*?```/gi, '').trim();
     return out;
 }
 

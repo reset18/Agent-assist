@@ -23,6 +23,17 @@ app.use(express.static(join(__dirname, 'public'), {
     }
 }));
 
+function sanitizeChatOutput(text: string) {
+    if (!text) return text;
+    let out = String(text);
+    out = out.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, '').trim();
+    out = out.replace(/#\s*Plan Mode\s*-\s*System Reminder[\s\S]*$/gi, '').trim();
+    out = out.replace(/CRITICAL:\s*Plan mode ACTIVE[\s\S]*$/gi, '').trim();
+    out = out.replace(/\{\s*"command"\s*:\s*"[\s\S]*?\}\s*$/gi, '').trim();
+    out = out.replace(/```(?:bash|sh|shell|json)?[\s\S]*?(?:ip route|getent|awk|python3|bash -lc)[\s\S]*?```/gi, '').trim();
+    return out;
+}
+
 // Cache-busting: Asegurar que index.html no se guarde en caché para que las actualizaciones sean inmediatas
 app.get('/', (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -102,9 +113,9 @@ app.get('/api/settings', (req, res) => {
         ui_show_thinking: getSetting('ui_show_thinking') === '1',
         tool_hooks_enabled: getSetting('tool_hooks_enabled') !== '0',
         tool_hooks_strict_mode: getSetting('tool_hooks_strict_mode') !== '0',
-        tool_loop_warning_threshold: getSetting('tool_loop_warning_threshold') || '3',
-        tool_loop_critical_threshold: getSetting('tool_loop_critical_threshold') || '6',
-        tool_loop_global_threshold: getSetting('tool_loop_global_threshold') || '20',
+        tool_loop_warning_threshold: getSetting('tool_loop_warning_threshold') || '6',
+        tool_loop_critical_threshold: getSetting('tool_loop_critical_threshold') || '12',
+        tool_loop_global_threshold: getSetting('tool_loop_global_threshold') || '40',
     });
 });
 
@@ -1176,10 +1187,10 @@ app.post('/api/chat', async (req, res) => {
     try {
         // processUserMessage ahora espera a que se complete el procesamiento (aunque esté en cola)
         const reply = await processUserMessage('web_user', 'web', message, false, sessionId || 'default');
-        
-        res.json({ reply });
+
+        res.json({ reply: sanitizeChatOutput(reply) });
     } catch (e: any) {
-        res.status(500).json({ error: e.message });
+        res.status(500).json({ error: sanitizeChatOutput(e.message) });
     }
 });
 
@@ -1204,19 +1215,19 @@ app.get('/api/chat/stream', async (req, res) => {
             (sessionId as string) || 'default',
             (delta) => {
                 if (delta.type === 'status' || delta.stage) {
-                    sendEvent({ type: 'status', stage: delta.stage || 'thinking', message: delta.message || '' });
+                    sendEvent({ type: 'status', stage: delta.stage || 'thinking', message: sanitizeChatOutput(delta.message || '') });
                 } else if (delta.reasoning) {
                     // No exponer razonamiento crudo al frontend (puede incluir contenido interno)
                     sendEvent({ type: 'status', stage: 'thinking', message: 'Procesando...' });
                 } else if (delta.content) {
-                    sendEvent({ type: 'delta', delta: delta.content });
+                    sendEvent({ type: 'delta', delta: sanitizeChatOutput(delta.content) });
                 }
             }
         );
 
-        sendEvent({ type: 'done', reply });
+        sendEvent({ type: 'done', reply: sanitizeChatOutput(reply) });
     } catch (e: any) {
-        sendEvent({ type: 'error', message: e.message });
+        sendEvent({ type: 'error', message: sanitizeChatOutput(e.message) });
     } finally {
         res.end();
     }
