@@ -14,6 +14,7 @@ const sessionQueues: Record<string, {
     busy: boolean;
     messages: { 
         text: string; 
+        displayText?: string;
         isAudio: boolean; 
         onDelta?: (delta: any) => void; 
         userId: string; 
@@ -281,7 +282,15 @@ class ToolLoopGuard {
 /**
  * Función principal expuesta al exterior. Implementa colas por sesión.
  */
-export async function processUserMessage(userId: string, source: string, message: string, isAudio: boolean = false, sessionId = 'default', onDelta?: (delta: any) => void): Promise<string> {
+export async function processUserMessage(
+    userId: string,
+    source: string,
+    message: string,
+    isAudio: boolean = false,
+    sessionId = 'default',
+    onDelta?: (delta: any) => void,
+    displayMessage?: string
+): Promise<string> {
     const state = getSessionState(sessionId);
     
     const normalized = normalizeTextForComparison(message);
@@ -301,7 +310,7 @@ export async function processUserMessage(userId: string, source: string, message
 
     // Crear promesa para este mensaje
     return new Promise((resolve, reject) => {
-        state.messages.push({ text: message, isAudio, onDelta, userId, source, resolve, reject });
+        state.messages.push({ text: message, displayText: displayMessage, isAudio, onDelta, userId, source, resolve, reject });
 
         if (!state.busy) {
             runProcessorQueue(sessionId).catch(e => console.error(`[Agent/Queue] Error fatal en cola ${sessionId}:`, e));
@@ -332,6 +341,10 @@ async function runProcessorQueue(sessionId: string) {
             );
 
             const combinedText = burst.map(m => m.text).join('\n---\n');
+            const combinedDisplayText = burst
+                .map((m) => m.displayText)
+                .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+                .join('\n---\n');
             const primaryMessage = burst[0];
             const isAudioBurst = burst.some(m => m.isAudio);
 
@@ -353,7 +366,8 @@ async function runProcessorQueue(sessionId: string) {
                     combinedText, 
                     isAudioBurst, 
                     sessionId, 
-                    combinedOnDelta
+                    combinedOnDelta,
+                    combinedDisplayText || undefined
                 );
 
                 // Resolver la primera promesa con la respuesta, y las demás con vacío
@@ -375,7 +389,15 @@ async function runProcessorQueue(sessionId: string) {
 /**
  * La lógica central del agente (anteriormente processUserMessage).
  */
-async function _executeAgentLogic(userId: string, source: string, message: string, isAudio: boolean, sessionId: string, onDelta?: (delta: any) => void): Promise<string> {
+async function _executeAgentLogic(
+    userId: string,
+    source: string,
+    message: string,
+    isAudio: boolean,
+    sessionId: string,
+    onDelta?: (delta: any) => void,
+    displayMessage?: string
+): Promise<string> {
     const agentName = getSetting('agent_name');
     let setupDone = getSetting('agent_setup_done');
     let setupStep = parseInt(getSetting('agent_setup_step') || '0', 10);
@@ -486,9 +508,11 @@ async function _executeAgentLogic(userId: string, source: string, message: strin
     let fullAccumulatedText = '';
     const toolLoopGuard = new ToolLoopGuard();
     let nonVoiceToolHitsInAudio = 0;
+    const userMessageForDb = (isAudio && displayMessage && displayMessage.trim())
+        ? displayMessage.trim()
+        : (stripTelegramAttachmentsBlock(message) || message);
     const persistTurn = (assistantText: string) => {
-        const cleanUserTextForDb = stripTelegramAttachmentsBlock(message) || message;
-        addMessage('user', cleanUserTextForDb, sessionId);
+        addMessage('user', userMessageForDb, sessionId);
         addMessage('assistant', assistantText, sessionId);
         return assistantText;
     };

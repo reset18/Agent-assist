@@ -32,6 +32,32 @@ function preferVoiceFilePath(filePath: string) {
     return filePath;
 }
 
+function normalizeAudioExt(extOrFilename: string) {
+    const lower = (extOrFilename || '').toLowerCase();
+    if (lower.endsWith('.ogg') || lower.endsWith('.oga')) return '.ogg';
+    if (lower.endsWith('.mp3')) return '.mp3';
+    if (lower.endsWith('.wav')) return '.wav';
+    if (lower.endsWith('.m4a')) return '.m4a';
+    if (lower.endsWith('.mp4')) return '.mp4';
+    if (lower.endsWith('.webm')) return '.webm';
+    return '.ogg';
+}
+
+async function saveIncomingAudioForWeb(buffer: Buffer, extOrFilename: string) {
+    const publicDirCandidates = [
+        path.join(process.cwd(), 'dist', 'web', 'public'),
+        path.join(process.cwd(), 'src', 'web', 'public')
+    ];
+    const publicDir = publicDirCandidates.find((p) => fs.existsSync(p)) || publicDirCandidates[0];
+    const mediaDir = path.join(publicDir, 'media');
+    await fs.promises.mkdir(mediaDir, { recursive: true });
+
+    const ext = normalizeAudioExt(extOrFilename);
+    const fileName = `telegram_user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
+    await fs.promises.writeFile(path.join(mediaDir, fileName), buffer);
+    return `/media/${fileName}`;
+}
+
 async function splitAndSend(ctx: any, text: string) {
     const CHUNK_LIMIT = 4000;
     if (text.length <= CHUNK_LIMIT) {
@@ -142,12 +168,21 @@ async function sendAudioOnlyReply(ctx: any, reply: string) {
 }
 
 async function processTelegramAudioBuffer(ctx: any, userId: string, audioBuffer: Buffer, filename: string) {
+    const audioPathForWeb = await saveIncomingAudioForWeb(audioBuffer, filename);
     const transcript = await transcribeAudio(audioBuffer, filename);
     console.log(`[Telegram] Transcripción recibida (${transcript.length} chars)`);
 
     const sessionId = 'telegram_default';
     createSession(sessionId, 'Chat de Telegram', 'telegram');
-    const reply = await processUserMessage(userId, 'telegram', transcript, true, sessionId);
+    const reply = await processUserMessage(
+        userId,
+        'telegram',
+        transcript,
+        true,
+        sessionId,
+        undefined,
+        `[AUDIO: ${audioPathForWeb}]`
+    );
 
     await sendAudioOnlyReply(ctx, reply);
 }

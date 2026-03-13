@@ -12,7 +12,15 @@ const __dirname = dirname(__filename);
 
 const app = express();
 app.use(express.json());
-app.use(express.static(join(__dirname, 'public')));
+app.use(express.static(join(__dirname, 'public'), {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('index.html') || filePath.endsWith('auth.html')) {
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 
 // Cache-busting: Asegurar que index.html no se guarde en caché para que las actualizaciones sean inmediatas
 app.get('/', (req, res) => {

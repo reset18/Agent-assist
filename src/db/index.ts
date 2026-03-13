@@ -71,7 +71,7 @@ export function addMessage(role: string, content: string, sessionId = 'default')
 }
 
 export function getRecentMessages(limit = 20, sessionId = 'default') {
-    const stmt = db.prepare('SELECT role, content FROM messages WHERE session_id = ? ORDER BY timestamp DESC LIMIT ?');
+    const stmt = db.prepare('SELECT role, content FROM messages WHERE session_id = ? ORDER BY id DESC LIMIT ?');
     const rows = stmt.all(sessionId, limit) as { role: string; content: string }[];
     return rows.reverse();
 }
@@ -170,4 +170,3 @@ export function removeLLMAccount(accountId: string) {
 }
 
 export default db;
-

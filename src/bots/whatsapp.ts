@@ -26,6 +26,31 @@ function resolveMediaFilePath(audioPath: string) {
     return path.join(process.cwd(), normalized);
 }
 
+function normalizeAudioExt(extOrMime: string) {
+    const lower = (extOrMime || '').toLowerCase();
+    if (lower.includes('ogg') || lower.includes('opus') || lower.endsWith('.ogg')) return '.ogg';
+    if (lower.includes('mpeg') || lower.includes('mp3') || lower.endsWith('.mp3')) return '.mp3';
+    if (lower.includes('wav') || lower.endsWith('.wav')) return '.wav';
+    if (lower.includes('m4a') || lower.includes('mp4') || lower.endsWith('.m4a') || lower.endsWith('.mp4')) return '.m4a';
+    if (lower.includes('webm') || lower.endsWith('.webm')) return '.webm';
+    return '.ogg';
+}
+
+async function saveIncomingAudioForWeb(buffer: Buffer, extOrMime: string) {
+    const publicDirCandidates = [
+        path.join(process.cwd(), 'dist', 'web', 'public'),
+        path.join(process.cwd(), 'src', 'web', 'public')
+    ];
+    const publicDir = publicDirCandidates.find((p) => fs.existsSync(p)) || publicDirCandidates[0];
+    const mediaDir = path.join(publicDir, 'media');
+    await fs.promises.mkdir(mediaDir, { recursive: true });
+
+    const ext = normalizeAudioExt(extOrMime);
+    const fileName = `whatsapp_user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
+    await fs.promises.writeFile(path.join(mediaDir, fileName), buffer);
+    return `/media/${fileName}`;
+}
+
 export let whatsappGlobalState = { status: 'initializing', qr: '' };
 
 async function sendWithAudioIntercept(msg: any, response: string) {
@@ -108,14 +133,21 @@ export async function startWhatsappBot() {
                 if (!media || !media.data) return;
 
                 const buffer = Buffer.from(media.data, 'base64');
+                const audioPathForWeb = await saveIncomingAudioForWeb(buffer, media.mimetype || msg.type || 'audio/ogg');
                 const transcript = await transcribeAudio(buffer, 'whatsapp_audio.ogg');
-
-                await msg.reply(`_Has dicho: "${transcript}"_`);
                 await chat.sendStateTyping();
 
                 const sessionId = 'whatsapp_default';
                 createSession(sessionId, 'Chat de WhatsApp', 'whatsapp');
-                const response = await processUserMessage(userId, 'whatsapp', transcript, true, sessionId);
+                const response = await processUserMessage(
+                    userId,
+                    'whatsapp',
+                    transcript,
+                    true,
+                    sessionId,
+                    undefined,
+                    `[AUDIO: ${audioPathForWeb}]`
+                );
                 await sendWithAudioIntercept(msg, response);
             } catch (e: any) {
                 console.error('[WhatsApp] Error procesando audio:', e);

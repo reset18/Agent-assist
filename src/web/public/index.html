@@ -1021,7 +1021,18 @@
             flex: 1;
         }
 
+        .consumos-top-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
         @media (max-width: 768px) {
+            .consumos-top-grid {
+                grid-template-columns: 1fr;
+            }
+
             .sidebar {
                 position: absolute;
                 height: 100%;
@@ -1330,21 +1341,9 @@
             <div id="consumos" class="page-content">
                 <h2 class="page-title">Consumo de API y Costes</h2>
 
-                <div class="card" style="margin-bottom: 24px;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3 style="margin: 0; border: none; padding: 0;">Historial de Uso (7 d&iacute;as)</h3>
-                        <div style="font-size: 12px; color: var(--text-muted);">Tokens totales agrupados por d&iacute;a
-                        </div>
-                    </div>
-                    <div style="height: 300px; position: relative;">
-                        <canvas id="usageChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="grid-2">
+                <div class="consumos-top-grid">
                     <!-- DASHBOARD DE TOKENS (Shared across tabs) -->
-                    <div class="card">
+                    <div class="card" style="margin-bottom: 0;">
                         <div
                             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                             <h3 style="margin: 0; border: none; padding: 0;">Consumo de Tokens (Hoy)</h3>
@@ -1362,7 +1361,7 @@
                         </div>
                     </div>
 
-                    <div class="card">
+                    <div class="card" style="margin-bottom: 0;">
                         <h3 style="margin: 0; border: none; padding: 0; margin-bottom: 20px;">Coste Estimado</h3>
                         <div
                             style="background: var(--input-bg); padding: 24px; border-radius: 16px; text-align: center; border: 1px solid var(--border);">
@@ -1380,6 +1379,18 @@
                             $0.60/1M salida aprox).
                             Los precios reales pueden variar según el modelo y el proveedor.
                         </p>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 24px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0; border: none; padding: 0;">Historial de Uso (7 d&iacute;as)</h3>
+                        <div style="font-size: 12px; color: var(--text-muted);">Tokens totales agrupados por d&iacute;a
+                        </div>
+                    </div>
+                    <div style="height: 300px; position: relative;">
+                        <canvas id="usageChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -2378,10 +2389,33 @@
                 } else {
                     clearInterval(interval);
                     // Petición al backend para actualizar de verdad
-                    fetch('/api/perform-update', { method: 'POST' }).finally(() => {
-                        setTimeout(() => {
-                            window.location.href = window.location.pathname + '?v=' + new Date().getTime();
-                        }, 2000);
+                    fetch('/api/perform-update', { method: 'POST' }).finally(async () => {
+                        const startedAt = Date.now();
+                        const maxWaitMs = 120000;
+                        let lastCurrent = currentVersion;
+
+                        while ((Date.now() - startedAt) < maxWaitMs) {
+                            await new Promise(resolve => setTimeout(resolve, 3000));
+                            try {
+                                const checkRes = await fetch('/api/check-update?t=' + Date.now(), { cache: 'no-store' });
+                                if (!checkRes.ok) continue;
+                                const checkData = await checkRes.json();
+                                lastCurrent = checkData.current || lastCurrent;
+                                if (checkData.current && checkData.remote && checkData.current === checkData.remote) {
+                                    const nextUrl = window.location.pathname + '?v=' + Date.now();
+                                    window.location.replace(nextUrl);
+                                    setTimeout(() => window.location.reload(), 1200);
+                                    return;
+                                }
+                            } catch (_) {
+                                // Durante reinicio de PM2 puede fallar temporalmente: seguimos esperando.
+                            }
+                        }
+
+                        // Fallback si el check no respondió como esperábamos
+                        const fallbackUrl = window.location.pathname + '?v=' + Date.now() + '&cv=' + encodeURIComponent(lastCurrent || '');
+                        window.location.replace(fallbackUrl);
+                        setTimeout(() => window.location.reload(), 1200);
                     });
                 }
             }, 1500);
