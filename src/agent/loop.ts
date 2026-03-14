@@ -1,6 +1,7 @@
 import { chatCompletion, normalizeTextForComparison } from './llm.js';
 import { getSetting, setSetting, getRecentMessages, addMessage, addToolRuntimeMetric } from '../db/index.js';
 import { getMemoryPrompt, buildRelevantPersistentMemoriesPrompt, autoPersistMemories } from './memory.js';
+import { buildAgentSystemPrompt } from './system-prompt.js';
 import { getActiveTools, executeToolCall } from './tools.js';
 import { getMCPTools, executeMCPTool } from '../mcp/client.js';
 import fs from 'fs';
@@ -82,6 +83,7 @@ const sessionQueues: Record<string, {
         onDelta?: (delta: any) => void; 
         userId: string; 
         source: string; 
+        runtimeOverrides?: { extraSystemPrompt?: string };
         resolve: (val: string) => void; 
         reject: (err: any) => void 
     }[];
@@ -516,6 +518,16 @@ class ToolLoopGuard {
     }
 }
 
+function isActionableToolIntent(text: string): boolean {
+    const t = (text || '').toLowerCase();
+    if (!t.trim()) return false;
+
+    const verbs = /(enciende|apaga|activa|desactiva|consulta|comprueba|verifica|lee|obt[eé]n|conecta|configura|crea|llama|ejecuta)/i;
+    const targets = /(home assistant|ha\b|api\s*rest|endpoint|entidad|switch\.|sensor\.|integration|integraci[oó]n|webhook|servicio)/i;
+
+    return verbs.test(t) && targets.test(t);
+}
+
 
 /**
  * Función principal expuesta al exterior. Implementa colas por sesión.
@@ -527,7 +539,8 @@ export async function processUserMessage(
     isAudio: boolean = false,
     sessionId = 'default',
     onDelta?: (delta: any) => void,
-    displayMessage?: string
+    displayMessage?: string,
+    runtimeOverrides?: { extraSystemPrompt?: string }
 ): Promise<string> {
     const state = getSessionState(sessionId);
     
@@ -559,7 +572,7 @@ export async function processUserMessage(
 
     // Crear promesa para este mensaje
     return new Promise((resolve, reject) => {
-        state.messages.push({ text: message, displayText: displayMessage, isAudio, onDelta, userId, source, resolve, reject });
+        state.messages.push({ text: message, displayText: displayMessage, isAudio, onDelta, userId, source, resolve, reject, runtimeOverrides });
 
         if (!state.busy) {
             runProcessorQueue(sessionId).catch(e => console.error(`[Agent/Queue] Error fatal en cola ${sessionId}:`, e));
@@ -616,7 +629,8 @@ async function runProcessorQueue(sessionId: string) {
                     isAudioBurst, 
                     sessionId, 
                     combinedOnDelta,
-                    combinedDisplayText || undefined
+                    combinedDisplayText || undefined,
+                    primaryMessage.runtimeOverrides
                 );
 
                 // Resolver la primera promesa con la respuesta, y las demás con vacío
@@ -645,7 +659,8 @@ async function _executeAgentLogic(
     isAudio: boolean,
     sessionId: string,
     onDelta?: (delta: any) => void,
-    displayMessage?: string
+    displayMessage?: string,
+    runtimeOverrides?: { extraSystemPrompt?: string }
 ): Promise<string> {
     const agentName = getSetting('agent_name');
     let setupDone = getSetting('agent_setup_done');
@@ -695,21 +710,7 @@ async function _executeAgentLogic(
     const provider = getSetting('model_provider') || process.env.LLM_PROVIDER || 'openrouter';
     let model = getSetting('model_name') || process.env.MODEL_NAME || (provider === 'openai' ? 'gpt-4o-mini' : 'openrouter/free');
 
-    // --- System Prompt Builder ---
-    // Kevin's rule: prominence for voice notes
-    const voiceContext = isAudio ? "\n!!! [IMPORTANTE: EL USUARIO TE HA ENVIADO UNA NOTA DE VOZ] !!!\nDebes responder SIEMPRE activando la herramienta 'speak_message'. No respondas solo con texto." : "Responde por texto estándar.";
-
-    const systemPromptTemplate = `Eres un asistente de IA llamado {agent_name}. Tu usuario es {user_name}.\nTu personalidad: {agent_personality}\nTu misión: {agent_function}\n\nHabla siempre en castellano. Eres capaz de recordar contexto.\n\nDIRECTRICES DE FORMATO:\n{voice_context}\n\nUsa las herramientas autónomamente. No pidas permiso si tienes una herramienta que soluciona la petición del usuario.`;
-    
-    let fullSystemPrompt = systemPromptTemplate
-        .replace('{agent_name}', nameToUse)
-        .replace('{user_name}', userNameToUse)
-        .replace('{agent_personality}', personalityToUse)
-        .replace('{agent_function}', functionToUse)
-        .replace('{voice_context}', voiceContext);
-
-    fullSystemPrompt += getMemoryPrompt();
-    fullSystemPrompt += buildRelevantPersistentMemoriesPrompt(sessionId, cleanUserText);
+    const memoryBlock = `${getMemoryPrompt()}${buildRelevantPersistentMemoriesPrompt(sessionId, cleanUserText)}`;
 
     // Bootstrap
     const bootstrapFiles = ['package.json', 'README.md', 'src/index.ts'];
@@ -723,10 +724,24 @@ async function _executeAgentLogic(
             }
         } catch (e) {}
     }
-    if (bootstrapContext) fullSystemPrompt += `\n\nBOOTSTRAP CONTEXT:\n${bootstrapContext}`;
-
     const extraSkills = getEnabledSkillsContext();
-    if (extraSkills) fullSystemPrompt += `\n\nHABILIDADES ACTIVAS:\n${extraSkills}`;
+    const extraRuntimeParts: string[] = [];
+    const channelPrompt = getSetting(`channel_system_prompt_${source}`) || '';
+    if (channelPrompt.trim()) extraRuntimeParts.push(channelPrompt.trim());
+    if (runtimeOverrides?.extraSystemPrompt?.trim()) extraRuntimeParts.push(runtimeOverrides.extraSystemPrompt.trim());
+
+    let fullSystemPrompt = buildAgentSystemPrompt({
+        agentName: nameToUse,
+        userName: userNameToUse,
+        personality: personalityToUse,
+        mission: functionToUse,
+        source,
+        isAudio,
+        memoryBlock,
+        skillsBlock: extraSkills,
+        bootstrapBlock: bootstrapContext,
+        extraSystemPrompt: extraRuntimeParts.join('\n\n') || undefined,
+    });
 
     // Historial LIMPIO: No incluye el mensaje actual porque aún no lo hemos guardado en DB
     const dbMessages = Array.from(getRecentMessages(12, sessionId));
@@ -756,6 +771,9 @@ async function _executeAgentLogic(
 
     let currentIteration = 0;
     let fullAccumulatedText = '';
+    let executedAnyTool = false;
+    let actionEnforcementUsed = false;
+    const shouldEnforceActionTools = !isAudio && isActionableToolIntent(cleanUserText);
     const runtimeGuardConfig = getRuntimeGuardConfig();
     const toolLoopGuard = new ToolLoopGuard({
         warningThreshold: runtimeGuardConfig.warningThreshold,
@@ -795,9 +813,13 @@ async function _executeAgentLogic(
             );
 
             const responseMessage = await chatCompletion(model, provider, thread, tools, undefined, onDelta);
-            thread.push(responseMessage);
+            const toolCalls = ('tool_calls' in responseMessage && (responseMessage as any).tool_calls?.length > 0)
+                ? (responseMessage as any).tool_calls
+                : [];
 
-            if ('tool_calls' in responseMessage && (responseMessage as any).tool_calls?.length > 0) {
+            if (toolCalls.length > 0) {
+                thread.push(responseMessage);
+                executedAnyTool = true;
                 for (const toolCall of (responseMessage as any).tool_calls) {
                     const toolName = toolCall?.function?.name || '';
                     const rawArgs = toolCall?.function?.arguments || '{}';
@@ -904,6 +926,17 @@ async function _executeAgentLogic(
                 }
                 continue;
             }
+
+            if (shouldEnforceActionTools && !executedAnyTool && !actionEnforcementUsed && tools.length > 0) {
+                actionEnforcementUsed = true;
+                thread.push({
+                    role: 'system',
+                    content: 'La petición requiere ejecutar herramientas para completar una acción real. Debes llamar al menos una herramienta disponible antes de responder al usuario.'
+                });
+                continue;
+            }
+
+            thread.push(responseMessage);
 
             if (responseMessage.content) {
                 const newContent = responseMessage.content.trim();
